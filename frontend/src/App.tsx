@@ -9,6 +9,7 @@ import { executeCode, healthCheck } from './engine/api';
 import { useTracePlayer } from './engine/tracePlayer';
 import { TraceEvent, VariableRoleMap, ThemeMode } from './engine/types';
 import { SAMPLES } from './data/samples';
+import { getFallbackDemoTrace } from './data/demoTraces';
 
 function App() {
   const [code, setCode] = useState(SAMPLES[0].code);
@@ -41,7 +42,17 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    healthCheck().then(setBackendAvailable);
+    healthCheck().then(available => {
+      setBackendAvailable(available);
+      if (!available) {
+        const fallback = getFallbackDemoTrace(code);
+        if (fallback && fallback.trace) {
+          setTrace(fallback.trace as TraceEvent[]);
+          setIsDemo(true);
+          setSandboxWarning('Chế độ xem trước GitHub Pages (dữ liệu mẫu từ thực thi C++ thật). Hãy khởi động backend cục bộ để chạy code tùy ý.');
+        }
+      }
+    });
   }, []);
 
   // Update stdout up to current step
@@ -69,11 +80,22 @@ function App() {
     setCode(sample.code);
     setStdin(sample.stdin);
     setVariableRoles(sample.suggestedRoles);
-    setTrace([]);
     setError(null);
     setCompilationError(undefined);
     setRuntimeError(undefined);
     setStdout('');
+    if (!backendAvailable) {
+      const fallback = getFallbackDemoTrace(sample.code);
+      if (fallback && fallback.trace) {
+        setTrace(fallback.trace as TraceEvent[]);
+        setIsDemo(true);
+        setSandboxWarning('Chế độ xem trước GitHub Pages (dữ liệu mẫu từ thực thi C++ thật). Hãy khởi động backend cục bộ để chạy code tùy ý.');
+        reset();
+        return;
+      }
+    }
+    setTrace([]);
+    reset();
   };
 
   const handleRoleChange = (varName: string, role: string) => {
@@ -104,10 +126,16 @@ function App() {
       if (!response.success && !response.trace?.length) {
         setError(response.compilationError || response.runtimeError || 'Execution failed');
       }
-    } catch (err) {
-      console.error(err);
-      setError('Cannot connect to backend. Please check if the server is running.');
-      // In a real app we might load demo trace data here
+    } catch {
+      const fallback = getFallbackDemoTrace(code);
+      if (fallback && fallback.trace) {
+        setTrace(fallback.trace as TraceEvent[]);
+        setIsDemo(true);
+        setSandboxWarning('Chế độ xem trước GitHub Pages (dữ liệu mẫu từ thực thi C++ thật). Hãy khởi động backend cục bộ để chạy code tùy ý.');
+        reset();
+      } else {
+        setError('Không thể kết nối đến backend và không tìm thấy dữ liệu mẫu phù hợp.');
+      }
     } finally {
       setIsLoading(false);
     }
