@@ -107,6 +107,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
         let declStr = `${genType(stmt.varType)} ${stmt.name}`;
         if (stmt.isArray) {
             declStr += `[${genExpr(stmt.arraySize!)}]`;
+            if (!stmt.initializer) declStr += ` = {0}`;
         }
         if (stmt.initializer) {
           if (stmt.varType.base === 'vector' && !stmt.isArray) {
@@ -114,11 +115,16 @@ export function instrument(ast: AST.Program, originalSource: string): string {
           } else {
             declStr += ` = ${genExpr(stmt.initializer)}`;
           }
+        } else if (!stmt.isArray && stmt.varType.base !== 'vector' && stmt.varType.base !== 'string') {
+            declStr += ` = 0`; // init to 0 safely for C++
         }
         declStr += ';';
         // IMPORTANT: Emit declaration FIRST so variable is in scope for trace
         out += declStr + '\n';
         addVar(stmt.name, varType);
+        if (!stmt.initializer) {
+            out += `__cl_sb.set_uninit("${stmt.name}");\n`;
+        }
         out += `__cl_begin(${stmt.line}, "vardecl"); ${emitVarSnapshot()} __cl_sb.mark_changed("${stmt.name}"); __cl_end();\n`;
         break;
 
@@ -126,8 +132,10 @@ export function instrument(ast: AST.Program, originalSource: string): string {
         const targetStr = stmt.target.index ? `${stmt.target.name}[${genExpr(stmt.target.index)}]` : stmt.target.name;
         out += `${targetStr} ${stmt.operator} ${genExpr(stmt.value)};\n`;
         if (stmt.target.index) {
-          out += `__cl_begin(${stmt.line}, "write"); ${emitVarSnapshot()} __cl_sb.mark_changed("${stmt.target.name}"); __cl_sb.set_access("${stmt.target.name}", ${genExpr(stmt.target.index)}, "write"); __cl_end();\n`;
+          out += `__cl_sb.set_arr_init("${stmt.target.name}", ${genExpr(stmt.target.index)});\n`;
+          out += `__cl_begin(${stmt.line}, "write"); ${emitVarSnapshot()} __cl_sb.mark_changed("${stmt.target.name}"); __cl_sb.set_access("${stmt.target.name}", ${genExpr(stmt.target.index)}, "write", ${targetStr}); __cl_end();\n`;
         } else {
+          out += `__cl_sb.set_init("${stmt.target.name}");\n`;
           out += `__cl_begin(${stmt.line}, "assign"); ${emitVarSnapshot()} __cl_sb.mark_changed("${stmt.target.name}"); __cl_end();\n`;
         }
         break;
@@ -186,9 +194,12 @@ export function instrument(ast: AST.Program, originalSource: string): string {
       case 'ReturnStmt':
         if (stmt.value) {
             out += `__cl_begin(${stmt.line}, "return"); ${emitVarSnapshot()} __cl_end();\n`;
-            out += `return ${genExpr(stmt.value)};\n`;
+            out += `auto __cl_ret = ${genExpr(stmt.value)};\n`;
+            out += `__cl_leave();\n`;
+            out += `return __cl_ret;\n`;
         } else {
             out += `__cl_begin(${stmt.line}, "return"); ${emitVarSnapshot()} __cl_end();\n`;
+            out += `__cl_leave();\n`;
             out += `return;\n`;
         }
         break;
@@ -199,6 +210,8 @@ export function instrument(ast: AST.Program, originalSource: string): string {
           if (stmt.expression.args.length >= 2 && stmt.expression.args[0].type === 'IndexExpr' && stmt.expression.args[1].type === 'IndexExpr') {
             const a1 = stmt.expression.args[0] as AST.IndexExpr;
             const a2 = stmt.expression.args[1] as AST.IndexExpr;
+            out += `__cl_sb.set_arr_init("${a1.object}", ${genExpr(a1.index)});\n`;
+            out += `__cl_sb.set_arr_init("${a2.object}", ${genExpr(a2.index)});\n`;
             out += `__cl_begin(${stmt.line}, "swap"); ${emitVarSnapshot()} __cl_sb.mark_changed("${a1.object}"); __cl_sb.set_swap("${a1.object}", ${genExpr(a1.index)}, ${genExpr(a2.index)}); __cl_end();\n`;
           } else {
             out += `__cl_begin(${stmt.line}, "line"); ${emitVarSnapshot()} __cl_end();\n`;
@@ -222,8 +235,10 @@ export function instrument(ast: AST.Program, originalSource: string): string {
         out += `cin >> ${stmt.targets.map(t => t.index ? `${t.name}[${genExpr(t.index)}]` : t.name).join(' >> ')};\n`;
         for (const t of stmt.targets) {
             if (t.index) {
-              out += `__cl_begin(${stmt.line}, "write"); ${emitVarSnapshot()} __cl_sb.mark_changed("${t.name}"); __cl_sb.set_access("${t.name}", ${genExpr(t.index)}, "write"); __cl_end();\n`;
+              out += `__cl_sb.set_arr_init("${t.name}", ${genExpr(t.index)});\n`;
+              out += `__cl_begin(${stmt.line}, "write"); ${emitVarSnapshot()} __cl_sb.mark_changed("${t.name}"); __cl_sb.set_access("${t.name}", ${genExpr(t.index)}, "write", ${t.name}[${genExpr(t.index)}]); __cl_end();\n`;
             } else {
+              out += `__cl_sb.set_init("${t.name}");\n`;
               out += `__cl_begin(${stmt.line}, "stdin"); ${emitVarSnapshot()} __cl_sb.mark_changed("${t.name}"); __cl_end();\n`;
             }
         }

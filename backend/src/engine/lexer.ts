@@ -40,7 +40,7 @@ export function tokenize(source: string): Token[] {
   let i = 0;
 
   function advance() {
-    if (source[i] === '\\n') {
+    if (source[i] === '\n') {
       line++;
       col = 1;
     } else {
@@ -52,13 +52,13 @@ export function tokenize(source: string): Token[] {
   while (i < source.length) {
     const char = source[i];
 
-    if (char === '\\n') {
-      tokens.push({ type: 'newline', value: '\\n', line, col });
+    if (char === '\n') {
+      tokens.push({ type: 'newline', value: '\n', line, col });
       advance();
       continue;
     }
 
-    if (char === ' ' || char === '\\t' || char === '\\r') {
+    if (char === ' ' || char === '\t' || char === '\r') {
       advance();
       continue;
     }
@@ -81,7 +81,7 @@ export function tokenize(source: string): Token[] {
 
     // Single-line comments
     if (char === '/' && source[i + 1] === '/') {
-      while (i < source.length && source[i] !== '\\n') {
+      while (i < source.length && source[i] !== '\n') {
         advance();
       }
       continue;

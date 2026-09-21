@@ -15,6 +15,7 @@ function App() {
   const [code, setCode] = useState(SAMPLES[0].code);
   const [stdin, setStdin] = useState(SAMPLES[0].stdin);
   const [trace, setTrace] = useState<TraceEvent[]>([]);
+  const [traceCode, setTraceCode] = useState(SAMPLES[0].code);
   const [isLoading, setIsLoading] = useState(false);
   const [_error, setError] = useState<string | null>(null);
   const [compilationError, setCompilationError] = useState<string | undefined>();
@@ -30,6 +31,8 @@ function App() {
   
   const [variableRoles, setVariableRoles] = useState<VariableRoleMap>(SAMPLES[0].suggestedRoles);
   const [backendAvailable, setBackendAvailable] = useState(true);
+
+  const isStale = trace.length > 0 && code !== traceCode;
 
   const {
     currentStep, currentEvent, isPlaying, speed, totalSteps,
@@ -49,7 +52,7 @@ function App() {
         if (fallback && fallback.trace) {
           setTrace(fallback.trace as TraceEvent[]);
           setIsDemo(true);
-          setSandboxWarning('Chế độ xem trước GitHub Pages (dữ liệu mẫu từ thực thi C++ thật). Hãy khởi động backend cục bộ để chạy code tùy ý.');
+          setSandboxWarning('Chế độ xem trước GitHub Pages (dữ liệu mẫu). Hãy khởi động backend cục bộ để chạy code tùy ý.');
         }
       }
     });
@@ -88,13 +91,15 @@ function App() {
       const fallback = getFallbackDemoTrace(sample.code);
       if (fallback && fallback.trace) {
         setTrace(fallback.trace as TraceEvent[]);
+        setTraceCode(sample.code);
         setIsDemo(true);
-        setSandboxWarning('Chế độ xem trước GitHub Pages (dữ liệu mẫu từ thực thi C++ thật). Hãy khởi động backend cục bộ để chạy code tùy ý.');
+        setSandboxWarning('Chế độ xem trước GitHub Pages (dữ liệu mẫu). Hãy khởi động backend cục bộ để chạy code tùy ý.');
         reset();
         return;
       }
     }
     setTrace([]);
+    setTraceCode(sample.code);
     reset();
   };
 
@@ -109,6 +114,8 @@ function App() {
     setRuntimeError(undefined);
     setSandboxWarning(undefined);
     setStdout('');
+    setTrace([]);
+    reset();
     
     try {
       if (!backendAvailable) {
@@ -117,6 +124,7 @@ function App() {
       const response = await executeCode(code, stdin);
       
       setTrace(response.trace || []);
+      setTraceCode(code);
       setCompilationError(response.compilationError);
       setRuntimeError(response.runtimeError);
       setSandboxWarning(response.sandboxWarning);
@@ -124,17 +132,23 @@ function App() {
       reset();
       
       if (!response.success && !response.trace?.length) {
-        setError(response.compilationError || response.runtimeError || 'Execution failed');
+        setRuntimeError(response.compilationError || response.runtimeError || 'Execution failed');
       }
     } catch {
-      const fallback = getFallbackDemoTrace(code);
-      if (fallback && fallback.trace) {
-        setTrace(fallback.trace as TraceEvent[]);
-        setIsDemo(true);
-        setSandboxWarning('Chế độ xem trước GitHub Pages (dữ liệu mẫu từ thực thi C++ thật). Hãy khởi động backend cục bộ để chạy code tùy ý.');
-        reset();
+      // ONLY fallback to demo if the exact sample code is present
+      const matchedSample = SAMPLES.find(s => s.code === code);
+      if (matchedSample) {
+        const fallback = getFallbackDemoTrace(code);
+        if (fallback && fallback.trace) {
+          setTrace(fallback.trace as TraceEvent[]);
+          setTraceCode(code);
+          setIsDemo(true);
+          setSandboxWarning('Chế độ xem trước GitHub Pages (dữ liệu mẫu). Hãy khởi động backend cục bộ để chạy code tùy ý.');
+          reset();
+        }
       } else {
-        setError('Không thể kết nối đến backend và không tìm thấy dữ liệu mẫu phù hợp.');
+        setCompilationError('Lỗi kết nối backend! Không thể chạy code tùy ý khi backend đang tắt.');
+        setIsDemo(false);
       }
     } finally {
       setIsLoading(false);
@@ -152,6 +166,15 @@ function App() {
         isBackendAvailable={backendAvailable}
       />
       
+      {isStale && (
+        <div className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-4 py-2 text-sm text-center border-b border-yellow-500/30 flex justify-center items-center gap-4">
+          <span>Mã nguồn đã bị thay đổi. Đang xem kết quả của mã cũ.</span>
+          <button onClick={handleRun} className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-xs transition-colors">
+            Chạy lại để cập nhật
+          </button>
+        </div>
+      )}
+
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         <div className="w-full md:w-[40%] flex flex-col h-full border-r border-[var(--border)] relative z-10 shadow-[2px_0_10px_rgba(0,0,0,0.05)]">
           <div className="flex-1 min-h-[50%]">

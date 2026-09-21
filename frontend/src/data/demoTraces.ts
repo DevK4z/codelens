@@ -5,16 +5,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
     "trace": [
       {
         "step": 0,
-        "line": 1,
+        "line": 5,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
-          "n": 77
+          "n": null
         },
         "changed": [
           "n"
@@ -23,12 +23,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 1,
-        "line": 1,
+        "line": 6,
         "event": "stdin",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -41,27 +41,27 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 2,
-        "line": 1,
+        "line": 7,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
           "n": 5,
           "arr": [
-            -479914928,
-            427,
-            0,
-            0,
-            -479887808,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -71,27 +71,27 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 3,
-        "line": 1,
+        "line": 8,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
           "n": 5,
           "arr": [
-            -479914928,
-            427,
-            0,
-            0,
-            -479887808,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -99,12 +99,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 4,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -112,15 +112,15 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "n": 5,
           "arr": [
             1,
-            427,
-            0,
-            0,
-            -479887808,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -129,18 +129,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 0,
-          "action": "write"
+          "action": "write",
+          "value": 1
         },
         "stdout": ""
       },
       {
         "step": 5,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -149,14 +150,14 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr": [
             1,
             2,
-            0,
-            0,
-            -479887808,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -165,18 +166,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 1,
-          "action": "write"
+          "action": "write",
+          "value": 2
         },
         "stdout": ""
       },
       {
         "step": 6,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -186,13 +188,13 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             2,
             3,
-            0,
-            -479887808,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -201,18 +203,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 2,
-          "action": "write"
+          "action": "write",
+          "value": 3
         },
         "stdout": ""
       },
       {
         "step": 7,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -223,12 +226,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             3,
             4,
-            -479887808,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -237,18 +240,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 3,
-          "action": "write"
+          "action": "write",
+          "value": 4
         },
         "stdout": ""
       },
       {
         "step": 8,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -260,11 +264,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -273,18 +277,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 4,
-          "action": "write"
+          "action": "write",
+          "value": 5
         },
         "stdout": ""
       },
       {
         "step": 9,
-        "line": 1,
+        "line": 11,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -295,11 +300,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ],
           "sum": 0
         },
@@ -310,12 +315,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 10,
-        "line": 1,
+        "line": 12,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -326,11 +331,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ],
           "sum": 0
         },
@@ -339,12 +344,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 11,
-        "line": 1,
+        "line": 13,
         "event": "assign",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -356,11 +361,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ],
           "sum": 1
         },
@@ -371,12 +376,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 12,
-        "line": 1,
+        "line": 13,
         "event": "assign",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -388,11 +393,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ],
           "sum": 3
         },
@@ -403,12 +408,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 13,
-        "line": 1,
+        "line": 13,
         "event": "assign",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -420,11 +425,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ],
           "sum": 6
         },
@@ -435,12 +440,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 14,
-        "line": 1,
+        "line": 13,
         "event": "assign",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -452,11 +457,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ],
           "sum": 10
         },
@@ -467,12 +472,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 15,
-        "line": 1,
+        "line": 13,
         "event": "assign",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -484,11 +489,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ],
           "sum": 15
         },
@@ -499,12 +504,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 16,
-        "line": 1,
+        "line": 15,
         "event": "stdout",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -515,11 +520,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ],
           "sum": 15
         },
@@ -528,12 +533,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 17,
-        "line": 1,
+        "line": 16,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -544,11 +549,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ],
           "sum": 15
         },
@@ -557,12 +562,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 18,
-        "line": 1,
+        "line": 16,
         "event": "return",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -573,11 +578,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            427,
-            -773330743,
-            32763,
-            -773168368,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ],
           "sum": 15
         },
@@ -587,24 +592,22 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
     ],
     "stdout": "15\r\n",
     "stepCount": 19,
-    "executionTimeMs": 262,
-    "isDemo": true,
-    "sandboxWarning": "Dữ liệu mô phỏng từ lần chạy C++ thật (Chế độ xem trước GitHub Pages)"
+    "success": true
   },
   "binary-search": {
     "trace": [
       {
         "step": 0,
-        "line": 1,
+        "line": 5,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
-          "n": 1
+          "n": null
         },
         "changed": [
           "n"
@@ -613,12 +616,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 1,
-        "line": 1,
+        "line": 6,
         "event": "stdin",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -631,27 +634,27 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 2,
-        "line": 1,
+        "line": 7,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
           "n": 7,
           "arr": [
-            -1407839152,
-            446,
-            0,
-            0,
-            -1407812032,
-            446,
-            -773330743,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -661,27 +664,27 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 3,
-        "line": 1,
+        "line": 8,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
           "n": 7,
           "arr": [
-            -1407839152,
-            446,
-            0,
-            0,
-            -1407812032,
-            446,
-            -773330743,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -689,12 +692,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 4,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -702,15 +705,15 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "n": 7,
           "arr": [
             1,
-            446,
-            0,
-            0,
-            -1407812032,
-            446,
-            -773330743,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -719,18 +722,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 0,
-          "action": "write"
+          "action": "write",
+          "value": 1
         },
         "stdout": ""
       },
       {
         "step": 5,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -739,14 +743,14 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr": [
             1,
             3,
-            0,
-            0,
-            -1407812032,
-            446,
-            -773330743,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -755,18 +759,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 1,
-          "action": "write"
+          "action": "write",
+          "value": 3
         },
         "stdout": ""
       },
       {
         "step": 6,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -776,13 +781,13 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             3,
             5,
-            0,
-            -1407812032,
-            446,
-            -773330743,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -791,18 +796,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 2,
-          "action": "write"
+          "action": "write",
+          "value": 5
         },
         "stdout": ""
       },
       {
         "step": 7,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -813,12 +819,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             5,
             7,
-            -1407812032,
-            446,
-            -773330743,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -827,18 +833,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 3,
-          "action": "write"
+          "action": "write",
+          "value": 7
         },
         "stdout": ""
       },
       {
         "step": 8,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -850,11 +857,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             5,
             7,
             9,
-            446,
-            -773330743,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -863,18 +870,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 4,
-          "action": "write"
+          "action": "write",
+          "value": 9
         },
         "stdout": ""
       },
       {
         "step": 9,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -887,10 +895,10 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             7,
             9,
             11,
-            -773330743,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -899,18 +907,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 5,
-          "action": "write"
+          "action": "write",
+          "value": 11
         },
         "stdout": ""
       },
       {
         "step": 10,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -924,9 +933,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -935,18 +944,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 6,
-          "action": "write"
+          "action": "write",
+          "value": 13
         },
         "stdout": ""
       },
       {
         "step": 11,
-        "line": 1,
+        "line": 11,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -959,11 +969,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
-          "target": 32758
+          "target": null
         },
         "changed": [
           "target"
@@ -972,12 +982,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 12,
-        "line": 1,
+        "line": 12,
         "event": "stdin",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -990,9 +1000,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7
         },
@@ -1003,12 +1013,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 13,
-        "line": 1,
+        "line": 13,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1021,9 +1031,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0
@@ -1035,12 +1045,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 14,
-        "line": 1,
+        "line": 13,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1053,9 +1063,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1068,12 +1078,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 15,
-        "line": 1,
+        "line": 14,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1086,9 +1096,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1102,12 +1112,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 16,
-        "line": 1,
+        "line": 15,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1120,9 +1130,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1142,12 +1152,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 17,
-        "line": 1,
+        "line": 16,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1161,9 +1171,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1177,12 +1187,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 18,
-        "line": 1,
+        "line": 17,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1196,9 +1206,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1218,12 +1228,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 19,
-        "line": 1,
+        "line": 20,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1237,9 +1247,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1259,12 +1269,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 20,
-        "line": 1,
+        "line": 23,
         "event": "assign",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1278,9 +1288,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1294,12 +1304,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 21,
-        "line": 1,
+        "line": 16,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1313,9 +1323,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1329,12 +1339,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 22,
-        "line": 1,
+        "line": 17,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1348,9 +1358,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1370,12 +1380,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 23,
-        "line": 1,
+        "line": 20,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1389,9 +1399,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1411,12 +1421,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 24,
-        "line": 1,
+        "line": 23,
         "event": "assign",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1430,9 +1440,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1446,12 +1456,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 25,
-        "line": 1,
+        "line": 16,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1465,9 +1475,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1481,12 +1491,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 26,
-        "line": 1,
+        "line": 17,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1500,9 +1510,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1522,12 +1532,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 27,
-        "line": 1,
+        "line": 20,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1541,9 +1551,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1563,12 +1573,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 28,
-        "line": 1,
+        "line": 23,
         "event": "assign",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1582,9 +1592,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1598,12 +1608,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 29,
-        "line": 1,
+        "line": 16,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1617,9 +1627,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1633,12 +1643,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 30,
-        "line": 1,
+        "line": 17,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1652,9 +1662,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1674,12 +1684,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 31,
-        "line": 1,
+        "line": 18,
         "event": "assign",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1693,9 +1703,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1709,12 +1719,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 32,
-        "line": 1,
+        "line": 19,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1728,9 +1738,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1742,12 +1752,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 33,
-        "line": 1,
+        "line": 26,
         "event": "stdout",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1760,9 +1770,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1774,12 +1784,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 34,
-        "line": 1,
+        "line": 27,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1792,9 +1802,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1806,12 +1816,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 35,
-        "line": 1,
+        "line": 27,
         "event": "return",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1824,9 +1834,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            32763,
-            -931171568,
-            32758
+            null,
+            null,
+            null
           ],
           "target": 7,
           "left": 0,
@@ -1839,24 +1849,22 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
     ],
     "stdout": "3\r\n",
     "stepCount": 36,
-    "executionTimeMs": 171,
-    "isDemo": true,
-    "sandboxWarning": "Dữ liệu mô phỏng từ lần chạy C++ thật (Chế độ xem trước GitHub Pages)"
+    "success": true
   },
   "bubble-sort": {
     "trace": [
       {
         "step": 0,
-        "line": 1,
+        "line": 5,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
-          "n": 1
+          "n": null
         },
         "changed": [
           "n"
@@ -1865,12 +1873,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 1,
-        "line": 1,
+        "line": 6,
         "event": "stdin",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1883,27 +1891,27 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 2,
-        "line": 1,
+        "line": 7,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
           "n": 5,
           "arr": [
-            1458050128,
-            555,
-            0,
-            0,
-            1458077248,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -1913,27 +1921,27 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 3,
-        "line": 1,
+        "line": 8,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
           "n": 5,
           "arr": [
-            1458050128,
-            555,
-            0,
-            0,
-            1458077248,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -1941,12 +1949,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 4,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1954,15 +1962,15 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "n": 5,
           "arr": [
             5,
-            555,
-            0,
-            0,
-            1458077248,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -1971,18 +1979,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 0,
-          "action": "write"
+          "action": "write",
+          "value": 5
         },
         "stdout": ""
       },
       {
         "step": 5,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -1991,14 +2000,14 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr": [
             5,
             3,
-            0,
-            0,
-            1458077248,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2007,18 +2016,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 1,
-          "action": "write"
+          "action": "write",
+          "value": 3
         },
         "stdout": ""
       },
       {
         "step": 6,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2028,13 +2038,13 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             5,
             3,
             1,
-            0,
-            1458077248,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2043,18 +2053,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 2,
-          "action": "write"
+          "action": "write",
+          "value": 1
         },
         "stdout": ""
       },
       {
         "step": 7,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2065,12 +2076,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             1,
             4,
-            1458077248,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2079,18 +2090,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 3,
-          "action": "write"
+          "action": "write",
+          "value": 4
         },
         "stdout": ""
       },
       {
         "step": 8,
-        "line": 1,
+        "line": 9,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2102,11 +2114,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2115,18 +2127,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 4,
-          "action": "write"
+          "action": "write",
+          "value": 2
         },
         "stdout": ""
       },
       {
         "step": 9,
-        "line": 1,
+        "line": 11,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2137,11 +2150,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -2149,12 +2162,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 10,
-        "line": 1,
+        "line": 12,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2166,11 +2179,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -2178,12 +2191,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 11,
-        "line": 1,
+        "line": 13,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2196,11 +2209,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -2216,12 +2229,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 12,
-        "line": 1,
+        "line": 14,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2235,11 +2248,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2249,12 +2262,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 13,
-        "line": 1,
+        "line": 15,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2268,11 +2281,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2281,18 +2294,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 0,
-          "action": "write"
+          "action": "write",
+          "value": 3
         },
         "stdout": ""
       },
       {
         "step": 14,
-        "line": 1,
+        "line": 16,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2306,11 +2320,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2319,18 +2333,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 1,
-          "action": "write"
+          "action": "write",
+          "value": 5
         },
         "stdout": ""
       },
       {
         "step": 15,
-        "line": 1,
+        "line": 13,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2343,11 +2358,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -2363,12 +2378,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 16,
-        "line": 1,
+        "line": 14,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2382,11 +2397,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2396,12 +2411,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 17,
-        "line": 1,
+        "line": 15,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2415,11 +2430,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2428,18 +2443,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 1,
-          "action": "write"
+          "action": "write",
+          "value": 1
         },
         "stdout": ""
       },
       {
         "step": 18,
-        "line": 1,
+        "line": 16,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2453,11 +2469,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             5,
             4,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2466,18 +2482,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 2,
-          "action": "write"
+          "action": "write",
+          "value": 5
         },
         "stdout": ""
       },
       {
         "step": 19,
-        "line": 1,
+        "line": 13,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2490,11 +2507,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             5,
             4,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -2510,12 +2527,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 20,
-        "line": 1,
+        "line": 14,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2529,11 +2546,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             5,
             4,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2543,12 +2560,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 21,
-        "line": 1,
+        "line": 15,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2562,11 +2579,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             4,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2575,18 +2592,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 2,
-          "action": "write"
+          "action": "write",
+          "value": 4
         },
         "stdout": ""
       },
       {
         "step": 22,
-        "line": 1,
+        "line": 16,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2600,11 +2618,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             5,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2613,18 +2631,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 3,
-          "action": "write"
+          "action": "write",
+          "value": 5
         },
         "stdout": ""
       },
       {
         "step": 23,
-        "line": 1,
+        "line": 13,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2637,11 +2656,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             5,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -2657,12 +2676,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 24,
-        "line": 1,
+        "line": 14,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2676,11 +2695,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             5,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2690,12 +2709,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 25,
-        "line": 1,
+        "line": 15,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2709,11 +2728,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             2,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2722,18 +2741,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 3,
-          "action": "write"
+          "action": "write",
+          "value": 2
         },
         "stdout": ""
       },
       {
         "step": 26,
-        "line": 1,
+        "line": 16,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2747,11 +2767,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2760,18 +2780,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 4,
-          "action": "write"
+          "action": "write",
+          "value": 5
         },
         "stdout": ""
       },
       {
         "step": 27,
-        "line": 1,
+        "line": 12,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2783,11 +2804,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -2795,12 +2816,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 28,
-        "line": 1,
+        "line": 13,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2813,11 +2834,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -2833,12 +2854,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 29,
-        "line": 1,
+        "line": 14,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2852,11 +2873,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2866,12 +2887,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 30,
-        "line": 1,
+        "line": 15,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2885,11 +2906,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2898,18 +2919,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 0,
-          "action": "write"
+          "action": "write",
+          "value": 1
         },
         "stdout": ""
       },
       {
         "step": 31,
-        "line": 1,
+        "line": 16,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2923,11 +2945,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -2936,18 +2958,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 1,
-          "action": "write"
+          "action": "write",
+          "value": 3
         },
         "stdout": ""
       },
       {
         "step": 32,
-        "line": 1,
+        "line": 13,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2960,11 +2983,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -2980,12 +3003,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 33,
-        "line": 1,
+        "line": 13,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -2998,11 +3021,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3018,12 +3041,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 34,
-        "line": 1,
+        "line": 14,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3037,11 +3060,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -3051,12 +3074,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 35,
-        "line": 1,
+        "line": 15,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3070,11 +3093,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             2,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -3083,18 +3106,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 2,
-          "action": "write"
+          "action": "write",
+          "value": 2
         },
         "stdout": ""
       },
       {
         "step": 36,
-        "line": 1,
+        "line": 16,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3108,11 +3132,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -3121,18 +3145,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 3,
-          "action": "write"
+          "action": "write",
+          "value": 4
         },
         "stdout": ""
       },
       {
         "step": 37,
-        "line": 1,
+        "line": 12,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3144,11 +3169,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3156,12 +3181,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 38,
-        "line": 1,
+        "line": 13,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3174,11 +3199,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3194,12 +3219,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 39,
-        "line": 1,
+        "line": 13,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3212,11 +3237,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3232,12 +3257,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 40,
-        "line": 1,
+        "line": 14,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3251,11 +3276,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -3265,12 +3290,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 41,
-        "line": 1,
+        "line": 15,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3284,11 +3309,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -3297,18 +3322,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 1,
-          "action": "write"
+          "action": "write",
+          "value": 2
         },
         "stdout": ""
       },
       {
         "step": 42,
-        "line": 1,
+        "line": 16,
         "event": "write",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3322,11 +3348,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [
@@ -3335,18 +3361,19 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "arrayAccess": {
           "name": "arr",
           "index": 2,
-          "action": "write"
+          "action": "write",
+          "value": 3
         },
         "stdout": ""
       },
       {
         "step": 43,
-        "line": 1,
+        "line": 12,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3358,11 +3385,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3370,12 +3397,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 44,
-        "line": 1,
+        "line": 13,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3388,11 +3415,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3408,12 +3435,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 45,
-        "line": 1,
+        "line": 20,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3424,11 +3451,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3436,12 +3463,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 46,
-        "line": 1,
+        "line": 21,
         "event": "stdout",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3453,11 +3480,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3465,12 +3492,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 47,
-        "line": 1,
+        "line": 21,
         "event": "stdout",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3482,11 +3509,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3494,12 +3521,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 48,
-        "line": 1,
+        "line": 21,
         "event": "stdout",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3511,11 +3538,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3523,12 +3550,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 49,
-        "line": 1,
+        "line": 21,
         "event": "stdout",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3540,11 +3567,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3552,12 +3579,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 50,
-        "line": 1,
+        "line": 21,
         "event": "stdout",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3569,11 +3596,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3581,12 +3608,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 51,
-        "line": 1,
+        "line": 23,
         "event": "stdout",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3597,11 +3624,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3609,12 +3636,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 52,
-        "line": 1,
+        "line": 24,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3625,11 +3652,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3637,12 +3664,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 53,
-        "line": 1,
+        "line": 24,
         "event": "return",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3653,11 +3680,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            555,
-            -773330743,
-            32763,
-            -45059312,
-            32758
+            null,
+            null,
+            null,
+            null,
+            null
           ]
         },
         "changed": [],
@@ -3666,24 +3693,22 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
     ],
     "stdout": "1 2 3 4 5 \r\n",
     "stepCount": 54,
-    "executionTimeMs": 159,
-    "isDemo": true,
-    "sandboxWarning": "Dữ liệu mô phỏng từ lần chạy C++ thật (Chế độ xem trước GitHub Pages)"
+    "success": true
   },
   "factorial": {
     "trace": [
       {
         "step": 0,
-        "line": 1,
+        "line": 12,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           }
         ],
         "variables": {
-          "n": 719872784
+          "n": null
         },
         "changed": [
           "n"
@@ -3692,12 +3717,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 1,
-        "line": 1,
+        "line": 13,
         "event": "stdin",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           }
         ],
         "variables": {
@@ -3710,16 +3735,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 2,
-        "line": 1,
+        "line": 5,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3738,16 +3763,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 3,
-        "line": 1,
+        "line": 8,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3758,16 +3783,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 4,
-        "line": 1,
+        "line": 8,
         "event": "return",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3778,20 +3803,20 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 5,
-        "line": 1,
+        "line": 5,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3810,20 +3835,20 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 6,
-        "line": 1,
+        "line": 8,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3834,20 +3859,20 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 7,
-        "line": 1,
+        "line": 8,
         "event": "return",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3858,24 +3883,24 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 8,
-        "line": 1,
+        "line": 5,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3894,24 +3919,24 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 9,
-        "line": 1,
+        "line": 8,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3922,24 +3947,24 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 10,
-        "line": 1,
+        "line": 8,
         "event": "return",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3950,28 +3975,28 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 11,
-        "line": 1,
+        "line": 5,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -3990,28 +4015,28 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 12,
-        "line": 1,
+        "line": 8,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -4022,28 +4047,28 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 13,
-        "line": 1,
+        "line": 8,
         "event": "return",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -4054,32 +4079,32 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 14,
-        "line": 1,
+        "line": 5,
         "event": "compare",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -4098,32 +4123,32 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 15,
-        "line": 1,
+        "line": 6,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -4134,32 +4159,32 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 16,
-        "line": 1,
+        "line": 6,
         "event": "return",
         "callStack": [
           {
             "func": "main",
-            "line": 1
+            "line": 11
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           },
           {
             "func": "factorial",
-            "line": 1
+            "line": 4
           }
         ],
         "variables": {
@@ -4170,32 +4195,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 17,
-        "line": 1,
+        "line": 14,
         "event": "vardecl",
         "callStack": [
           {
             "func": "main",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
+            "line": 11
           }
         ],
         "variables": {
@@ -4209,32 +4214,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 18,
-        "line": 1,
+        "line": 15,
         "event": "stdout",
         "callStack": [
           {
             "func": "main",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
+            "line": 11
           }
         ],
         "variables": {
@@ -4246,32 +4231,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 19,
-        "line": 1,
+        "line": 16,
         "event": "line",
         "callStack": [
           {
             "func": "main",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
+            "line": 11
           }
         ],
         "variables": {
@@ -4283,32 +4248,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       },
       {
         "step": 20,
-        "line": 1,
+        "line": 16,
         "event": "return",
         "callStack": [
           {
             "func": "main",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
-          },
-          {
-            "func": "factorial",
-            "line": 1
+            "line": 11
           }
         ],
         "variables": {
@@ -4321,9 +4266,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
     ],
     "stdout": "120\r\n",
     "stepCount": 21,
-    "executionTimeMs": 177,
-    "isDemo": true,
-    "sandboxWarning": "Dữ liệu mô phỏng từ lần chạy C++ thật (Chế độ xem trước GitHub Pages)"
+    "success": true
   }
 };
 

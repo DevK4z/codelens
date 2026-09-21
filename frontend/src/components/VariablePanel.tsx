@@ -49,8 +49,11 @@ export function VariablePanel({ event, variableRoles, onRoleChange }: VariablePa
             const role = variableRoles[name] || 'none';
             
             let displayVal = String(val);
-            if (Array.isArray(val)) {
-              displayVal = `[${val.length <= 10 ? val.join(', ') : val.slice(0, 10).join(', ') + ', ...'}]`;
+            if (val === null) {
+              displayVal = '? (Chưa khởi tạo)';
+            } else if (Array.isArray(val)) {
+              const mapped = val.map(v => v === null ? '?' : v);
+              displayVal = `[${mapped.length <= 10 ? mapped.join(', ') : mapped.slice(0, 10).join(', ') + ', ...'}]`;
             }
 
             return (

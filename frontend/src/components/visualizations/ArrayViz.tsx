@@ -87,6 +87,7 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
           let textColor = 'text-[var(--text-primary)]';
           let label = '';
           let badgeColor = 'text-[var(--text-secondary)]';
+          const isNull = val === null;
           
           if (event.arrayAccess?.name === arrayVar && event.arrayAccess?.index === idx) {
             if (event.arrayAccess.action === 'read') {
@@ -124,9 +125,10 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
               
               {/* Array Box */}
               <div 
-                className={`w-14 h-14 flex items-center justify-center border-2 rounded-xl text-lg transition-all duration-300 transform select-none ${bgColor} ${borderColor} ${textColor}`}
+                className={`w-14 h-14 flex items-center justify-center border-2 rounded-xl text-lg transition-all duration-300 transform select-none ${bgColor} ${borderColor} ${textColor} ${isNull ? 'opacity-50' : ''}`}
+                title={isNull ? 'Chưa khởi tạo' : ''}
               >
-                {val}
+                {isNull ? '?' : val}
               </div>
               
               {/* Operation label */}
