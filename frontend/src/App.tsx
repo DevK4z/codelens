@@ -150,6 +150,31 @@ function App() {
       setTraceStdin(stdin);
       setStdout(response.stdout || '');
       setSandboxWarning(response.sandboxWarning || undefined);
+      
+      // Auto-assign roles for custom code
+      if (response.trace.length > 0) {
+        const lastVars = response.trace[response.trace.length - 1].variables;
+        const autoRoles: Record<string, string> = {};
+        let hasArray = false;
+        
+        for (const [key, val] of Object.entries(lastVars)) {
+          if (Array.isArray(val)) {
+            if (!hasArray) {
+              autoRoles[key] = 'array'; // Only assign one main array
+              hasArray = true;
+            }
+          } else if (typeof val === 'number') {
+            const lower = key.toLowerCase();
+            if (lower === 'left' || lower === 'l' || lower === 'start') autoRoles[key] = 'left-pointer';
+            else if (lower === 'right' || lower === 'r' || lower === 'end') autoRoles[key] = 'right-pointer';
+            else if (lower === 'mid' || lower === 'm') autoRoles[key] = 'mid-pointer';
+            else if (lower.includes('target') || lower === 'key' || lower === 'x') autoRoles[key] = 'target';
+            else if (lower.includes('res') || lower === 'ans') autoRoles[key] = 'result';
+          }
+        }
+        setVariableRoles(autoRoles as VariableRoleMap);
+      }
+      
       reset();
     } catch (err: any) {
       if (currentRunId !== runIdRef.current) return;
