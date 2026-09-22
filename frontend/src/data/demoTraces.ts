@@ -109,7 +109,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 0,
+          "index1": 0,
           "n": 5,
           "arr": [
             1,
@@ -128,9 +128,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 0,
-          "action": "write",
+          "mode": "write",
           "value": 1
         },
         "stdout": ""
@@ -146,7 +146,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 1,
+          "index1": 1,
           "n": 5,
           "arr": [
             1,
@@ -165,9 +165,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 1,
-          "action": "write",
+          "mode": "write",
           "value": 2
         },
         "stdout": ""
@@ -183,7 +183,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 2,
+          "index1": 2,
           "n": 5,
           "arr": [
             1,
@@ -202,9 +202,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 2,
-          "action": "write",
+          "mode": "write",
           "value": 3
         },
         "stdout": ""
@@ -220,7 +220,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 3,
+          "index1": 3,
           "n": 5,
           "arr": [
             1,
@@ -239,9 +239,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 3,
-          "action": "write",
+          "mode": "write",
           "value": 4
         },
         "stdout": ""
@@ -257,7 +257,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 4,
+          "index1": 4,
           "n": 5,
           "arr": [
             1,
@@ -276,9 +276,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 4,
-          "action": "write",
+          "mode": "write",
           "value": 5
         },
         "stdout": ""
@@ -354,7 +354,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 0,
+          "index1": 0,
           "n": 5,
           "arr": [
             1,
@@ -386,7 +386,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 1,
+          "index1": 1,
           "n": 5,
           "arr": [
             1,
@@ -418,7 +418,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 2,
+          "index1": 2,
           "n": 5,
           "arr": [
             1,
@@ -450,7 +450,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 3,
+          "index1": 3,
           "n": 5,
           "arr": [
             1,
@@ -482,7 +482,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 4,
+          "index1": 4,
           "n": 5,
           "arr": [
             1,
@@ -702,7 +702,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 0,
+          "index1": 0,
           "n": 7,
           "arr": [
             1,
@@ -721,9 +721,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 0,
-          "action": "write",
+          "mode": "write",
           "value": 1
         },
         "stdout": ""
@@ -739,7 +739,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 1,
+          "index1": 1,
           "n": 7,
           "arr": [
             1,
@@ -758,9 +758,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 1,
-          "action": "write",
+          "mode": "write",
           "value": 3
         },
         "stdout": ""
@@ -776,7 +776,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 2,
+          "index1": 2,
           "n": 7,
           "arr": [
             1,
@@ -795,9 +795,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 2,
-          "action": "write",
+          "mode": "write",
           "value": 5
         },
         "stdout": ""
@@ -813,7 +813,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 3,
+          "index1": 3,
           "n": 7,
           "arr": [
             1,
@@ -832,9 +832,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 3,
-          "action": "write",
+          "mode": "write",
           "value": 7
         },
         "stdout": ""
@@ -850,7 +850,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 4,
+          "index1": 4,
           "n": 7,
           "arr": [
             1,
@@ -869,9 +869,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 4,
-          "action": "write",
+          "mode": "write",
           "value": 9
         },
         "stdout": ""
@@ -887,7 +887,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 5,
+          "index1": 5,
           "n": 7,
           "arr": [
             1,
@@ -906,9 +906,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 5,
-          "action": "write",
+          "mode": "write",
           "value": 11
         },
         "stdout": ""
@@ -924,7 +924,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 6,
+          "index1": 6,
           "n": 7,
           "arr": [
             1,
@@ -943,9 +943,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 6,
-          "action": "write",
+          "mode": "write",
           "value": 13
         },
         "stdout": ""
@@ -1503,7 +1503,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 0,
+          "index1": 0,
           "n": 5,
           "arr": [
             5,
@@ -1522,9 +1522,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 0,
-          "action": "write",
+          "mode": "write",
           "value": 5
         },
         "stdout": ""
@@ -1540,7 +1540,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 1,
+          "index1": 1,
           "n": 5,
           "arr": [
             5,
@@ -1559,9 +1559,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 1,
-          "action": "write",
+          "mode": "write",
           "value": 3
         },
         "stdout": ""
@@ -1577,7 +1577,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 2,
+          "index1": 2,
           "n": 5,
           "arr": [
             5,
@@ -1596,9 +1596,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 2,
-          "action": "write",
+          "mode": "write",
           "value": 1
         },
         "stdout": ""
@@ -1614,7 +1614,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 3,
+          "index1": 3,
           "n": 5,
           "arr": [
             5,
@@ -1633,9 +1633,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 3,
-          "action": "write",
+          "mode": "write",
           "value": 4
         },
         "stdout": ""
@@ -1651,7 +1651,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 4,
+          "index1": 4,
           "n": 5,
           "arr": [
             5,
@@ -1670,9 +1670,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 4,
-          "action": "write",
+          "mode": "write",
           "value": 2
         },
         "stdout": ""
@@ -1716,7 +1716,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 0,
+          "index1": 0,
           "n": 5,
           "arr": [
             5,
@@ -1745,8 +1745,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "j": 0,
-          "i": 0,
+          "index2": 0,
+          "index1": 0,
           "n": 5,
           "arr": [
             5,
@@ -1784,8 +1784,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 5,
-          "j": 0,
-          "i": 0,
+          "index2": 0,
+          "index1": 0,
           "n": 5,
           "arr": [
             5,
@@ -1817,8 +1817,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 5,
-          "j": 0,
-          "i": 0,
+          "index2": 0,
+          "index1": 0,
           "n": 5,
           "arr": [
             3,
@@ -1837,9 +1837,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 0,
-          "action": "write",
+          "mode": "write",
           "value": 3
         },
         "stdout": ""
@@ -1856,8 +1856,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 5,
-          "j": 0,
-          "i": 0,
+          "index2": 0,
+          "index1": 0,
           "n": 5,
           "arr": [
             3,
@@ -1876,9 +1876,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 1,
-          "action": "write",
+          "mode": "write",
           "value": 5
         },
         "stdout": ""
@@ -1894,8 +1894,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "j": 1,
-          "i": 0,
+          "index2": 1,
+          "index1": 0,
           "n": 5,
           "arr": [
             3,
@@ -1933,8 +1933,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 5,
-          "j": 1,
-          "i": 0,
+          "index2": 1,
+          "index1": 0,
           "n": 5,
           "arr": [
             3,
@@ -1966,8 +1966,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 5,
-          "j": 1,
-          "i": 0,
+          "index2": 1,
+          "index1": 0,
           "n": 5,
           "arr": [
             3,
@@ -1986,9 +1986,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 1,
-          "action": "write",
+          "mode": "write",
           "value": 1
         },
         "stdout": ""
@@ -2005,8 +2005,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 5,
-          "j": 1,
-          "i": 0,
+          "index2": 1,
+          "index1": 0,
           "n": 5,
           "arr": [
             3,
@@ -2025,9 +2025,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 2,
-          "action": "write",
+          "mode": "write",
           "value": 5
         },
         "stdout": ""
@@ -2043,8 +2043,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "j": 2,
-          "i": 0,
+          "index2": 2,
+          "index1": 0,
           "n": 5,
           "arr": [
             3,
@@ -2082,8 +2082,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 5,
-          "j": 2,
-          "i": 0,
+          "index2": 2,
+          "index1": 0,
           "n": 5,
           "arr": [
             3,
@@ -2115,8 +2115,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 5,
-          "j": 2,
-          "i": 0,
+          "index2": 2,
+          "index1": 0,
           "n": 5,
           "arr": [
             3,
@@ -2135,9 +2135,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 2,
-          "action": "write",
+          "mode": "write",
           "value": 4
         },
         "stdout": ""
@@ -2154,8 +2154,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 5,
-          "j": 2,
-          "i": 0,
+          "index2": 2,
+          "index1": 0,
           "n": 5,
           "arr": [
             3,
@@ -2174,9 +2174,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 3,
-          "action": "write",
+          "mode": "write",
           "value": 5
         },
         "stdout": ""
@@ -2192,8 +2192,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "j": 3,
-          "i": 0,
+          "index2": 3,
+          "index1": 0,
           "n": 5,
           "arr": [
             3,
@@ -2231,8 +2231,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 5,
-          "j": 3,
-          "i": 0,
+          "index2": 3,
+          "index1": 0,
           "n": 5,
           "arr": [
             3,
@@ -2264,8 +2264,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 5,
-          "j": 3,
-          "i": 0,
+          "index2": 3,
+          "index1": 0,
           "n": 5,
           "arr": [
             3,
@@ -2284,9 +2284,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 3,
-          "action": "write",
+          "mode": "write",
           "value": 2
         },
         "stdout": ""
@@ -2303,8 +2303,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 5,
-          "j": 3,
-          "i": 0,
+          "index2": 3,
+          "index1": 0,
           "n": 5,
           "arr": [
             3,
@@ -2323,9 +2323,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 4,
-          "action": "write",
+          "mode": "write",
           "value": 5
         },
         "stdout": ""
@@ -2341,7 +2341,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 1,
+          "index1": 1,
           "n": 5,
           "arr": [
             3,
@@ -2370,8 +2370,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "j": 0,
-          "i": 1,
+          "index2": 0,
+          "index1": 1,
           "n": 5,
           "arr": [
             3,
@@ -2409,8 +2409,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 3,
-          "j": 0,
-          "i": 1,
+          "index2": 0,
+          "index1": 1,
           "n": 5,
           "arr": [
             3,
@@ -2442,8 +2442,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 3,
-          "j": 0,
-          "i": 1,
+          "index2": 0,
+          "index1": 1,
           "n": 5,
           "arr": [
             1,
@@ -2462,9 +2462,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 0,
-          "action": "write",
+          "mode": "write",
           "value": 1
         },
         "stdout": ""
@@ -2481,8 +2481,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 3,
-          "j": 0,
-          "i": 1,
+          "index2": 0,
+          "index1": 1,
           "n": 5,
           "arr": [
             1,
@@ -2501,9 +2501,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 1,
-          "action": "write",
+          "mode": "write",
           "value": 3
         },
         "stdout": ""
@@ -2519,8 +2519,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "j": 1,
-          "i": 1,
+          "index2": 1,
+          "index1": 1,
           "n": 5,
           "arr": [
             1,
@@ -2557,8 +2557,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "j": 2,
-          "i": 1,
+          "index2": 2,
+          "index1": 1,
           "n": 5,
           "arr": [
             1,
@@ -2596,8 +2596,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 4,
-          "j": 2,
-          "i": 1,
+          "index2": 2,
+          "index1": 1,
           "n": 5,
           "arr": [
             1,
@@ -2629,8 +2629,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 4,
-          "j": 2,
-          "i": 1,
+          "index2": 2,
+          "index1": 1,
           "n": 5,
           "arr": [
             1,
@@ -2649,9 +2649,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 2,
-          "action": "write",
+          "mode": "write",
           "value": 2
         },
         "stdout": ""
@@ -2668,8 +2668,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 4,
-          "j": 2,
-          "i": 1,
+          "index2": 2,
+          "index1": 1,
           "n": 5,
           "arr": [
             1,
@@ -2688,9 +2688,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 3,
-          "action": "write",
+          "mode": "write",
           "value": 4
         },
         "stdout": ""
@@ -2706,7 +2706,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 2,
+          "index1": 2,
           "n": 5,
           "arr": [
             1,
@@ -2735,8 +2735,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "j": 0,
-          "i": 2,
+          "index2": 0,
+          "index1": 2,
           "n": 5,
           "arr": [
             1,
@@ -2773,8 +2773,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "j": 1,
-          "i": 2,
+          "index2": 1,
+          "index1": 2,
           "n": 5,
           "arr": [
             1,
@@ -2812,8 +2812,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 3,
-          "j": 1,
-          "i": 2,
+          "index2": 1,
+          "index1": 2,
           "n": 5,
           "arr": [
             1,
@@ -2845,8 +2845,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 3,
-          "j": 1,
-          "i": 2,
+          "index2": 1,
+          "index1": 2,
           "n": 5,
           "arr": [
             1,
@@ -2865,9 +2865,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 1,
-          "action": "write",
+          "mode": "write",
           "value": 2
         },
         "stdout": ""
@@ -2884,8 +2884,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         ],
         "variables": {
           "temp": 3,
-          "j": 1,
-          "i": 2,
+          "index2": 1,
+          "index1": 2,
           "n": 5,
           "arr": [
             1,
@@ -2904,9 +2904,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 2,
-          "action": "write",
+          "mode": "write",
           "value": 3
         },
         "stdout": ""
@@ -2922,7 +2922,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 3,
+          "index1": 3,
           "n": 5,
           "arr": [
             1,
@@ -2951,8 +2951,8 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "j": 0,
-          "i": 3,
+          "index2": 0,
+          "index1": 3,
           "n": 5,
           "arr": [
             1,
@@ -3017,7 +3017,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 0,
+          "index1": 0,
           "n": 5,
           "arr": [
             1,
@@ -3046,7 +3046,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 1,
+          "index1": 1,
           "n": 5,
           "arr": [
             1,
@@ -3075,7 +3075,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 2,
+          "index1": 2,
           "n": 5,
           "arr": [
             1,
@@ -3104,7 +3104,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 3,
+          "index1": 3,
           "n": 5,
           "arr": [
             1,
@@ -3133,7 +3133,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "i": 4,
+          "index1": 4,
           "n": 5,
           "arr": [
             1,

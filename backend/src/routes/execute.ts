@@ -70,7 +70,7 @@ router.post('/', async (req, res) => {
     
     const runResult = await runCode(instrumentedCode, stdin || '');
 
-    const response: ExecuteResponse = {
+    const response: ExecuteResponse & { _instrumentedCode?: string } = {
       success: runResult.exitCode === 0 && !runResult.timeLimitExceeded && !runResult.stepLimitExceeded,
       trace: runResult.trace,
       stdout: runResult.stdout,
@@ -78,7 +78,8 @@ router.post('/', async (req, res) => {
       executionTimeMs: runResult.executionTimeMs,
       timeLimitExceeded: runResult.timeLimitExceeded,
       stepLimitExceeded: runResult.stepLimitExceeded,
-      sandboxWarning: 'Sandbox chưa hoàn chỉnh - dùng Docker cho production'
+      sandboxWarning: 'Sandbox chua hoan chinh - dung Docker cho production',
+      _instrumentedCode: instrumentedCode
     };
     
     if (runResult.exitCode !== 0) {
@@ -88,10 +89,10 @@ router.post('/', async (req, res) => {
     return res.json(response);
 
   } catch (error: any) {
-    if (error.name === 'ParseError') {
+    if (error.name === 'ParseError' || error.name === 'CompilationError') {
       return res.json({ success: false, compilationError: error.message });
     }
-    if (error.name === 'RunError' || error.name === 'CompilationError') {
+    if (error.name === 'RunError') {
       return res.json({ success: false, runtimeError: error.message });
     }
     console.error('Execution Error:', error);
@@ -100,4 +101,3 @@ router.post('/', async (req, res) => {
 });
 
 export default router;
-

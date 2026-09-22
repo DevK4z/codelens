@@ -26,7 +26,7 @@ export function generateExplanation(event: TraceEvent, prevEvent?: TraceEvent): 
       return 'Thực hiện phép so sánh.';
     case 'swap':
       if (event.swapInfo) {
-        return `Hoán đổi vị trí ${event.swapInfo.i} và ${event.swapInfo.j} của mảng ${event.swapInfo.name}`;
+        return `Hoán đổi vị trí ${event.swapInfo.index1} và ${event.swapInfo.index2} của mảng ${event.swapInfo.array}`;
       }
       return 'Hoán đổi hai biến.';
     case 'call':
@@ -47,12 +47,12 @@ export function generateExplanation(event: TraceEvent, prevEvent?: TraceEvent): 
       return 'Trả về từ hàm.';
     case 'read':
       if (event.arrayAccess) {
-        return `Đọc phần tử ${event.arrayAccess.name}[${event.arrayAccess.index}] = ${event.arrayAccess.value}`;
+        return `Đọc phần tử ${event.arrayAccess.array}[${event.arrayAccess.index}] = ${event.arrayAccess.value}`;
       }
       return 'Đọc dữ liệu.';
     case 'write':
       if (event.arrayAccess) {
-        return `Ghi ${event.arrayAccess.name}[${event.arrayAccess.index}] = ${event.arrayAccess.value}`;
+        return `Ghi ${event.arrayAccess.array}[${event.arrayAccess.index}] = ${event.arrayAccess.value}`;
       }
       return 'Ghi dữ liệu.';
     case 'stdout':

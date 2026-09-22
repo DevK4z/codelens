@@ -19,7 +19,7 @@ function App() {
   const [traceStdin, setTraceStdin] = useState(SAMPLES[0].stdin);
   const runIdRef = useRef<number>(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [_error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [compilationError, setCompilationError] = useState<string | undefined>();
   const [runtimeError, setRuntimeError] = useState<string | undefined>();
   const [sandboxWarning, setSandboxWarning] = useState<string | undefined>();
@@ -179,18 +179,8 @@ function App() {
     } catch (err: any) {
       if (currentRunId !== runIdRef.current) return;
       
-      const fallback = getFallbackDemoTrace(code, stdin);
-      if (fallback && fallback.trace) {
-        setTrace(fallback.trace as TraceEvent[]);
-        setTraceCode(code);
-        setTraceStdin(stdin);
-        setIsDemo(true);
-        setSandboxWarning('Lỗi kết nối Backend. Đang hiển thị kết quả mẫu (Demo).');
-        reset();
-      } else {
-        setError(err.message || 'Lỗi kết nối máy chủ');
-        setTrace([]);
-      }
+      setError(err.message || 'Lỗi kết nối máy chủ');
+      setTrace([]);
     } finally {
       if (currentRunId === runIdRef.current) {
         setIsLoading(false);
@@ -217,6 +207,13 @@ function App() {
           <button onClick={handleRun} className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-xs transition-colors">
             Chạy lại để cập nhật
           </button>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-500/20 border-l-4 border-red-500 text-red-100 p-2 text-sm flex items-center justify-between">
+          <span><strong>Lỗi kết nối:</strong> {error}. Hãy đảm bảo backend đang chạy tại VITE_API_BASE_URL.</span>
+          <button onClick={() => setError(null)} className="text-red-300 hover:text-white px-2">&times;</button>
         </div>
       )}
 
