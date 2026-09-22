@@ -63,7 +63,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
 
   function genExpr(expr: AST.Expression): string {
     switch (expr.type) {
-      case 'BinaryExpr': return `${genExpr(expr.left)} ${expr.operator} ${genExpr(expr.right)}`;
+      case 'BinaryExpr': return `(${genExpr(expr.left)} ${expr.operator} ${genExpr(expr.right)})`;
       case 'UnaryExpr': return expr.prefix ? `${expr.operator}${genExpr(expr.operand)}` : `${genExpr(expr.operand)}${expr.operator}`;
       case 'CallExpr': return `${expr.callee}(${expr.args.map(genExpr).join(', ')})`;
       case 'IndexExpr': return `${expr.object}[${genExpr(expr.index)}]`;
@@ -195,6 +195,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
         if (stmt.value) {
             out += `__cl_begin(${stmt.line}, "return"); ${emitVarSnapshot()} __cl_end();\n`;
             out += `auto __cl_ret = ${genExpr(stmt.value)};\n`;
+            out += `__cl_sb.set_return(__cl_ret);\n`;
             out += `__cl_leave();\n`;
             out += `return __cl_ret;\n`;
         } else {

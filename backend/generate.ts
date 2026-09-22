@@ -22,14 +22,16 @@ async function generate() {
   }
   
   const fileContent = `import { ExecuteResponse } from '../engine/types';
+import { SAMPLES } from './samples';
 
 export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = ${JSON.stringify(traces, null, 2)};
 
-export function getFallbackDemoTrace(code: string): Partial<ExecuteResponse> | null {
-  if (code.includes('factorial')) return DEMO_TRACES['factorial'];
-  if (code.includes('binary') || code.includes('mid =') || code.includes('target')) return DEMO_TRACES['binary-search'];
-  if (code.includes('arr[j] > arr[j + 1]') || code.includes('temp = arr[j]')) return DEMO_TRACES['bubble-sort'];
-  return DEMO_TRACES['array-sum'];
+export function getFallbackDemoTrace(code: string, stdin: string): Partial<ExecuteResponse> | null {
+  const match = SAMPLES.find(s => s.code === code && s.stdin === stdin);
+  if (match) {
+    return DEMO_TRACES[match.id];
+  }
+  return null;
 }
 `;
 

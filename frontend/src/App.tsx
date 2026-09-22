@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { CodeEditor } from './components/CodeEditor';
 import { StdinInput } from './components/StdinInput';
@@ -16,6 +16,8 @@ function App() {
   const [stdin, setStdin] = useState(SAMPLES[0].stdin);
   const [trace, setTrace] = useState<TraceEvent[]>([]);
   const [traceCode, setTraceCode] = useState(SAMPLES[0].code);
+  const [traceStdin, setTraceStdin] = useState(SAMPLES[0].stdin);
+  const runIdRef = useRef<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [_error, setError] = useState<string | null>(null);
   const [compilationError, setCompilationError] = useState<string | undefined>();
@@ -32,7 +34,7 @@ function App() {
   const [variableRoles, setVariableRoles] = useState<VariableRoleMap>(SAMPLES[0].suggestedRoles);
   const [backendAvailable, setBackendAvailable] = useState(true);
 
-  const isStale = trace.length > 0 && code !== traceCode;
+  const isStale = trace.length > 0 && (code !== traceCode || stdin !== traceStdin);
 
   const {
     currentStep, currentEvent, isPlaying, speed, totalSteps,
@@ -44,11 +46,16 @@ function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  const checkConnection = async () => {
+    const available = await healthCheck();
+    setBackendAvailable(available);
+    return available;
+  };
+
   useEffect(() => {
-    healthCheck().then(available => {
-      setBackendAvailable(available);
+    checkConnection().then(available => {
       if (!available) {
-        const fallback = getFallbackDemoTrace(code);
+        const fallback = getFallbackDemoTrace(code, stdin);
         if (fallback && fallback.trace) {
           setTrace(fallback.trace as TraceEvent[]);
           setIsDemo(true);
@@ -88,10 +95,11 @@ function App() {
     setRuntimeError(undefined);
     setStdout('');
     if (!backendAvailable) {
-      const fallback = getFallbackDemoTrace(sample.code);
+      const fallback = getFallbackDemoTrace(sample.code, sample.stdin);
       if (fallback && fallback.trace) {
         setTrace(fallback.trace as TraceEvent[]);
         setTraceCode(sample.code);
+        setTraceStdin(sample.stdin);
         setIsDemo(true);
         setSandboxWarning('Chế độ xem trước GitHub Pages (dữ liệu mẫu). Hãy khởi động backend cục bộ để chạy code tùy ý.');
         reset();
@@ -100,6 +108,7 @@ function App() {
     }
     setTrace([]);
     setTraceCode(sample.code);
+    setTraceStdin(sample.stdin);
     reset();
   };
 
@@ -117,41 +126,50 @@ function App() {
     setTrace([]);
     reset();
     
+    // Tạo ID cho lần chạy này
+    runIdRef.current += 1;
+    const currentRunId = runIdRef.current;
+
     try {
-      if (!backendAvailable) {
-        throw new Error('Backend not available');
-      }
       const response = await executeCode(code, stdin);
       
-      setTrace(response.trace || []);
-      setTraceCode(code);
-      setCompilationError(response.compilationError);
-      setRuntimeError(response.runtimeError);
-      setSandboxWarning(response.sandboxWarning);
-      setIsDemo(response.isDemo || false);
-      reset();
-      
-      if (!response.success && !response.trace?.length) {
-        setRuntimeError(response.compilationError || response.runtimeError || 'Execution failed');
+      // Bỏ qua kết quả nếu người dùng đã nhấn Chạy lần khác
+      if (currentRunId !== runIdRef.current) return;
+
+      if (!response.success && response.compilationError) {
+        setCompilationError(response.compilationError);
+        setTrace([]);
+        return;
       }
-    } catch {
-      // ONLY fallback to demo if the exact sample code is present
-      const matchedSample = SAMPLES.find(s => s.code === code);
-      if (matchedSample) {
-        const fallback = getFallbackDemoTrace(code);
-        if (fallback && fallback.trace) {
-          setTrace(fallback.trace as TraceEvent[]);
-          setTraceCode(code);
-          setIsDemo(true);
-          setSandboxWarning('Chế độ xem trước GitHub Pages (dữ liệu mẫu). Hãy khởi động backend cục bộ để chạy code tùy ý.');
-          reset();
-        }
+      if (!response.success && response.runtimeError) {
+        setRuntimeError(response.runtimeError);
+      }
+
+      setTrace(response.trace);
+      setTraceCode(code);
+      setTraceStdin(stdin);
+      setStdout(response.stdout || '');
+      setSandboxWarning(response.sandboxWarning || undefined);
+      reset();
+    } catch (err: any) {
+      if (currentRunId !== runIdRef.current) return;
+      
+      const fallback = getFallbackDemoTrace(code, stdin);
+      if (fallback && fallback.trace) {
+        setTrace(fallback.trace as TraceEvent[]);
+        setTraceCode(code);
+        setTraceStdin(stdin);
+        setIsDemo(true);
+        setSandboxWarning('Lỗi kết nối Backend. Đang hiển thị kết quả mẫu (Demo).');
+        reset();
       } else {
-        setCompilationError('Lỗi kết nối backend! Không thể chạy code tùy ý khi backend đang tắt.');
-        setIsDemo(false);
+        setError(err.message || 'Lỗi kết nối máy chủ');
+        setTrace([]);
       }
     } finally {
-      setIsLoading(false);
+      if (currentRunId === runIdRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -162,8 +180,9 @@ function App() {
       <Header 
         theme={theme} 
         toggleTheme={toggleTheme} 
-        onSelectSample={handleSelectSample}
+        onSelectSample={handleSelectSample} 
         isBackendAvailable={backendAvailable}
+        onCheckConnection={checkConnection}
       />
       
       {isStale && (

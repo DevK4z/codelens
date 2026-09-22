@@ -1,4 +1,5 @@
 import { ExecuteResponse } from '../engine/types';
+import { SAMPLES } from './samples';
 
 export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
   "array-sum": {
@@ -1161,7 +1162,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "mid": 6,
+          "mid": 3,
           "n": 7,
           "arr": [
             1,
@@ -1196,427 +1197,6 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "mid": 6,
-          "n": 7,
-          "arr": [
-            1,
-            3,
-            5,
-            7,
-            9,
-            11,
-            13,
-            null,
-            null,
-            null
-          ],
-          "target": 7,
-          "left": 0,
-          "right": 6,
-          "result": -1
-        },
-        "changed": [],
-        "compareInfo": {
-          "left": "arr[mid]",
-          "right": "target",
-          "leftValue": 13,
-          "rightValue": 7,
-          "operator": "==",
-          "result": false
-        },
-        "stdout": ""
-      },
-      {
-        "step": 19,
-        "line": 20,
-        "event": "compare",
-        "callStack": [
-          {
-            "func": "main",
-            "line": 4
-          }
-        ],
-        "variables": {
-          "mid": 6,
-          "n": 7,
-          "arr": [
-            1,
-            3,
-            5,
-            7,
-            9,
-            11,
-            13,
-            null,
-            null,
-            null
-          ],
-          "target": 7,
-          "left": 0,
-          "right": 6,
-          "result": -1
-        },
-        "changed": [],
-        "compareInfo": {
-          "left": "arr[mid]",
-          "right": "target",
-          "leftValue": 13,
-          "rightValue": 7,
-          "operator": "<",
-          "result": false
-        },
-        "stdout": ""
-      },
-      {
-        "step": 20,
-        "line": 23,
-        "event": "assign",
-        "callStack": [
-          {
-            "func": "main",
-            "line": 4
-          }
-        ],
-        "variables": {
-          "mid": 6,
-          "n": 7,
-          "arr": [
-            1,
-            3,
-            5,
-            7,
-            9,
-            11,
-            13,
-            null,
-            null,
-            null
-          ],
-          "target": 7,
-          "left": 0,
-          "right": 5,
-          "result": -1
-        },
-        "changed": [
-          "right"
-        ],
-        "stdout": ""
-      },
-      {
-        "step": 21,
-        "line": 16,
-        "event": "vardecl",
-        "callStack": [
-          {
-            "func": "main",
-            "line": 4
-          }
-        ],
-        "variables": {
-          "mid": 5,
-          "n": 7,
-          "arr": [
-            1,
-            3,
-            5,
-            7,
-            9,
-            11,
-            13,
-            null,
-            null,
-            null
-          ],
-          "target": 7,
-          "left": 0,
-          "right": 5,
-          "result": -1
-        },
-        "changed": [
-          "mid"
-        ],
-        "stdout": ""
-      },
-      {
-        "step": 22,
-        "line": 17,
-        "event": "compare",
-        "callStack": [
-          {
-            "func": "main",
-            "line": 4
-          }
-        ],
-        "variables": {
-          "mid": 5,
-          "n": 7,
-          "arr": [
-            1,
-            3,
-            5,
-            7,
-            9,
-            11,
-            13,
-            null,
-            null,
-            null
-          ],
-          "target": 7,
-          "left": 0,
-          "right": 5,
-          "result": -1
-        },
-        "changed": [],
-        "compareInfo": {
-          "left": "arr[mid]",
-          "right": "target",
-          "leftValue": 11,
-          "rightValue": 7,
-          "operator": "==",
-          "result": false
-        },
-        "stdout": ""
-      },
-      {
-        "step": 23,
-        "line": 20,
-        "event": "compare",
-        "callStack": [
-          {
-            "func": "main",
-            "line": 4
-          }
-        ],
-        "variables": {
-          "mid": 5,
-          "n": 7,
-          "arr": [
-            1,
-            3,
-            5,
-            7,
-            9,
-            11,
-            13,
-            null,
-            null,
-            null
-          ],
-          "target": 7,
-          "left": 0,
-          "right": 5,
-          "result": -1
-        },
-        "changed": [],
-        "compareInfo": {
-          "left": "arr[mid]",
-          "right": "target",
-          "leftValue": 11,
-          "rightValue": 7,
-          "operator": "<",
-          "result": false
-        },
-        "stdout": ""
-      },
-      {
-        "step": 24,
-        "line": 23,
-        "event": "assign",
-        "callStack": [
-          {
-            "func": "main",
-            "line": 4
-          }
-        ],
-        "variables": {
-          "mid": 5,
-          "n": 7,
-          "arr": [
-            1,
-            3,
-            5,
-            7,
-            9,
-            11,
-            13,
-            null,
-            null,
-            null
-          ],
-          "target": 7,
-          "left": 0,
-          "right": 4,
-          "result": -1
-        },
-        "changed": [
-          "right"
-        ],
-        "stdout": ""
-      },
-      {
-        "step": 25,
-        "line": 16,
-        "event": "vardecl",
-        "callStack": [
-          {
-            "func": "main",
-            "line": 4
-          }
-        ],
-        "variables": {
-          "mid": 4,
-          "n": 7,
-          "arr": [
-            1,
-            3,
-            5,
-            7,
-            9,
-            11,
-            13,
-            null,
-            null,
-            null
-          ],
-          "target": 7,
-          "left": 0,
-          "right": 4,
-          "result": -1
-        },
-        "changed": [
-          "mid"
-        ],
-        "stdout": ""
-      },
-      {
-        "step": 26,
-        "line": 17,
-        "event": "compare",
-        "callStack": [
-          {
-            "func": "main",
-            "line": 4
-          }
-        ],
-        "variables": {
-          "mid": 4,
-          "n": 7,
-          "arr": [
-            1,
-            3,
-            5,
-            7,
-            9,
-            11,
-            13,
-            null,
-            null,
-            null
-          ],
-          "target": 7,
-          "left": 0,
-          "right": 4,
-          "result": -1
-        },
-        "changed": [],
-        "compareInfo": {
-          "left": "arr[mid]",
-          "right": "target",
-          "leftValue": 9,
-          "rightValue": 7,
-          "operator": "==",
-          "result": false
-        },
-        "stdout": ""
-      },
-      {
-        "step": 27,
-        "line": 20,
-        "event": "compare",
-        "callStack": [
-          {
-            "func": "main",
-            "line": 4
-          }
-        ],
-        "variables": {
-          "mid": 4,
-          "n": 7,
-          "arr": [
-            1,
-            3,
-            5,
-            7,
-            9,
-            11,
-            13,
-            null,
-            null,
-            null
-          ],
-          "target": 7,
-          "left": 0,
-          "right": 4,
-          "result": -1
-        },
-        "changed": [],
-        "compareInfo": {
-          "left": "arr[mid]",
-          "right": "target",
-          "leftValue": 9,
-          "rightValue": 7,
-          "operator": "<",
-          "result": false
-        },
-        "stdout": ""
-      },
-      {
-        "step": 28,
-        "line": 23,
-        "event": "assign",
-        "callStack": [
-          {
-            "func": "main",
-            "line": 4
-          }
-        ],
-        "variables": {
-          "mid": 4,
-          "n": 7,
-          "arr": [
-            1,
-            3,
-            5,
-            7,
-            9,
-            11,
-            13,
-            null,
-            null,
-            null
-          ],
-          "target": 7,
-          "left": 0,
-          "right": 3,
-          "result": -1
-        },
-        "changed": [
-          "right"
-        ],
-        "stdout": ""
-      },
-      {
-        "step": 29,
-        "line": 16,
-        "event": "vardecl",
-        "callStack": [
-          {
-            "func": "main",
-            "line": 4
-          }
-        ],
-        "variables": {
           "mid": 3,
           "n": 7,
           "arr": [
@@ -1633,42 +1213,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           ],
           "target": 7,
           "left": 0,
-          "right": 3,
-          "result": -1
-        },
-        "changed": [
-          "mid"
-        ],
-        "stdout": ""
-      },
-      {
-        "step": 30,
-        "line": 17,
-        "event": "compare",
-        "callStack": [
-          {
-            "func": "main",
-            "line": 4
-          }
-        ],
-        "variables": {
-          "mid": 3,
-          "n": 7,
-          "arr": [
-            1,
-            3,
-            5,
-            7,
-            9,
-            11,
-            13,
-            null,
-            null,
-            null
-          ],
-          "target": 7,
-          "left": 0,
-          "right": 3,
+          "right": 6,
           "result": -1
         },
         "changed": [],
@@ -1683,7 +1228,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "stdout": ""
       },
       {
-        "step": 31,
+        "step": 19,
         "line": 18,
         "event": "assign",
         "callStack": [
@@ -1709,7 +1254,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           ],
           "target": 7,
           "left": 0,
-          "right": 3,
+          "right": 6,
           "result": 3
         },
         "changed": [
@@ -1718,7 +1263,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "stdout": ""
       },
       {
-        "step": 32,
+        "step": 20,
         "line": 19,
         "event": "line",
         "callStack": [
@@ -1744,14 +1289,14 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           ],
           "target": 7,
           "left": 0,
-          "right": 3,
+          "right": 6,
           "result": 3
         },
         "changed": [],
         "stdout": ""
       },
       {
-        "step": 33,
+        "step": 21,
         "line": 26,
         "event": "stdout",
         "callStack": [
@@ -1776,14 +1321,14 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           ],
           "target": 7,
           "left": 0,
-          "right": 3,
+          "right": 6,
           "result": 3
         },
         "changed": [],
         "stdout": "3\n"
       },
       {
-        "step": 34,
+        "step": 22,
         "line": 27,
         "event": "line",
         "callStack": [
@@ -1808,14 +1353,14 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           ],
           "target": 7,
           "left": 0,
-          "right": 3,
+          "right": 6,
           "result": 3
         },
         "changed": [],
         "stdout": "3\n"
       },
       {
-        "step": 35,
+        "step": 23,
         "line": 27,
         "event": "return",
         "callStack": [
@@ -1840,7 +1385,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           ],
           "target": 7,
           "left": 0,
-          "right": 3,
+          "right": 6,
           "result": 3
         },
         "changed": [],
@@ -1848,7 +1393,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
       }
     ],
     "stdout": "3\r\n",
-    "stepCount": 36,
+    "stepCount": 24,
     "success": true
   },
   "bubble-sort": {
@@ -2219,7 +1764,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "changed": [],
         "compareInfo": {
           "left": "arr[j]",
-          "right": "arr[j + 1]",
+          "right": "arr[(j + 1)]",
           "leftValue": 5,
           "rightValue": 3,
           "operator": ">",
@@ -2368,7 +1913,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "changed": [],
         "compareInfo": {
           "left": "arr[j]",
-          "right": "arr[j + 1]",
+          "right": "arr[(j + 1)]",
           "leftValue": 5,
           "rightValue": 1,
           "operator": ">",
@@ -2517,7 +2062,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "changed": [],
         "compareInfo": {
           "left": "arr[j]",
-          "right": "arr[j + 1]",
+          "right": "arr[(j + 1)]",
           "leftValue": 5,
           "rightValue": 4,
           "operator": ">",
@@ -2666,7 +2211,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "changed": [],
         "compareInfo": {
           "left": "arr[j]",
-          "right": "arr[j + 1]",
+          "right": "arr[(j + 1)]",
           "leftValue": 5,
           "rightValue": 2,
           "operator": ">",
@@ -2844,7 +2389,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "changed": [],
         "compareInfo": {
           "left": "arr[j]",
-          "right": "arr[j + 1]",
+          "right": "arr[(j + 1)]",
           "leftValue": 3,
           "rightValue": 1,
           "operator": ">",
@@ -2993,7 +2538,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "changed": [],
         "compareInfo": {
           "left": "arr[j]",
-          "right": "arr[j + 1]",
+          "right": "arr[(j + 1)]",
           "leftValue": 3,
           "rightValue": 4,
           "operator": ">",
@@ -3031,7 +2576,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "changed": [],
         "compareInfo": {
           "left": "arr[j]",
-          "right": "arr[j + 1]",
+          "right": "arr[(j + 1)]",
           "leftValue": 4,
           "rightValue": 2,
           "operator": ">",
@@ -3209,7 +2754,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "changed": [],
         "compareInfo": {
           "left": "arr[j]",
-          "right": "arr[j + 1]",
+          "right": "arr[(j + 1)]",
           "leftValue": 1,
           "rightValue": 3,
           "operator": ">",
@@ -3247,7 +2792,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "changed": [],
         "compareInfo": {
           "left": "arr[j]",
-          "right": "arr[j + 1]",
+          "right": "arr[(j + 1)]",
           "leftValue": 3,
           "rightValue": 2,
           "operator": ">",
@@ -3425,7 +2970,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "changed": [],
         "compareInfo": {
           "left": "arr[j]",
-          "right": "arr[j + 1]",
+          "right": "arr[(j + 1)]",
           "leftValue": 1,
           "rightValue": 2,
           "operator": ">",
@@ -4270,9 +3815,10 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
   }
 };
 
-export function getFallbackDemoTrace(code: string): Partial<ExecuteResponse> | null {
-  if (code.includes('factorial')) return DEMO_TRACES['factorial'];
-  if (code.includes('binary') || code.includes('mid =') || code.includes('target')) return DEMO_TRACES['binary-search'];
-  if (code.includes('arr[j] > arr[j + 1]') || code.includes('temp = arr[j]')) return DEMO_TRACES['bubble-sort'];
-  return DEMO_TRACES['array-sum'];
+export function getFallbackDemoTrace(code: string, stdin: string): Partial<ExecuteResponse> | null {
+  const match = SAMPLES.find(s => s.code === code && s.stdin === stdin);
+  if (match) {
+    return DEMO_TRACES[match.id];
+  }
+  return null;
 }
