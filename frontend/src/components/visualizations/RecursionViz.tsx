@@ -9,14 +9,14 @@ export function RecursionViz({ event }: RecursionVizProps) {
 
   return (
     <div className="p-8 flex flex-col items-center min-h-[300px] w-full">
-      <h3 className="mb-4 text-lg font-semibold">Cây đệ quy / Call Stack</h3>
+      <h3 className="mb-4 text-lg font-semibold">Ngăn xếp lời gọi hàm</h3>
       <div className="flex flex-col items-center gap-4">
         {event.callStack.map((frame, idx) => {
           const isActive = idx === event.callStack.length - 1;
           const isReturned = frame.returnValue !== undefined;
           
           return (
-            <div key={idx} className="flex flex-col items-center">
+            <div key={frame.id ?? idx} className="flex flex-col items-center">
               {idx > 0 && <div className="h-6 border-l-2 border-[var(--border)]"></div>}
               <div 
                 className={`px-4 py-2 border rounded-lg min-w-[150px] text-center transition-all ${

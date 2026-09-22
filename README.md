@@ -42,7 +42,7 @@ CodeLens là nền tảng trực quan hóa thuật toán từ code C++ thực t�
 ## 🚀 Hướng dẫn khởi chạy
 
 ### Yêu cầu tiên quyết
-- **Node.js** >= 18.x
+- **Node.js** >= 22.12
 - **g++** (GCC C++ Compiler, hỗ trợ C++17)
 
 ### 1. Khởi động Backend
@@ -79,5 +79,52 @@ npm run dev
 - **Giới hạn bước (Step limit)**: Tối đa `10,000` bước (ngăn chặn vòng lặp vô tận).
 - **Giới hạn thời gian (Timeout)**: Tối đa `5 giây` CPU time.
 - **Whitelist Header**: `<iostream>`, `<vector>`, `<algorithm>`, `<string>`, `<cmath>`, `<cstdio>`, `<cstdlib>`, `<climits>`, `<stack>`, `<queue>`.
-- **Cấu hình Docker Sandbox (cho Production)**: Thư mục `runner/` cung cấp sẵn `Dockerfile` và `run.sh` trên nền Alpine Linux để cách ly hoàn toàn hệ thống khi triển khai thực tế.
+- **Cấu hình Docker Sandbox (cho Production)**: Thư mục `runner/` cung cấp sẵn `Dockerfile` và `run.sh` trên nền Alpine Linux làm cơ sở triển khai; DockerRunner chưa được hiện thực nên hiện chưa có sandbox production.
 
+
+## Bản sửa tính đúng đắn (22/09/2026)
+
+- Chạy code không tự chuyển sang demo khi lỗi. Chọn bài mẫu để phát bản ghi; chỉnh sửa code hoặc stdin sẽ dừng phát, bỏ highlight và yêu cầu chạy lại.
+- Phản hồi của lần chạy đã bị thay thế không ghi đè bài hiện tại. Lỗi kết nối hiển thị riêng trên giao diện.
+- Trace mẫu được tạo lại từ `frontend/src/data/samples.ts`, gồm đúng `mid` của binary search và từng bước trả về của đệ quy, ID và tham số frame.
+- Điều kiện if/while và biểu thức cout được đánh giá một lần. Khai báo scalar/array không còn bị tự thêm giá trị 0.
+- Giải thích bước hiện tại đặt cạnh vùng trực quan. Mảng hiển thị kích thước thực trong trace (tối đa 100 ô), không suy đoán từ biến n.
+
+### Cài đặt và kiểm tra bản sửa
+
+Dùng Node.js 22.12+ hoặc 24 và g++ hỗ trợ C++17.
+
+```bash
+cd backend
+npm ci
+npm test
+npm run build
+npm run traces
+npm run dev
+```
+
+Trong terminal khác:
+
+```bash
+cd frontend
+npm ci
+cp .env.example .env.local
+npm run dev
+# npm run build để tạo dist
+```
+
+`npm run traces` tái tạo dữ liệu từ code/input chuẩn. Không sửa tay demoTraces.ts. Bài test regression so sánh toàn bộ trace mẫu với kết quả thực thi mới và kiểm tra target tìm thấy/không tìm thấy, trả về đệ quy và tác dụng phụ của biểu thức.
+
+### GitHub Pages và backend
+
+Frontend đọc `VITE_API_BASE_URL`, bao gồm hậu tố `/api` (ví dụ `https://backend.example/api`). Biến cũ `VITE_API_URL` vẫn được chấp nhận. Không có cấu hình production thì trang dùng bài mẫu và thông báo chưa cấu hình backend khi nhấn Chạy. Workflow Pages lấy URL từ Repository variable `VITE_API_BASE_URL`; thay biến phải build lại.
+
+Backend mặc định chỉ bind `127.0.0.1`. Có thể cấu hình `PORT`, `HOST` và `CORS_ORIGINS` (danh sách origin cách nhau bằng dấu phẩy). Endpoint health cần trả JSON `{ "status": "ok" }`.
+
+**Giới hạn quan trọng:** DockerRunner hiện chỉ là stub. API thực thi bị khóa khi `NODE_ENV=production`; chưa được triển khai để chạy code không tin cậy trên Internet. LocalRunner chỉ dành cho code tin cậy trên máy phát triển. Dockerfile có sẵn không đồng nghĩa hệ thống đã có sandbox hoàn chỉnh. Cần hiện thực runner cách ly trước khi mở API công khai; không bỏ chặn production để thay thế bước này.
+
+### Phạm vi chưa hoàn thiện
+
+Parser chỉ hỗ trợ một tập con C++, không phải trình biên dịch C++ tổng quát. Kiểu do người dùng định nghĩa, phương thức STL ngoài phạm vi và cú pháp khác có thể bị từ chối. Instrumentation chưa bảo đảm mọi trường hợp alias/reference, tên biến bị che khuất, chỉ số có tác dụng phụ, hoặc chương trình có hành vi không xác định. Không dùng các trace đó làm bằng chứng về tính đúng của C++ tổng quát. Bảng DP, kiểm thử trình duyệt tự động và AI chưa nằm trong bản sửa này.
+
+Các bài mảng dùng `arr[10]`: input cần `0 <= n <= 10`. Bài giai thừa dùng int: chỉ dùng `0 <= n <= 12`. Bộ kiểm tra hiện xác nhận các bài mẫu và trường hợp regression cụ thể, không khẳng định hỗ trợ toàn bộ C++.

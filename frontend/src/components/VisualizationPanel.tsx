@@ -16,7 +16,7 @@ export function VisualizationPanel({ event, variableRoles, isDemo }: Visualizati
     <div className="h-full w-full panel rounded-none border-none border-l border-b border-[var(--border)] flex flex-col relative bg-[var(--bg-panel)] overflow-hidden">
       <div className="p-2 border-b border-[var(--border)] flex justify-between items-center bg-[var(--bg-secondary)]">
         <h2 className="font-semibold text-sm">Trực quan hóa</h2>
-        {isDemo && <span className="bg-amber-500 text-white text-[10px] px-2 py-1 rounded font-bold uppercase">Demo Mode</span>}
+        {isDemo && <span className="bg-amber-500 text-white text-[10px] px-2 py-1 rounded font-bold uppercase">Bản ghi bài mẫu</span>}
       </div>
       <div className="flex-1 overflow-auto bg-[var(--bg-primary)]">
         {!event ? (

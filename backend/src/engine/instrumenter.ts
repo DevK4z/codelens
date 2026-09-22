@@ -42,6 +42,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
     let out = '';
     const vars = getAllVisibleVars();
     for (const v of vars) {
+      if (!v.type.isArray && !['vector', 'string'].includes(v.type.base)) out += `if (__cl_sb.is_uninit("${v.name}")) __cl_sb.var_uninit("${v.name}"); else `;
       if (v.type.isArray && v.type.arraySize) {
           out += `__cl_sb.var_arr("${v.name}", ${v.name}, ${genExpr(v.type.arraySize)}); `;
       } else if (v.type.base === 'vector') {
@@ -77,6 +78,14 @@ export function instrument(ast: AST.Program, originalSource: string): string {
     }
   }
 
+  function genCondition(expr: AST.Expression, line: number): string {
+    if (expr.type === 'BinaryExpr' && ['<', '>', '<=', '>=', '==', '!='].includes(expr.operator)) {
+      const left = genExpr(expr.left), right = genExpr(expr.right);
+      return `([&]() { auto __cl_l = ${left}; auto __cl_r = ${right}; bool __cl_test = __cl_l ${expr.operator} __cl_r; __cl_begin(${line}, "compare"); ${emitVarSnapshot()} __cl_sb.set_compare(${JSON.stringify(left)}, ${JSON.stringify(right)}, __cl_l, __cl_r, "${expr.operator}", __cl_test); __cl_end(); return __cl_test; }())`;
+    }
+    return `([&]() { bool __cl_test = ${genExpr(expr)}; __cl_begin(${line}, "branch"); ${emitVarSnapshot()} __cl_end(); return __cl_test; }())`;
+  }
+
   function genStatement(stmt: AST.Statement): string {
     let out = '';
     
@@ -107,7 +116,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
         let declStr = `${genType(stmt.varType)} ${stmt.name}`;
         if (stmt.isArray) {
             declStr += `[${genExpr(stmt.arraySize!)}]`;
-            if (!stmt.initializer) declStr += ` = {0}`;
+
         }
         if (stmt.initializer) {
           if (stmt.varType.base === 'vector' && !stmt.isArray) {
@@ -115,16 +124,14 @@ export function instrument(ast: AST.Program, originalSource: string): string {
           } else {
             declStr += ` = ${genExpr(stmt.initializer)}`;
           }
-        } else if (!stmt.isArray && stmt.varType.base !== 'vector' && stmt.varType.base !== 'string') {
-            declStr += ` = 0`; // init to 0 safely for C++
         }
         declStr += ';';
         // IMPORTANT: Emit declaration FIRST so variable is in scope for trace
         out += declStr + '\n';
         addVar(stmt.name, varType);
-        if (!stmt.initializer) {
+        if (!stmt.initializer && !['vector', 'string'].includes(stmt.varType.base)) {
             out += `__cl_sb.set_uninit("${stmt.name}");\n`;
-        }
+        } else { out += `__cl_sb.set_init("${stmt.name}");\n`; }
         out += `__cl_begin(${stmt.line}, "vardecl"); ${emitVarSnapshot()} __cl_sb.mark_changed("${stmt.name}"); __cl_end();\n`;
         break;
 
@@ -141,13 +148,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
         break;
 
       case 'IfStmt':
-        if (stmt.condition.type === 'BinaryExpr' && ['<', '>', '<=', '>=', '==', '!='].includes(stmt.condition.operator)) {
-          const c = stmt.condition;
-          out += `__cl_begin(${stmt.line}, "compare"); ${emitVarSnapshot()} __cl_sb.set_compare("${genExpr(c.left)}", "${genExpr(c.right)}", ${genExpr(c.left)}, ${genExpr(c.right)}, "${c.operator}", (${genExpr(stmt.condition)})); __cl_end();\n`;
-        } else {
-          out += `__cl_begin(${stmt.line}, "branch"); ${emitVarSnapshot()} __cl_end();\n`;
-        }
-        out += `if (${genExpr(stmt.condition)}) `;
+        out += `if (${genCondition(stmt.condition, stmt.line)}) `;
         if (stmt.thenBranch.type === 'BlockStmt') out += genStatement(stmt.thenBranch);
         else { pushScope(); out += `{\n${genStatement(stmt.thenBranch)}\n}`; popScope(); }
         
@@ -179,13 +180,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
         break;
 
       case 'WhileStmt':
-        if (stmt.condition.type === 'BinaryExpr' && ['<', '>', '<=', '>=', '==', '!='].includes(stmt.condition.operator)) {
-          const c = stmt.condition;
-          out += `__cl_begin(${stmt.line}, "compare"); ${emitVarSnapshot()} __cl_sb.set_compare("${genExpr(c.left)}", "${genExpr(c.right)}", ${genExpr(c.left)}, ${genExpr(c.right)}, "${c.operator}", (${genExpr(stmt.condition)})); __cl_end();\n`;
-        } else {
-          out += `__cl_begin(${stmt.line}, "loop_start"); ${emitVarSnapshot()} __cl_end();\n`;
-        }
-        out += `while (${genExpr(stmt.condition)}) `;
+        out += `while (${genCondition(stmt.condition, stmt.line)}) `;
         if (stmt.body.type === 'BlockStmt') out += genStatement(stmt.body);
         else { pushScope(); out += `{\n${genStatement(stmt.body)}\n}`; popScope(); }
         out += '\n';
@@ -193,9 +188,9 @@ export function instrument(ast: AST.Program, originalSource: string): string {
 
       case 'ReturnStmt':
         if (stmt.value) {
-            out += `__cl_begin(${stmt.line}, "return"); ${emitVarSnapshot()} __cl_end();\n`;
             out += `auto __cl_ret = ${genExpr(stmt.value)};\n`;
             out += `__cl_sb.set_return(__cl_ret);\n`;
+            out += `__cl_begin(${stmt.line}, "return"); ${emitVarSnapshot()} __cl_end();\n`;
             out += `__cl_leave();\n`;
             out += `return __cl_ret;\n`;
         } else {
@@ -246,8 +241,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
         break;
 
       case 'CoutStmt':
-        out += `cout << ${stmt.expressions.map(genExpr).join(' << ')};\n`;
-        out += `__cl_cum_stdout << ${stmt.expressions.map(genExpr).join(' << ')};\n`;
+        out += `{ stringstream __cl_output; __cl_output << ${stmt.expressions.map(genExpr).join(' << ')}; cout << __cl_output.str(); __cl_cum_stdout << __cl_output.str(); }\n`;
         out += `__cl_begin(${stmt.line}, "stdout"); ${emitVarSnapshot()} __cl_end();\n`;
         break;
 
@@ -287,6 +281,8 @@ export function instrument(ast: AST.Program, originalSource: string): string {
     output += pStrs.join(', ') + `) {\n`;
     output += `  __cl_enter("${func.name}", ${func.line});\n`;
     
+    for (const p of func.params) output += `__cl_sb.set_init("${p.name}");\n`;
+    output += `__cl_begin(${func.line}, "call"); ${emitVarSnapshot()} __cl_capture_params(); __cl_end();\n`;
     // Gen body statements manually to insert __cl_leave before closing
     pushScope(); // block scope
     for (const s of func.body.statements) {

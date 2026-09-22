@@ -6,7 +6,9 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "tsx src/test_samples.ts && tsx test_errors.ts"
+    "test": "node --import tsx src/test_samples.ts && node --import tsx test_errors.ts && npm run test:regression",
+    "test:regression": "node --import tsx regression.test.ts",
+    "traces": "node --import tsx export_demo_traces.ts"
   },
   "dependencies": {
     "cors": "^2.8.6",

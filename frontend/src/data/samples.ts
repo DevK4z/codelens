@@ -1,4 +1,4 @@
-import { VariableRoleMap } from '../engine/types';
+import type { VariableRoleMap } from '../engine/types';
 
 export interface Sample {
   id: string;

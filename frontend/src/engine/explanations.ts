@@ -5,7 +5,7 @@ export function generateExplanation(event: TraceEvent, prevEvent?: TraceEvent): 
   
   switch (event.event) {
     case 'vardecl':
-      return `Khai báo biến với giá trị khởi tạo.`;
+      return event.changed.map(name => `${name}: ${event.variables[name] === null ? 'chưa khởi tạo' : JSON.stringify(event.variables[name])}`).join('; ');
     case 'assign': {
       if (event.changed && event.changed.length > 0) {
         const varName = event.changed[0];
@@ -56,9 +56,9 @@ export function generateExplanation(event: TraceEvent, prevEvent?: TraceEvent): 
       }
       return 'Ghi dữ liệu.';
     case 'stdout':
-      return `In ra màn hình: ${event.detail || ''}`;
+      return `In ra màn hình: ${event.detail || (event.stdout || '').slice((prevEvent?.stdout || '').length)}`;
     case 'stdin':
-      return `Đọc dữ liệu từ input: ${event.detail || ''}`;
+      return `Đọc dữ liệu từ input: ${event.detail || event.changed.map(name => `${name} = ${event.variables[name]}`).join(', ')}`;
     case 'branch':
       return `Kiểm tra điều kiện rẽ nhánh (if/else).`;
     case 'loop_start':

@@ -20,10 +20,8 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
   }
   
   const rawArr = event.variables[arrayVar] as any[];
-  // Limit display to 'n' if present in variables, otherwise max 25 elements
-  const displayLength = (typeof event.variables.n === 'number' && event.variables.n > 0 && event.variables.n <= rawArr.length)
-    ? event.variables.n
-    : Math.min(rawArr.length, 25);
+  // The trace array length is authoritative; n may refer to unrelated data.
+  const displayLength = Math.min(rawArr.length, 100);
   const arr = rawArr.slice(0, displayLength);
   
   // Find pointers
@@ -75,7 +73,7 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
       <div className="flex items-center gap-3 mb-6">
         <h3 className="text-base font-semibold text-[var(--text-primary)]">Mảng: <span className="font-mono text-[var(--accent)]">{arrayVar}</span></h3>
         <span className="text-xs text-[var(--text-secondary)] px-2 py-0.5 rounded bg-[var(--bg-secondary)] border border-[var(--border)] font-mono">
-          {displayLength} phần tử
+          {displayLength}/{rawArr.length} phần tử (theo trace)
         </span>
       </div>
 

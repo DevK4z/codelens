@@ -15,6 +15,7 @@ export interface TraceEvent {
 }
 
 export interface CallFrame {
+  id?: number;
   func: string;
   line: number;
   params?: Record<string, any>;

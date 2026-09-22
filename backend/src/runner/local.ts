@@ -26,7 +26,7 @@ export class LocalRunner implements Runner {
 
       // Compile
       await new Promise<void>((resolve, reject) => {
-        execFile('g++', ['-std=c++17', '-O0', '-g', '-o', exeFile, codeFile], { windowsHide: true }, (error, stdout, stderr) => {
+        execFile('g++', ['-std=c++17', '-O0', '-g', '-o', exeFile, codeFile], { windowsHide: true, timeout: 15000, maxBuffer: currentLimits.maxOutputBytes }, (error, stdout, stderr) => {
           if (error) {
             const err: any = new Error(`Compilation failed:\n${stderr}`);
             err.name = 'CompilationError';
@@ -85,8 +85,9 @@ export class LocalRunner implements Runner {
           });
         });
 
-        if (stdin && child.stdin) {
-          child.stdin.write(stdin);
+        if (child.stdin) {
+          child.stdin.on('error', () => {});
+          child.stdin.write(stdin || '');
           child.stdin.end();
         }
       });

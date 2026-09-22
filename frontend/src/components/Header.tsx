@@ -38,7 +38,7 @@ export function Header({ theme, toggleTheme, onSelectSample, isBackendAvailable,
         <div className="flex items-center gap-2 bg-[var(--bg-card)] px-3 py-1.5 rounded-full border border-[var(--border)] shadow-sm">
           <div className={`w-2.5 h-2.5 rounded-full ${isBackendAvailable ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`}></div>
           <span className="text-xs font-medium text-[var(--text-secondary)]">
-            {isBackendAvailable ? 'Trực tuyến' : 'Ngoại tuyến (Demo)'}
+            {isBackendAvailable ? 'Trực tuyến' : 'Chưa kết nối backend'}
           </span>
           {!isBackendAvailable && (
             <button 

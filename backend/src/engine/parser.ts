@@ -465,7 +465,7 @@ export function parse(tokens: Token[]): AST.Program {
           if (expr.type !== 'Identifier') throw new ParseError('Invalid size target', expr.line, expr.col);
           expr = { type: 'SizeExpr', object: expr.name, line: expr.line, col: expr.col };
         } else {
-            // handle other methods if needed, ignoring for simple v1
+            throw new ParseError(`Phương thức '${method}' chưa được hỗ trợ`, expr.line, expr.col);
         }
       } else if (peek().value === '++' || peek().value === '--') {
         const op = advance().value as any;

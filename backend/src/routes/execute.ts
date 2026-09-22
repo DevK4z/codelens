@@ -39,6 +39,7 @@ const FORBIDDEN_TOKENS = ['system(', 'exec(', 'popen(', 'fork(', '#define', '#pr
 
 router.post('/', async (req, res) => {
   try {
+    if (process.env.NODE_ENV === 'production') return res.status(503).json({ error: 'Production execution disabled: Docker runner is not implemented. Use local development with trusted code.' });
     const { code, stdin, language } = req.body;
 
     if (!code || typeof code !== 'string') {
@@ -88,10 +89,10 @@ router.post('/', async (req, res) => {
     return res.json(response);
 
   } catch (error: any) {
-    if (error.name === 'ParseError') {
+    if (error.name === 'ParseError' || error.name === 'CompilationError') {
       return res.json({ success: false, compilationError: error.message });
     }
-    if (error.name === 'RunError' || error.name === 'CompilationError') {
+    if (error.name === 'RunError') {
       return res.json({ success: false, runtimeError: error.message });
     }
     console.error('Execution Error:', error);
