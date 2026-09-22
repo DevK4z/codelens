@@ -10,9 +10,10 @@ interface HeaderProps {
   onSelectSample: (sample: Sample) => void;
   isBackendAvailable: boolean;
   onCheckConnection: () => Promise<boolean>;
+  currentCode: string;
 }
 
-export function Header({ theme, toggleTheme, onSelectSample, isBackendAvailable, onCheckConnection }: HeaderProps) {
+export function Header({ theme, toggleTheme, onSelectSample, isBackendAvailable, onCheckConnection, currentCode }: HeaderProps) {
   const [checking, setChecking] = useState(false);
 
   const handleCheck = async () => {
@@ -50,7 +51,7 @@ export function Header({ theme, toggleTheme, onSelectSample, isBackendAvailable,
             </button>
           )}
         </div>
-        <SampleSelector onSelect={onSelectSample} />
+        <SampleSelector onSelect={onSelectSample} currentCode={currentCode} />
         <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
       </div>
     </header>

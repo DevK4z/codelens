@@ -11,6 +11,14 @@ export interface Sample {
 
 export const SAMPLES: Sample[] = [
   {
+    id: 'blank',
+    name: 'Tự viết code (Trống)',
+    description: 'Viết thuật toán và dữ liệu đầu vào của riêng bạn',
+    code: `#include <iostream>\nusing namespace std;\n\nint main() {\n    // Viết code C++ của bạn ở đây\n    \n    return 0;\n}`,
+    stdin: '',
+    suggestedRoles: {}
+  },
+  {
     id: 'array-sum',
     name: 'Tính tổng mảng',
     description: 'Tính tổng các phần tử trong mảng bằng vòng lặp',

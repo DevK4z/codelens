@@ -208,6 +208,7 @@ function App() {
         onSelectSample={handleSelectSample} 
         isBackendAvailable={backendAvailable}
         onCheckConnection={checkConnection}
+        currentCode={code}
       />
       
       {isStale && (
