@@ -29,8 +29,9 @@ Call log:
 - banner:
   - heading "CodeLens" [level=1]
   - paragraph: Trực quan hóa thuật toán
-  - text: Trực tuyến
-  - combobox:
+  - text: Chưa kết nối backend
+  - button "Thử kết nối lại"
+  - combobox "Chọn bài mẫu":
     - option "-- Chọn bài mẫu (Tùy chọn) --" [disabled]
     - option "Tự viết code (Trống) - Viết thuật toán và dữ liệu đầu..."
     - option "Tính tổng mảng - Tính tổng các phần tử trong mả..."
@@ -38,54 +39,38 @@ Call log:
     - option "Sắp xếp nổi bọt - Sắp xếp mảng bằng thuật toán B..."
     - option "Giai thừa đệ quy - Tính n! bằng đệ quy..." [selected]
   - button "Chế độ sáng"
+- alert:
+  - strong: "Lỗi:"
+  - text: Không kết nối được đến backend. Vui lòng kiểm tra lại mạng hoặc URL.
+  - button "Kiểm tra lại kết nối"
 - code:
   - textbox "Editor content"
 - text: Stdin
 - textbox "Nhập dữ liệu đầu vào (stdin)...": "5"
 - heading "Trực quan hóa" [level=2]
-- paragraph: Không có cấu trúc dữ liệu đặc biệt nào được thiết lập.
+- heading "Chào mừng đến với CodeLens" [level=3]
 - paragraph:
-  - text: Chỉ định vai trò "Mảng" cho biến trong tab
-  - strong: Biến
-  - text: để xem trực quan hóa.
+  - text: Viết mã C++ ở trình soạn thảo bên trái, nhập dữ liệu đầu vào và nhấn
+  - strong: Chạy
+  - text: để xem quá trình thực thi từng bước.
 - button "Chạy"
-- button "Đặt lại"
+- button "Đặt lại" [disabled]
 - button "Bước trước" [disabled]
-- button "Phát"
-- button "Bước tiếp"
-- text: Bước 1 / 99
-- slider: "0"
+- button "Phát" [disabled]
+- button "Bước tiếp" [disabled]
+- text: Bước 0 / 0
+- slider "Bước thực thi" [disabled]: "0"
 - text: "Tốc độ:"
-- button "0.25x"
-- button "0.5x"
-- button "1x"
-- button "2x"
-- button "4x"
+- button "0.25x" [disabled]
+- button "0.5x" [disabled]
+- button "1x" [disabled]
+- button "2x" [disabled]
+- button "4x" [disabled]
 - button "Biến"
 - button "Call Stack"
 - button "Giải thích"
 - button "Console"
-- table:
-  - rowgroup:
-    - row "Tên biến Giá trị Vai trò":
-      - columnheader "Tên biến"
-      - columnheader "Giá trị"
-      - columnheader "Vai trò"
-  - rowgroup:
-    - row "n ? (Chưa khởi tạo) Không":
-      - cell "n"
-      - cell "? (Chưa khởi tạo)"
-      - cell "Không":
-        - combobox:
-          - option "Không" [selected]
-          - option "Mảng"
-          - option "Con trỏ trái"
-          - option "Con trỏ phải"
-          - option "Con trỏ giữa"
-          - option "Bảng DP"
-          - option "Biến đếm"
-          - option "Mục tiêu"
-          - option "Kết quả"
+- text: Chưa có dữ liệu. Hãy chạy chương trình.
 - alert
 - alert
 ```

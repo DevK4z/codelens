@@ -1,10 +1,9 @@
-import { Router } from 'express';
-// Assuming engine files will exist
+﻿import { Router } from 'express';
 import { tokenize } from '../engine/lexer.js';
 import { parse } from '../engine/parser.js';
 import { instrument } from '../engine/instrumenter.js';
-import { runCode } from '../runner/local.js';
-import { ALLOWED_INCLUDES } from '../engine/traceHeader.js'; // Assuming this will exist
+import { LocalRunner } from '../runner/local.js';
+import { DockerRunner } from '../runner/dockerRunner.js';
 
 const router = Router();
 
@@ -32,14 +31,19 @@ export interface ExecuteResponse {
   executionTimeMs: number;
   timeLimitExceeded?: boolean;
   stepLimitExceeded?: boolean;
-  sandboxWarning: string;
+  sandboxWarning?: string;
 }
 
 const FORBIDDEN_TOKENS = ['system(', 'exec(', 'popen(', 'fork(', '#define', '#pragma', 'asm', '__attribute__'];
 
 router.post('/', async (req, res) => {
   try {
-    if (process.env.NODE_ENV === 'production') return res.status(503).json({ error: 'Production execution disabled: Docker runner is not implemented. Use local development with trusted code.' });
+    const isProd = process.env.NODE_ENV === 'production';
+    const useDocker = process.env.RUNNER === 'docker' || isProd;
+    
+    // Check docker availability early in production
+    const runner = useDocker ? new DockerRunner() : new LocalRunner();
+
     const { code, stdin, language } = req.body;
 
     if (!code || typeof code !== 'string') {
@@ -57,19 +61,15 @@ router.post('/', async (req, res) => {
 
     for (const token of FORBIDDEN_TOKENS) {
       if (code.includes(token)) {
-        return res.status(400).json({ success: false, compilationError: `Forbidden keyword/token found: ${token}` });
+        return res.status(400).json({ success: false, compilationError: \Forbidden keyword/token found: \\ });
       }
     }
 
-    // Validation for includes could be done using regex if needed
-    // Assuming engine parses and extracts them for validation
-    
-    // Process
     const tokens = tokenize(code);
     const ast = parse(tokens);
     const instrumentedCode = instrument(ast, code);
     
-    const runResult = await runCode(instrumentedCode, stdin || '');
+    const runResult = await runner.run(instrumentedCode, stdin || '');
 
     const response: ExecuteResponse & { _instrumentedCode?: string } = {
       success: runResult.exitCode === 0 && !runResult.timeLimitExceeded && !runResult.stepLimitExceeded,
@@ -79,12 +79,16 @@ router.post('/', async (req, res) => {
       executionTimeMs: runResult.executionTimeMs,
       timeLimitExceeded: runResult.timeLimitExceeded,
       stepLimitExceeded: runResult.stepLimitExceeded,
-      sandboxWarning: 'Sandbox chua hoan chinh - dung Docker cho production',
       _instrumentedCode: instrumentedCode
     };
     
     if (runResult.exitCode !== 0) {
-        response.runtimeError = runResult.stderr || `Process exited with code ${runResult.exitCode}`;
+        response.runtimeError = runResult.stderr || \Process exited with code \\;
+    }
+
+    // Add sandbox warning if running locally in production (should not happen if RUNNER=docker is enforced)
+    if (!useDocker) {
+        response.sandboxWarning = 'Đang chạy LocalRunner. Chế độ này không cách ly bảo mật và chỉ dùng cho development.';
     }
 
     return res.json(response);
@@ -97,7 +101,7 @@ router.post('/', async (req, res) => {
       return res.json({ success: false, runtimeError: error.message });
     }
     console.error('Execution Error:', error);
-    return res.json({ success: false, compilationError: 'Lỗi không xác định' });
+    return res.json({ success: false, compilationError: error.message || 'Lỗi không xác định' });
   }
 });
 
