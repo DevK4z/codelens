@@ -11,7 +11,7 @@ test.describe('CodeLens E2E', () => {
     await expect(page.locator('h1')).toContainText('CodeLens');
     
     // Select the Factorial sample
-    await page.getByRole('combobox').selectOption({ label: 'Tính Giai thừa' });
+    await page.getByRole('combobox').selectOption('factorial');
     
     // Wait for the code to be loaded
     await expect(page.locator('.monaco-editor')).toBeVisible();
@@ -34,7 +34,7 @@ test.describe('CodeLens E2E', () => {
 
   test('should show stale warning when editing code', async ({ page }) => {
     // Select the Binary Search sample
-    await page.getByRole('combobox').selectOption({ label: 'Tìm kiếm nhị phân' });
+    await page.getByRole('combobox').selectOption('binary-search');
     
     // Wait for demo trace to load
     await expect(page.getByText('Demo Mode')).toBeVisible();
