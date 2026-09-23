@@ -1,8 +1,17 @@
 import { TraceEvent } from './types';
 
-export function generateExplanation(event: TraceEvent, prevEvent?: TraceEvent): string {
+export function generateExplanation(event: TraceEvent, prevEvent?: TraceEvent, algorithmId?: string): string {
   if (!event) return '';
   
+  if (algorithmId === 'binary-search') {
+    const c = event.compareInfo;
+    if (c?.left === 'arr[mid]' && c.right === 'target') {
+      if (c.operator === '==' && c.result) return `arr[mid] = ${c.leftValue} bằng target = ${c.rightValue}: đã tìm thấy tại chỉ số ${event.variables.mid}.`;
+      if (c.operator === '<') return c.result
+        ? `arr[mid] = ${c.leftValue} < target = ${c.rightValue}. Vì mảng tăng dần, loại được đoạn left..mid; bước tiếp theo sẽ tăng left.`
+        : `arr[mid] = ${c.leftValue} > target = ${c.rightValue} (nhánh bằng đã bị loại). Vì mảng tăng dần, loại được đoạn mid..right; bước tiếp theo sẽ giảm right.`;
+    }
+  }
   switch (event.event) {
     case 'vardecl':
       return event.changed.map(name => `${name}: ${event.variables[name] === null ? 'chưa khởi tạo' : JSON.stringify(event.variables[name])}`).join('; ');
@@ -26,7 +35,7 @@ export function generateExplanation(event: TraceEvent, prevEvent?: TraceEvent): 
       return 'Thực hiện phép so sánh.';
     case 'swap':
       if (event.swapInfo) {
-        return `Hoán đổi vị trí ${event.swapInfo.i} và ${event.swapInfo.j} của mảng ${event.swapInfo.name}`;
+        return `Hoán đổi vị trí ${event.swapInfo.index1} và ${event.swapInfo.index2} của mảng ${event.swapInfo.array}`;
       }
       return 'Hoán đổi hai biến.';
     case 'call':
@@ -47,12 +56,12 @@ export function generateExplanation(event: TraceEvent, prevEvent?: TraceEvent): 
       return 'Trả về từ hàm.';
     case 'read':
       if (event.arrayAccess) {
-        return `Đọc phần tử ${event.arrayAccess.name}[${event.arrayAccess.index}] = ${event.arrayAccess.value}`;
+        return `Đọc phần tử ${event.arrayAccess.array}[${event.arrayAccess.index}] = ${event.arrayAccess.value}`;
       }
       return 'Đọc dữ liệu.';
     case 'write':
       if (event.arrayAccess) {
-        return `Ghi ${event.arrayAccess.name}[${event.arrayAccess.index}] = ${event.arrayAccess.value}`;
+        return `Ghi ${event.arrayAccess.array}[${event.arrayAccess.index}] = ${event.arrayAccess.value}`;
       }
       return 'Ghi dữ liệu.';
     case 'stdout':

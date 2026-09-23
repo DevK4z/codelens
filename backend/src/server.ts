@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import executeRouter from './routes/execute';
+import executeRouter from './routes/execute.js';
 
 const app = express();
 const port = Number(process.env.PORT || 3001);

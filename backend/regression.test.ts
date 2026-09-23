@@ -40,3 +40,27 @@ const uninit = await run('int main() { int x; x = 2; cout << x; return 0; }');
 assert.equal(uninit.trace.find(e => e.event === 'vardecl')!.variables.x, null);
 assert.match(generateExplanation(uninit.trace.find(e => e.event === 'vardecl')!), /chưa khởi tạo/);
 console.log('PASS: binary search paths, recursive unwind, immutable demos, side effects, uninitialized variables, explanations');
+
+// Return expressions must execute once, not once for trace and once for return.
+const once = await run('int f(int n) { cout << n; return n + 1; } int main() { int result = f(3); cout << result; return 0; }');
+assert.equal(once.stdout, '34');
+const indexed = await run('int main() { int a[3]; int i = 0; a[i++] = 9; cout << i << a[0]; return 0; }');
+assert.equal(indexed.stdout, '19');
+assert.equal(indexed.trace.find(e => e.event === 'write')!.arrayAccess!.index, 0);
+const scoped = await run('int main() { int x = 7; { int x; x = 3; cout << x; } cout << x; return 0; }');
+assert.equal(scoped.stdout, '37');
+assert.equal(scoped.trace.filter(e => e.event === 'stdout').at(-1)!.variables.x, 7);
+const shortCircuit = await run('int main() { int i = 0; if (false && i++ > 0) { cout << 9; } if (true || i++ > 0) { cout << i; } return 0; }');
+assert.equal(shortCircuit.stdout, '0');
+const vector = await run('int main() { vector<int> a(3); cout << a[0]; return 0; }');
+assert.deepEqual(vector.trace.find(e => e.event === 'vardecl')!.variables.a, [0,0,0]);
+const chars = await run('int main() { string s = "hello"; char c = \'x\'; cout << s << c; return 0; }');
+assert.equal(chars.stdout, 'hellox');
+assert.equal(chars.trace.at(-1)!.variables.c, 'x');
+const decimals = await run('int main() { double x = 1.5; if (x < 1.8) { cout << x; } return 0; }');
+assert.equal(decimals.trace.find(e => e.event === 'compare')!.compareInfo!.leftValue, 1.5);
+console.log('PASS: single return evaluation, indexed writes, scopes, short circuit, initialized vectors, JSON strings/chars, decimal comparisons');
+const comparison = await run('int main() { int a[2]; a[0] = 3; a[1] = 4; int i = 0; if (a[i++] < a[1]) { cout << i; } return 0; }');
+assert.equal(comparison.stdout, '1');
+assert.deepEqual((comparison.trace.find(e => e.event === 'compare') as any).compareAccesses, [{array:'a',index:0},{array:'a',index:1}]);
+console.log('PASS: comparison highlights use captured indices before side effects');

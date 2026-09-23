@@ -1,4 +1,4 @@
-import { Runner, RunResult, RunLimits } from './sandbox';
+import { Runner, RunResult, RunLimits } from './sandbox.js';
 
 export class DockerRunner implements Runner {
   async run(code: string, stdin: string, limits?: Partial<RunLimits>): Promise<RunResult> {

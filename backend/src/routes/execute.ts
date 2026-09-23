@@ -1,10 +1,10 @@
 import { Router } from 'express';
 // Assuming engine files will exist
-import { tokenize } from '../engine/lexer';
-import { parse } from '../engine/parser';
-import { instrument } from '../engine/instrumenter';
-import { runCode } from '../runner/local';
-import { ALLOWED_INCLUDES } from '../engine/traceHeader'; // Assuming this will exist
+import { tokenize } from '../engine/lexer.js';
+import { parse } from '../engine/parser.js';
+import { instrument } from '../engine/instrumenter.js';
+import { runCode } from '../runner/local.js';
+import { ALLOWED_INCLUDES } from '../engine/traceHeader.js'; // Assuming this will exist
 
 const router = Router();
 
@@ -71,7 +71,7 @@ router.post('/', async (req, res) => {
     
     const runResult = await runCode(instrumentedCode, stdin || '');
 
-    const response: ExecuteResponse = {
+    const response: ExecuteResponse & { _instrumentedCode?: string } = {
       success: runResult.exitCode === 0 && !runResult.timeLimitExceeded && !runResult.stepLimitExceeded,
       trace: runResult.trace,
       stdout: runResult.stdout,
@@ -79,7 +79,8 @@ router.post('/', async (req, res) => {
       executionTimeMs: runResult.executionTimeMs,
       timeLimitExceeded: runResult.timeLimitExceeded,
       stepLimitExceeded: runResult.stepLimitExceeded,
-      sandboxWarning: 'Sandbox chưa hoàn chỉnh - dùng Docker cho production'
+      sandboxWarning: 'Sandbox chua hoan chinh - dung Docker cho production',
+      _instrumentedCode: instrumentedCode
     };
     
     if (runResult.exitCode !== 0) {
@@ -101,4 +102,3 @@ router.post('/', async (req, res) => {
 });
 
 export default router;
-

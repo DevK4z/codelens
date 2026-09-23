@@ -1,7 +1,7 @@
-import { tokenize } from './engine/lexer';
-import { parse } from './engine/parser';
-import { instrument } from './engine/instrumenter';
-import { runCode } from './runner/local';
+import { tokenize } from './engine/lexer.js';
+import { parse } from './engine/parser.js';
+import { instrument } from './engine/instrumenter.js';
+import { runCode } from './runner/local.js';
 
 const samples = [
   {

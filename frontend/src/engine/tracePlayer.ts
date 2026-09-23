@@ -20,7 +20,7 @@ export function useTracePlayer(trace: TraceEvent[]) {
     return () => clearInterval(interval);
   }, [isPlaying, speed, trace.length]);
   
-  const next = () => setCurrentStep(s => Math.min(s + 1, trace.length - 1));
+  const next = () => setCurrentStep(s => Math.max(0, Math.min(s + 1, trace.length - 1)));
   const prev = () => setCurrentStep(s => Math.max(s - 1, 0));
   const reset = () => { setCurrentStep(0); setIsPlaying(false); };
   const goToStep = (n: number) => setCurrentStep(Math.max(0, Math.min(n, trace.length - 1)));

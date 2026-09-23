@@ -9,8 +9,9 @@ export interface TraceEvent {
   changed: string[];
   detail?: string;
   stdout?: string;
-  arrayAccess?: { name: string; index: number; action: 'read' | 'write'; value?: any };
-  swapInfo?: { name: string; i: number; j: number };
+  arrayAccess?: { array: string; index: number; mode: 'read' | 'write'; value?: any };
+  swapInfo?: { array: string; index1: number; index2: number };
+  compareAccesses?: { array: string; index: number }[];
   compareInfo?: { left: string; right: string; leftValue: any; rightValue: any; operator: string; result: boolean };
 }
 

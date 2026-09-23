@@ -29,30 +29,8 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
     variableRoles[k].includes('pointer') && typeof event.variables[k] === 'number'
   );
 
-  const isCompared = (idx: number) => {
-    if (!event.compareInfo) return false;
-    const { left, right } = event.compareInfo;
-    
-    // Direct index match e.g. arr[0]
-    if (left.includes(`${arrayVar}[${idx}]`) || right.includes(`${arrayVar}[${idx}]`)) return true;
+  const isCompared = (idx: number) => event.compareAccesses?.some(access => access.array === arrayVar && access.index === idx) ?? false;
 
-    // Variable index match e.g. arr[mid], arr[j], arr[j + 1]
-    for (const [varName, varVal] of Object.entries(event.variables)) {
-      if (typeof varVal === 'number') {
-        if (varVal === idx && (left.includes(`${arrayVar}[${varName}]`) || right.includes(`${arrayVar}[${varName}]`))) {
-          return true;
-        }
-        if (varVal + 1 === idx && (left.includes(`${arrayVar}[${varName} + 1]`) || right.includes(`${arrayVar}[${varName} + 1]`))) {
-          return true;
-        }
-        if (varVal - 1 === idx && (left.includes(`${arrayVar}[${varName} - 1]`) || right.includes(`${arrayVar}[${varName} - 1]`))) {
-          return true;
-        }
-      }
-    }
-    return false;
-  };
-  
   return (
     <div className="p-6 flex flex-col items-center justify-center min-h-[320px] overflow-x-auto w-full">
       {/* Compare Info Banner */}
@@ -87,28 +65,31 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
           let badgeColor = 'text-[var(--text-secondary)]';
           const isNull = val === null;
           
-          if (event.arrayAccess?.name === arrayVar && event.arrayAccess?.index === idx) {
-            if (event.arrayAccess.action === 'read') {
-              bgColor = 'bg-blue-600/20';
-              borderColor = 'border-blue-500 shadow-lg shadow-blue-500/20';
-              textColor = 'text-blue-400 font-extrabold';
-              label = 'ĐỌC';
-              badgeColor = 'text-blue-400';
-            } else {
-              bgColor = 'bg-amber-600/20';
-              borderColor = 'border-amber-500 shadow-lg shadow-amber-500/20';
-              textColor = 'text-amber-400 font-extrabold';
-              label = 'GHI';
-              badgeColor = 'text-amber-400';
-            }
+          const isAccessed = event.arrayAccess?.array === arrayVar && event.arrayAccess?.index === idx;
+          const isWritten = isAccessed && event.arrayAccess?.mode === 'write';
+          const isRead = isAccessed && event.arrayAccess?.mode === 'read';
+          const isSwapped = event.swapInfo?.array === arrayVar && 
+                           (event.swapInfo?.index1 === idx || event.swapInfo?.index2 === idx);
+
+          if (isRead) {
+            bgColor = 'bg-blue-600/20';
+            borderColor = 'border-blue-500 shadow-lg shadow-blue-500/20';
+            textColor = 'text-blue-400 font-extrabold';
+            label = 'ĐỌC';
+            badgeColor = 'text-blue-400';
+          } else if (isWritten) {
+            bgColor = 'bg-amber-600/20';
+            borderColor = 'border-amber-500 shadow-lg shadow-amber-500/20';
+            textColor = 'text-amber-400 font-extrabold';
+            label = 'GHI';
+            badgeColor = 'text-amber-400';
           } else if (isCompared(idx)) {
             bgColor = 'bg-yellow-500/20';
             borderColor = 'border-yellow-400 shadow-lg shadow-yellow-500/20';
             textColor = 'text-yellow-400 font-extrabold';
             label = 'SO SÁNH';
             badgeColor = 'text-yellow-400';
-          } else if (event.swapInfo && event.swapInfo.name === arrayVar && 
-                    (event.swapInfo.i === idx || event.swapInfo.j === idx)) {
+          } else if (isSwapped) {
             bgColor = 'bg-purple-600/20';
             borderColor = 'border-purple-500 shadow-lg shadow-purple-500/20';
             textColor = 'text-purple-400 font-extrabold';

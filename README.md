@@ -128,3 +128,11 @@ Backend mặc định chỉ bind `127.0.0.1`. Có thể cấu hình `PORT`, `HOS
 Parser chỉ hỗ trợ một tập con C++, không phải trình biên dịch C++ tổng quát. Kiểu do người dùng định nghĩa, phương thức STL ngoài phạm vi và cú pháp khác có thể bị từ chối. Instrumentation chưa bảo đảm mọi trường hợp alias/reference, tên biến bị che khuất, chỉ số có tác dụng phụ, hoặc chương trình có hành vi không xác định. Không dùng các trace đó làm bằng chứng về tính đúng của C++ tổng quát. Bảng DP, kiểm thử trình duyệt tự động và AI chưa nằm trong bản sửa này.
 
 Các bài mảng dùng `arr[10]`: input cần `0 <= n <= 10`. Bài giai thừa dùng int: chỉ dùng `0 <= n <= 12`. Bộ kiểm tra hiện xác nhận các bài mẫu và trường hợp regression cụ thể, không khẳng định hỗ trợ toàn bộ C++.
+
+## Kiểm tra bổ sung 23/09/2026
+
+Bản sửa đã tích hợp thay đổi mới trên main về schema `arrayAccess`/`swapInfo`, đồng thời sửa lỗi tính biểu thức return hai lần. Metadata khởi tạo được quản lý theo địa chỉ và vòng đời biến, không lẫn giữa các biến che khuất nhau. Vector khởi tạo theo chuẩn C++ được hiển thị đúng; JSON của string/char và số thập phân trong so sánh không còn bị sai. Tô sáng so sánh lấy chỉ số đã ghi trong trace, không phân tích chuỗi biểu thức. Giải thích bài binary search bổ sung lý do loại vùng tìm kiếm.
+
+Backend đã dùng đuôi `.js` trong import nội bộ để `node dist/server.js` chạy được sau build. Regression kiểm tra thêm return có tác dụng phụ, ghi mảng với i++, short-circuit, scope, vector, string/char và so sánh số thập phân. Build frontend/backend, bộ test và smoke test API local đã chạy thành công. API production được kiểm tra trả 503 trong khi chưa có DockerRunner thực tế.
+
+Kiểm thử tương tác trình duyệt chưa hoàn thành: tải Chromium trong môi trường kiểm tra thất bại. Cần kiểm tra desktop/mobile, editor và timeline trước khi merge/deploy. Các ca C++ ngoài tập con parser vẫn chưa được bảo đảm tổng quát; không coi những test đã đạt là chứng minh hỗ trợ toàn bộ C++.

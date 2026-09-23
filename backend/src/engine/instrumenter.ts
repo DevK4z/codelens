@@ -1,5 +1,5 @@
-import * as AST from './ast';
-import { TRACE_HEADER } from './traceHeader';
+import * as AST from './ast.js';
+import { TRACE_HEADER } from './traceHeader.js';
 
 export function instrument(ast: AST.Program, originalSource: string): string {
   let output = '';
@@ -42,21 +42,20 @@ export function instrument(ast: AST.Program, originalSource: string): string {
     let out = '';
     const vars = getAllVisibleVars();
     for (const v of vars) {
-      if (!v.type.isArray && !['vector', 'string'].includes(v.type.base)) out += `if (__cl_sb.is_uninit("${v.name}")) __cl_sb.var_uninit("${v.name}"); else `;
       if (v.type.isArray && v.type.arraySize) {
-          out += `__cl_sb.var_arr("${v.name}", ${v.name}, ${genExpr(v.type.arraySize)}); `;
+          out += `__cl_sb.var_arr("${v.name}", (void*)&${v.name}, ${v.name}, ${genExpr(v.type.arraySize)}); `;
       } else if (v.type.base === 'vector') {
-          out += `__cl_sb.var_vec("${v.name}", ${v.name}); `;
+          out += `__cl_sb.var_vec("${v.name}", (void*)&${v.name}, ${v.name}); `;
       } else if (v.type.base === 'string') {
-          out += `__cl_sb.var_str("${v.name}", ${v.name}); `;
+          out += `__cl_sb.var_str("${v.name}", (void*)&${v.name}, ${v.name}); `;
       } else if (v.type.base === 'char') {
-          out += `__cl_sb.var_char("${v.name}", ${v.name}); `;
+          out += `__cl_sb.var_char("${v.name}", (void*)&${v.name}, ${v.name}); `;
       } else if (v.type.base === 'bool') {
-          out += `__cl_sb.var_bool("${v.name}", ${v.name}); `;
+          out += `__cl_sb.var_bool("${v.name}", (void*)&${v.name}, ${v.name}); `;
       } else if (v.type.base === 'double') {
-          out += `__cl_sb.var_double("${v.name}", ${v.name}); `;
+          out += `__cl_sb.var_double("${v.name}", (void*)&${v.name}, ${v.name}); `;
       } else {
-          out += `__cl_sb.var_int("${v.name}", ${v.name}); `;
+          out += `__cl_sb.var_int("${v.name}", (void*)&${v.name}, ${v.name}); `;
       }
     }
     return out;
@@ -79,11 +78,17 @@ export function instrument(ast: AST.Program, originalSource: string): string {
   }
 
   function genCondition(expr: AST.Expression, line: number): string {
-    if (expr.type === 'BinaryExpr' && ['<', '>', '<=', '>=', '==', '!='].includes(expr.operator)) {
-      const left = genExpr(expr.left), right = genExpr(expr.right);
-      return `([&]() { auto __cl_l = ${left}; auto __cl_r = ${right}; bool __cl_test = __cl_l ${expr.operator} __cl_r; __cl_begin(${line}, "compare"); ${emitVarSnapshot()} __cl_sb.set_compare(${JSON.stringify(left)}, ${JSON.stringify(right)}, __cl_l, __cl_r, "${expr.operator}", __cl_test); __cl_end(); return __cl_test; }())`;
+    if (expr.type !== 'BinaryExpr' || !['<', '>', '<=', '>=', '==', '!='].includes(expr.operator)) {
+      return `([&]() { bool __cl_cond = ${genExpr(expr)}; __cl_begin(${line}, "branch"); ${emitVarSnapshot()} __cl_end(); return __cl_cond; }())`;
     }
-    return `([&]() { bool __cl_test = ${genExpr(expr)}; __cl_begin(${line}, "branch"); ${emitVarSnapshot()} __cl_end(); return __cl_test; }())`;
+    let evaluate = '', accesses = '';
+    for (const [label, operand] of [['L', expr.left], ['R', expr.right]] as const) {
+      if (operand.type === 'IndexExpr') {
+        evaluate += `auto __cl_idx${label} = ${genExpr(operand.index)}; auto __cl_${label} = ${operand.object}[__cl_idx${label}]; `;
+        accesses += `__cl_sb.set_compare_access("${operand.object}", __cl_idx${label}); `;
+      } else evaluate += `auto __cl_${label} = ${genExpr(operand)}; `;
+    }
+    return `([&]() { ${evaluate} bool __cl_cond = __cl_L ${expr.operator} __cl_R; __cl_begin(${line}, "compare"); ${emitVarSnapshot()} __cl_sb.set_compare(${JSON.stringify(genExpr(expr.left))}, ${JSON.stringify(genExpr(expr.right))}, __cl_L, __cl_R, "${expr.operator}", __cl_cond); ${accesses} __cl_end(); return __cl_cond; }())`;
   }
 
   function genStatement(stmt: AST.Statement): string {
@@ -129,22 +134,24 @@ export function instrument(ast: AST.Program, originalSource: string): string {
         // IMPORTANT: Emit declaration FIRST so variable is in scope for trace
         out += declStr + '\n';
         addVar(stmt.name, varType);
-        if (!stmt.initializer && !['vector', 'string'].includes(stmt.varType.base)) {
-            out += `__cl_sb.set_uninit("${stmt.name}");\n`;
-        } else { out += `__cl_sb.set_init("${stmt.name}");\n`; }
+        out += `__cl_VarGuard __cl_guard_${stmt.name}((void*)&${stmt.name}, ${stmt.initializer || ['vector', 'string'].includes(stmt.varType.base) ? 'true' : 'false'});\n`;
         out += `__cl_begin(${stmt.line}, "vardecl"); ${emitVarSnapshot()} __cl_sb.mark_changed("${stmt.name}"); __cl_end();\n`;
         break;
 
       case 'Assignment':
-        const targetStr = stmt.target.index ? `${stmt.target.name}[${genExpr(stmt.target.index)}]` : stmt.target.name;
-        out += `${targetStr} ${stmt.operator} ${genExpr(stmt.value)};\n`;
+        out += `[&]() {\n`;
+        out += `  auto __cl_val = ${genExpr(stmt.value)};\n`;
         if (stmt.target.index) {
-          out += `__cl_sb.set_arr_init("${stmt.target.name}", ${genExpr(stmt.target.index)});\n`;
-          out += `__cl_begin(${stmt.line}, "write"); ${emitVarSnapshot()} __cl_sb.mark_changed("${stmt.target.name}"); __cl_sb.set_access("${stmt.target.name}", ${genExpr(stmt.target.index)}, "write", ${targetStr}); __cl_end();\n`;
+          out += `  auto __cl_idx = ${genExpr(stmt.target.index)};\n`;
+          out += `  ${stmt.target.name}[__cl_idx] ${stmt.operator} __cl_val;\n`;
+          out += `  __cl_sb.set_arr_init((void*)&${stmt.target.name}, __cl_idx);\n`;
+          out += `  __cl_begin(${stmt.line}, "write"); ${emitVarSnapshot()} __cl_sb.mark_changed("${stmt.target.name}"); __cl_sb.set_access("${stmt.target.name}", __cl_idx, "write", ${stmt.target.name}[__cl_idx]); __cl_end();\n`;
         } else {
-          out += `__cl_sb.set_init("${stmt.target.name}");\n`;
-          out += `__cl_begin(${stmt.line}, "assign"); ${emitVarSnapshot()} __cl_sb.mark_changed("${stmt.target.name}"); __cl_end();\n`;
+          out += `  ${stmt.target.name} ${stmt.operator} __cl_val;\n`;
+          out += `  __cl_sb.set_init((void*)&${stmt.target.name});\n`;
+          out += `  __cl_begin(${stmt.line}, "assign"); ${emitVarSnapshot()} __cl_sb.mark_changed("${stmt.target.name}"); __cl_end();\n`;
         }
+        out += `}();\n`;
         break;
 
       case 'IfStmt':
@@ -188,28 +195,30 @@ export function instrument(ast: AST.Program, originalSource: string): string {
 
       case 'ReturnStmt':
         if (stmt.value) {
-            out += `auto __cl_ret = ${genExpr(stmt.value)};\n`;
-            out += `__cl_sb.set_return(__cl_ret);\n`;
-            out += `__cl_begin(${stmt.line}, "return"); ${emitVarSnapshot()} __cl_end();\n`;
-            out += `__cl_leave();\n`;
-            out += `return __cl_ret;\n`;
+          out += `{ auto __cl_ret = ${genExpr(stmt.value)};\n`;
+          out += `__cl_sb.set_return(__cl_ret);\n`;
+          out += `__cl_begin(${stmt.line}, "return"); ${emitVarSnapshot()} __cl_end();\n`;
+          out += `__cl_leave(); return __cl_ret; }\n`;
         } else {
-            out += `__cl_begin(${stmt.line}, "return"); ${emitVarSnapshot()} __cl_end();\n`;
-            out += `__cl_leave();\n`;
-            out += `return;\n`;
+          out += `__cl_begin(${stmt.line}, "return"); ${emitVarSnapshot()} __cl_end(); __cl_leave(); return;\n`;
         }
         break;
 
       case 'ExpressionStmt':
         if (stmt.expression.type === 'CallExpr' && stmt.expression.callee === 'swap') {
-          out += `${genExpr(stmt.expression)};\n`;
           if (stmt.expression.args.length >= 2 && stmt.expression.args[0].type === 'IndexExpr' && stmt.expression.args[1].type === 'IndexExpr') {
             const a1 = stmt.expression.args[0] as AST.IndexExpr;
             const a2 = stmt.expression.args[1] as AST.IndexExpr;
-            out += `__cl_sb.set_arr_init("${a1.object}", ${genExpr(a1.index)});\n`;
-            out += `__cl_sb.set_arr_init("${a2.object}", ${genExpr(a2.index)});\n`;
-            out += `__cl_begin(${stmt.line}, "swap"); ${emitVarSnapshot()} __cl_sb.mark_changed("${a1.object}"); __cl_sb.set_swap("${a1.object}", ${genExpr(a1.index)}, ${genExpr(a2.index)}); __cl_end();\n`;
+            out += `{\n`;
+            out += `  auto __cl_idx1 = ${genExpr(a1.index)};\n`;
+            out += `  auto __cl_idx2 = ${genExpr(a2.index)};\n`;
+            out += `  swap(${a1.object}[__cl_idx1], ${a2.object}[__cl_idx2]);\n`;
+            out += `  __cl_sb.set_arr_init((void*)&${a1.object}, __cl_idx1);\n`;
+            out += `  __cl_sb.set_arr_init((void*)&${a2.object}, __cl_idx2);\n`;
+            out += `  __cl_begin(${stmt.line}, "swap"); ${emitVarSnapshot()} __cl_sb.mark_changed("${a1.object}"); __cl_sb.set_swap("${a1.object}", __cl_idx1, __cl_idx2); __cl_end();\n`;
+            out += `}\n`;
           } else {
+            out += `${genExpr(stmt.expression)};\n`;
             out += `__cl_begin(${stmt.line}, "line"); ${emitVarSnapshot()} __cl_end();\n`;
           }
         } else {
@@ -228,20 +237,25 @@ export function instrument(ast: AST.Program, originalSource: string): string {
         break;
 
       case 'CinStmt':
-        out += `cin >> ${stmt.targets.map(t => t.index ? `${t.name}[${genExpr(t.index)}]` : t.name).join(' >> ')};\n`;
-        for (const t of stmt.targets) {
+        out += `{\n`;
+        for (let i = 0; i < stmt.targets.length; i++) {
+            const t = stmt.targets[i];
             if (t.index) {
-              out += `__cl_sb.set_arr_init("${t.name}", ${genExpr(t.index)});\n`;
-              out += `__cl_begin(${stmt.line}, "write"); ${emitVarSnapshot()} __cl_sb.mark_changed("${t.name}"); __cl_sb.set_access("${t.name}", ${genExpr(t.index)}, "write", ${t.name}[${genExpr(t.index)}]); __cl_end();\n`;
+              out += `  auto __cl_idx_${i} = ${genExpr(t.index)};\n`;
+              out += `  cin >> ${t.name}[__cl_idx_${i}];\n`;
+              out += `  __cl_sb.set_arr_init((void*)&${t.name}, __cl_idx_${i});\n`;
+              out += `  __cl_begin(${stmt.line}, "write"); ${emitVarSnapshot()} __cl_sb.mark_changed("${t.name}"); __cl_sb.set_access("${t.name}", __cl_idx_${i}, "write", ${t.name}[__cl_idx_${i}]); __cl_end();\n`;
             } else {
-              out += `__cl_sb.set_init("${t.name}");\n`;
-              out += `__cl_begin(${stmt.line}, "stdin"); ${emitVarSnapshot()} __cl_sb.mark_changed("${t.name}"); __cl_end();\n`;
+              out += `  cin >> ${t.name};\n`;
+              out += `  __cl_sb.set_init((void*)&${t.name});\n`;
+              out += `  __cl_begin(${stmt.line}, "stdin"); ${emitVarSnapshot()} __cl_sb.mark_changed("${t.name}"); __cl_end();\n`;
             }
         }
+        out += `}\n`;
         break;
 
       case 'CoutStmt':
-        out += `{ stringstream __cl_output; __cl_output << ${stmt.expressions.map(genExpr).join(' << ')}; cout << __cl_output.str(); __cl_cum_stdout << __cl_output.str(); }\n`;
+        out += `__cl_cout << ${stmt.expressions.map(genExpr).join(' << ')};\n`;
         out += `__cl_begin(${stmt.line}, "stdout"); ${emitVarSnapshot()} __cl_end();\n`;
         break;
 
@@ -279,10 +293,20 @@ export function instrument(ast: AST.Program, originalSource: string): string {
         return `${genType(p.paramType)}${p.isReference ? '&' : ''} ${p.name}`;
     });
     output += pStrs.join(', ') + `) {\n`;
-    output += `  __cl_enter("${func.name}", ${func.line});\n`;
+      output += `  __cl_enter("${func.name}", ${func.line});\n`;
+      for (const p of func.params) {
+          if (!p.isReference) output += `__cl_VarGuard __cl_guard_${p.name}((void*)&${p.name}, true);\n`;
+          if (p.paramType.base === 'string') {
+              output += `  __cl_sb.add_param_str("${p.name}", ${p.name});\n`;
+          } else if (p.paramType.isArray || p.paramType.base === 'vector') {
+              // array/vector params too large or not stringifiable directly in C++
+              output += `  __cl_sb.add_param_str("${p.name}", "[array/vector]");\n`;
+          } else {
+              output += `  __cl_sb.add_param("${p.name}", ${p.name});\n`;
+          }
+      }
     
-    for (const p of func.params) output += `__cl_sb.set_init("${p.name}");\n`;
-    output += `__cl_begin(${func.line}, "call"); ${emitVarSnapshot()} __cl_capture_params(); __cl_end();\n`;
+    output += `__cl_begin(${func.line}, "call"); ${emitVarSnapshot()} __cl_end();\n`;
     // Gen body statements manually to insert __cl_leave before closing
     pushScope(); // block scope
     for (const s of func.body.statements) {

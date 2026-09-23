@@ -1,0 +1,1 @@
+const fs = require('fs'); let c = fs.readFileSync('frontend/src/data/demoTraces.ts', 'utf8'); c = c.replace(/"name":/g, '"array":').replace(/"action":/g, '"mode":').replace(/"i":/g, '"index1":').replace(/"j":/g, '"index2":'); fs.writeFileSync('frontend/src/data/demoTraces.ts', c);

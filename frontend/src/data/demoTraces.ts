@@ -155,9 +155,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 0,
-          "action": "write",
+          "mode": "write",
           "value": 1
         },
         "stdout": ""
@@ -194,9 +194,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 1,
-          "action": "write",
+          "mode": "write",
           "value": 2
         },
         "stdout": ""
@@ -233,9 +233,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 2,
-          "action": "write",
+          "mode": "write",
           "value": 3
         },
         "stdout": ""
@@ -272,9 +272,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 3,
-          "action": "write",
+          "mode": "write",
           "value": 4
         },
         "stdout": ""
@@ -311,9 +311,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 4,
-          "action": "write",
+          "mode": "write",
           "value": 5
         },
         "stdout": ""
@@ -649,7 +649,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
     ],
     "stdout": "15\n",
     "stepCount": 20,
-    "executionTimeMs": 4,
+    "executionTimeMs": 6,
     "isDemo": true,
     "sandboxWarning": "Dữ liệu mô phỏng từ lần chạy C++ thật (Chế độ xem trước GitHub Pages)"
   },
@@ -806,9 +806,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 0,
-          "action": "write",
+          "mode": "write",
           "value": 1
         },
         "stdout": ""
@@ -845,9 +845,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 1,
-          "action": "write",
+          "mode": "write",
           "value": 3
         },
         "stdout": ""
@@ -884,9 +884,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 2,
-          "action": "write",
+          "mode": "write",
           "value": 5
         },
         "stdout": ""
@@ -923,9 +923,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 3,
-          "action": "write",
+          "mode": "write",
           "value": 7
         },
         "stdout": ""
@@ -962,9 +962,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 4,
-          "action": "write",
+          "mode": "write",
           "value": 9
         },
         "stdout": ""
@@ -1001,9 +1001,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 5,
-          "action": "write",
+          "mode": "write",
           "value": 11
         },
         "stdout": ""
@@ -1040,9 +1040,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 6,
-          "action": "write",
+          "mode": "write",
           "value": 13
         },
         "stdout": ""
@@ -1258,6 +1258,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": "<=",
           "result": true
         },
+        "compareAccesses": [],
         "stdout": ""
       },
       {
@@ -1338,6 +1339,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": "==",
           "result": true
         },
+        "compareAccesses": [
+          {
+            "array": "arr",
+            "index": 3
+          }
+        ],
         "stdout": ""
       },
       {
@@ -1675,9 +1682,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 0,
-          "action": "write",
+          "mode": "write",
           "value": 5
         },
         "stdout": ""
@@ -1714,9 +1721,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 1,
-          "action": "write",
+          "mode": "write",
           "value": 3
         },
         "stdout": ""
@@ -1753,9 +1760,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 2,
-          "action": "write",
+          "mode": "write",
           "value": 1
         },
         "stdout": ""
@@ -1792,9 +1799,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 3,
-          "action": "write",
+          "mode": "write",
           "value": 4
         },
         "stdout": ""
@@ -1831,9 +1838,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 4,
-          "action": "write",
+          "mode": "write",
           "value": 2
         },
         "stdout": ""
@@ -1937,6 +1944,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": ">",
           "result": true
         },
+        "compareAccesses": [
+          {
+            "array": "arr",
+            "index": 0
+          },
+          {
+            "array": "arr",
+            "index": 1
+          }
+        ],
         "stdout": ""
       },
       {
@@ -2008,9 +2025,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 0,
-          "action": "write",
+          "mode": "write",
           "value": 3
         },
         "stdout": ""
@@ -2049,9 +2066,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 1,
-          "action": "write",
+          "mode": "write",
           "value": 5
         },
         "stdout": ""
@@ -2094,6 +2111,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": ">",
           "result": true
         },
+        "compareAccesses": [
+          {
+            "array": "arr",
+            "index": 1
+          },
+          {
+            "array": "arr",
+            "index": 2
+          }
+        ],
         "stdout": ""
       },
       {
@@ -2165,9 +2192,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 1,
-          "action": "write",
+          "mode": "write",
           "value": 1
         },
         "stdout": ""
@@ -2206,9 +2233,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 2,
-          "action": "write",
+          "mode": "write",
           "value": 5
         },
         "stdout": ""
@@ -2251,6 +2278,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": ">",
           "result": true
         },
+        "compareAccesses": [
+          {
+            "array": "arr",
+            "index": 2
+          },
+          {
+            "array": "arr",
+            "index": 3
+          }
+        ],
         "stdout": ""
       },
       {
@@ -2322,9 +2359,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 2,
-          "action": "write",
+          "mode": "write",
           "value": 4
         },
         "stdout": ""
@@ -2363,9 +2400,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 3,
-          "action": "write",
+          "mode": "write",
           "value": 5
         },
         "stdout": ""
@@ -2408,6 +2445,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": ">",
           "result": true
         },
+        "compareAccesses": [
+          {
+            "array": "arr",
+            "index": 3
+          },
+          {
+            "array": "arr",
+            "index": 4
+          }
+        ],
         "stdout": ""
       },
       {
@@ -2479,9 +2526,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 3,
-          "action": "write",
+          "mode": "write",
           "value": 2
         },
         "stdout": ""
@@ -2520,9 +2567,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 4,
-          "action": "write",
+          "mode": "write",
           "value": 5
         },
         "stdout": ""
@@ -2596,6 +2643,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": ">",
           "result": true
         },
+        "compareAccesses": [
+          {
+            "array": "arr",
+            "index": 0
+          },
+          {
+            "array": "arr",
+            "index": 1
+          }
+        ],
         "stdout": ""
       },
       {
@@ -2667,9 +2724,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 0,
-          "action": "write",
+          "mode": "write",
           "value": 1
         },
         "stdout": ""
@@ -2708,9 +2765,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 1,
-          "action": "write",
+          "mode": "write",
           "value": 3
         },
         "stdout": ""
@@ -2753,6 +2810,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": ">",
           "result": false
         },
+        "compareAccesses": [
+          {
+            "array": "arr",
+            "index": 1
+          },
+          {
+            "array": "arr",
+            "index": 2
+          }
+        ],
         "stdout": ""
       },
       {
@@ -2793,6 +2860,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": ">",
           "result": true
         },
+        "compareAccesses": [
+          {
+            "array": "arr",
+            "index": 2
+          },
+          {
+            "array": "arr",
+            "index": 3
+          }
+        ],
         "stdout": ""
       },
       {
@@ -2864,9 +2941,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 2,
-          "action": "write",
+          "mode": "write",
           "value": 2
         },
         "stdout": ""
@@ -2905,9 +2982,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 3,
-          "action": "write",
+          "mode": "write",
           "value": 4
         },
         "stdout": ""
@@ -2981,6 +3058,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": ">",
           "result": false
         },
+        "compareAccesses": [
+          {
+            "array": "arr",
+            "index": 0
+          },
+          {
+            "array": "arr",
+            "index": 1
+          }
+        ],
         "stdout": ""
       },
       {
@@ -3021,6 +3108,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": ">",
           "result": true
         },
+        "compareAccesses": [
+          {
+            "array": "arr",
+            "index": 1
+          },
+          {
+            "array": "arr",
+            "index": 2
+          }
+        ],
         "stdout": ""
       },
       {
@@ -3092,9 +3189,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 1,
-          "action": "write",
+          "mode": "write",
           "value": 2
         },
         "stdout": ""
@@ -3133,9 +3230,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr"
         ],
         "arrayAccess": {
-          "name": "arr",
+          "array": "arr",
           "index": 2,
-          "action": "write",
+          "mode": "write",
           "value": 3
         },
         "stdout": ""
@@ -3209,6 +3306,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": ">",
           "result": false
         },
+        "compareAccesses": [
+          {
+            "array": "arr",
+            "index": 0
+          },
+          {
+            "array": "arr",
+            "index": 1
+          }
+        ],
         "stdout": ""
       },
       {
@@ -3490,7 +3597,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
     ],
     "stdout": "1 2 3 4 5 \n",
     "stepCount": 55,
-    "executionTimeMs": 5,
+    "executionTimeMs": 4,
     "isDemo": true,
     "sandboxWarning": "Dữ liệu mô phỏng từ lần chạy C++ thật (Chế độ xem trước GitHub Pages)"
   },
@@ -3611,6 +3718,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": "<=",
           "result": false
         },
+        "compareAccesses": [],
         "stdout": ""
       },
       {
@@ -3713,6 +3821,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": "<=",
           "result": false
         },
+        "compareAccesses": [],
         "stdout": ""
       },
       {
@@ -3839,6 +3948,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": "<=",
           "result": false
         },
+        "compareAccesses": [],
         "stdout": ""
       },
       {
@@ -3989,6 +4099,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": "<=",
           "result": false
         },
+        "compareAccesses": [],
         "stdout": ""
       },
       {
@@ -4163,6 +4274,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "operator": "<=",
           "result": true
         },
+        "compareAccesses": [],
         "stdout": ""
       },
       {

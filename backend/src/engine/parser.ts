@@ -1,5 +1,5 @@
-import { Token } from './lexer';
-import * as AST from './ast';
+import { Token } from './lexer.js';
+import * as AST from './ast.js';
 
 export class ParseError extends Error {
   line: number;
