@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { tokenize } from '../engine/lexer.js';
 import { parse } from '../engine/parser.js';
 import { instrument } from '../engine/instrumenter.js';
