@@ -29,8 +29,9 @@ Call log:
 - banner:
   - heading "CodeLens" [level=1]
   - paragraph: Trực quan hóa thuật toán
-  - text: Trực tuyến
-  - combobox:
+  - text: Chưa kết nối backend
+  - button "Thử kết nối lại"
+  - combobox "Chọn bài mẫu":
     - option "-- Chọn bài mẫu (Tùy chọn) --" [disabled]
     - option "Tự viết code (Trống) - Viết thuật toán và dữ liệu đầu..."
     - option "Tính tổng mảng - Tính tổng các phần tử trong mả..."
@@ -42,30 +43,28 @@ Call log:
   - textbox "Editor content"
 - text: Stdin
 - textbox "Nhập dữ liệu đầu vào (stdin)...": 7 1 3 5 7 9 11 13 7
+- strong: Dòng 4 · Bước 1/25
+- paragraph: Gọi hàm main()
 - heading "Trực quan hóa" [level=2]
-- heading "Chào mừng đến với CodeLens" [level=3]
-- paragraph:
-  - text: Viết mã C++ ở trình soạn thảo bên trái, nhập dữ liệu đầu vào và nhấn
-  - strong: Chạy
-  - text: để xem quá trình thực thi từng bước.
+- text: Bản ghi bài mẫu Chưa chọn hoặc không tìm thấy biến mảng để hiển thị. Hãy đảm bảo gán vai trò "Mảng" cho biến ở bảng Biến phía dưới.
 - button "Chạy"
-- button "Đặt lại" [disabled]
+- button "Đặt lại"
 - button "Bước trước" [disabled]
-- button "Phát" [disabled]
-- button "Bước tiếp" [disabled]
-- text: Bước 0 / 0
-- slider [disabled]: "0"
+- button "Phát"
+- button "Bước tiếp"
+- text: Bước 1 / 25
+- slider "Bước thực thi": "0"
 - text: "Tốc độ:"
-- button "0.25x" [disabled]
-- button "0.5x" [disabled]
-- button "1x" [disabled]
-- button "2x" [disabled]
-- button "4x" [disabled]
+- button "0.25x"
+- button "0.5x"
+- button "1x"
+- button "2x"
+- button "4x"
 - button "Biến"
 - button "Call Stack"
 - button "Giải thích"
 - button "Console"
-- text: Chưa có dữ liệu. Hãy chạy chương trình.
+- text: Không có biến nào trong phạm vi hiện tại.
 - alert
 - alert
 ```
