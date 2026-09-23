@@ -1,11 +1,20 @@
 import { TraceEvent } from './types';
 
-export function generateExplanation(event: TraceEvent, prevEvent?: TraceEvent): string {
+export function generateExplanation(event: TraceEvent, prevEvent?: TraceEvent, algorithmId?: string): string {
   if (!event) return '';
   
+  if (algorithmId === 'binary-search') {
+    const c = event.compareInfo;
+    if (c?.left === 'arr[mid]' && c.right === 'target') {
+      if (c.operator === '==' && c.result) return `arr[mid] = ${c.leftValue} bằng target = ${c.rightValue}: đã tìm thấy tại chỉ số ${event.variables.mid}.`;
+      if (c.operator === '<') return c.result
+        ? `arr[mid] = ${c.leftValue} < target = ${c.rightValue}. Vì mảng tăng dần, loại được đoạn left..mid; bước tiếp theo sẽ tăng left.`
+        : `arr[mid] = ${c.leftValue} > target = ${c.rightValue} (nhánh bằng đã bị loại). Vì mảng tăng dần, loại được đoạn mid..right; bước tiếp theo sẽ giảm right.`;
+    }
+  }
   switch (event.event) {
     case 'vardecl':
-      return `Khai báo biến với giá trị khởi tạo.`;
+      return event.changed.map(name => `${name}: ${event.variables[name] === null ? 'chưa khởi tạo' : JSON.stringify(event.variables[name])}`).join('; ');
     case 'assign': {
       if (event.changed && event.changed.length > 0) {
         const varName = event.changed[0];
@@ -56,9 +65,9 @@ export function generateExplanation(event: TraceEvent, prevEvent?: TraceEvent): 
       }
       return 'Ghi dữ liệu.';
     case 'stdout':
-      return `In ra màn hình: ${event.detail || ''}`;
+      return `In ra màn hình: ${event.detail || (event.stdout || '').slice((prevEvent?.stdout || '').length)}`;
     case 'stdin':
-      return `Đọc dữ liệu từ input: ${event.detail || ''}`;
+      return `Đọc dữ liệu từ input: ${event.detail || event.changed.map(name => `${name} = ${event.variables[name]}`).join(', ')}`;
     case 'branch':
       return `Kiểm tra điều kiện rẽ nhánh (if/else).`;
     case 'loop_start':

@@ -11,10 +11,12 @@ export interface TraceEvent {
   stdout?: string;
   arrayAccess?: { array: string; index: number; mode: 'read' | 'write'; value?: any };
   swapInfo?: { array: string; index1: number; index2: number };
+  compareAccesses?: { array: string; index: number }[];
   compareInfo?: { left: string; right: string; leftValue: any; rightValue: any; operator: string; result: boolean };
 }
 
 export interface CallFrame {
+  id?: number;
   func: string;
   line: number;
   params?: Record<string, any>;

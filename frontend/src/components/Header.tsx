@@ -23,7 +23,7 @@ export function Header({ theme, toggleTheme, onSelectSample, isBackendAvailable,
   };
 
   return (
-    <header className="flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--bg-panel)]">
+    <header className="flex flex-wrap gap-3 items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--bg-panel)]">
       <div className="flex items-center gap-3">
         <div className="p-2 bg-[var(--accent)] rounded-lg text-white">
           <Code size={24} />
@@ -34,11 +34,11 @@ export function Header({ theme, toggleTheme, onSelectSample, isBackendAvailable,
         </div>
       </div>
       
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2 bg-[var(--bg-card)] px-3 py-1.5 rounded-full border border-[var(--border)] shadow-sm">
           <div className={`w-2.5 h-2.5 rounded-full ${isBackendAvailable ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`}></div>
           <span className="text-xs font-medium text-[var(--text-secondary)]">
-            {isBackendAvailable ? 'Trực tuyến' : 'Ngoại tuyến (Demo)'}
+            {isBackendAvailable ? 'Trực tuyến' : 'Chưa kết nối backend'}
           </span>
           {!isBackendAvailable && (
             <button 

@@ -9,7 +9,7 @@ export function SampleSelector({ onSelect, currentCode }: SampleSelectorProps) {
   const currentSampleId = SAMPLES.find(s => s.code === currentCode)?.id || '';
 
   return (
-    <select 
+    <select aria-label="Chọn bài mẫu"
       className="px-3 py-2 bg-[var(--bg-panel)] border border-[var(--border)] rounded-md outline-none focus:border-[var(--accent)] text-sm max-w-[250px]"
       value={currentSampleId}
       onChange={(e) => {

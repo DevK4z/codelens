@@ -1,10 +1,10 @@
 import { Router } from 'express';
 // Assuming engine files will exist
-import { tokenize } from '../engine/lexer';
-import { parse } from '../engine/parser';
-import { instrument } from '../engine/instrumenter';
-import { runCode } from '../runner/local';
-import { ALLOWED_INCLUDES } from '../engine/traceHeader'; // Assuming this will exist
+import { tokenize } from '../engine/lexer.js';
+import { parse } from '../engine/parser.js';
+import { instrument } from '../engine/instrumenter.js';
+import { runCode } from '../runner/local.js';
+import { ALLOWED_INCLUDES } from '../engine/traceHeader.js'; // Assuming this will exist
 
 const router = Router();
 
@@ -39,6 +39,7 @@ const FORBIDDEN_TOKENS = ['system(', 'exec(', 'popen(', 'fork(', '#define', '#pr
 
 router.post('/', async (req, res) => {
   try {
+    if (process.env.NODE_ENV === 'production') return res.status(503).json({ error: 'Production execution disabled: Docker runner is not implemented. Use local development with trusted code.' });
     const { code, stdin, language } = req.body;
 
     if (!code || typeof code !== 'string') {

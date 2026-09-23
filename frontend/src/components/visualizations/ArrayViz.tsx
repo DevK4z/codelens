@@ -20,10 +20,8 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
   }
   
   const rawArr = event.variables[arrayVar] as any[];
-  // Limit display to 'n' if present in variables, otherwise max 25 elements
-  const displayLength = (typeof event.variables.n === 'number' && event.variables.n > 0 && event.variables.n <= rawArr.length)
-    ? event.variables.n
-    : Math.min(rawArr.length, 25);
+  // The trace array length is authoritative; n may refer to unrelated data.
+  const displayLength = Math.min(rawArr.length, 100);
   const arr = rawArr.slice(0, displayLength);
   
   // Find pointers
@@ -31,30 +29,8 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
     variableRoles[k].includes('pointer') && typeof event.variables[k] === 'number'
   );
 
-  const isCompared = (idx: number) => {
-    if (!event.compareInfo) return false;
-    const { left, right } = event.compareInfo;
-    
-    // Direct index match e.g. arr[0]
-    if (left.includes(`${arrayVar}[${idx}]`) || right.includes(`${arrayVar}[${idx}]`)) return true;
+  const isCompared = (idx: number) => event.compareAccesses?.some(access => access.array === arrayVar && access.index === idx) ?? false;
 
-    // Variable index match e.g. arr[mid], arr[j], arr[j + 1]
-    for (const [varName, varVal] of Object.entries(event.variables)) {
-      if (typeof varVal === 'number') {
-        if (varVal === idx && (left.includes(`${arrayVar}[${varName}]`) || right.includes(`${arrayVar}[${varName}]`))) {
-          return true;
-        }
-        if (varVal + 1 === idx && (left.includes(`${arrayVar}[${varName} + 1]`) || right.includes(`${arrayVar}[${varName} + 1]`))) {
-          return true;
-        }
-        if (varVal - 1 === idx && (left.includes(`${arrayVar}[${varName} - 1]`) || right.includes(`${arrayVar}[${varName} - 1]`))) {
-          return true;
-        }
-      }
-    }
-    return false;
-  };
-  
   return (
     <div className="p-6 flex flex-col items-center justify-center min-h-[320px] overflow-x-auto w-full">
       {/* Compare Info Banner */}
@@ -75,7 +51,7 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
       <div className="flex items-center gap-3 mb-6">
         <h3 className="text-base font-semibold text-[var(--text-primary)]">Mảng: <span className="font-mono text-[var(--accent)]">{arrayVar}</span></h3>
         <span className="text-xs text-[var(--text-secondary)] px-2 py-0.5 rounded bg-[var(--bg-secondary)] border border-[var(--border)] font-mono">
-          {displayLength} phần tử
+          {displayLength}/{rawArr.length} phần tử (theo trace)
         </span>
       </div>
 

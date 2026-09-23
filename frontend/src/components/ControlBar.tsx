@@ -23,7 +23,7 @@ export function ControlBar({
   const speeds = [0.25, 0.5, 1, 2, 4];
   
   return (
-    <div className="flex items-center gap-4 p-3 bg-[var(--bg-panel)] border-b border-[var(--border)] relative z-10">
+    <div className="flex flex-wrap items-center gap-4 p-3 bg-[var(--bg-panel)] border-b border-[var(--border)] relative z-10">
       <button
         onClick={onRun}
         disabled={isLoading}
@@ -56,11 +56,12 @@ export function ControlBar({
         ><SkipForward size={20} /></button>
       </div>
       
-      <div className="flex-1 flex items-center gap-3 px-4">
+      <div className="flex-1 min-w-[180px] flex items-center gap-3 px-4">
         <span className="text-sm font-medium whitespace-nowrap w-24">
           Bước {hasTrace ? currentStep + 1 : 0} / {totalSteps}
         </span>
         <input
+          aria-label="Bước thực thi"
           type="range"
           min={0}
           max={Math.max(0, totalSteps - 1)}
