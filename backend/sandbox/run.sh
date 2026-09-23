@@ -17,3 +17,4 @@ fi
 
 # Chạy chương trình đã biên dịch với input, xuất trace events ra stderr và output ra stdout
 ./code < input.txt
+

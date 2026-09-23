@@ -11,3 +11,4 @@ RUN adduser -D runner && chown -R runner:runner /sandbox
 USER runner
 
 CMD ["/sandbox/run.sh"]
+
