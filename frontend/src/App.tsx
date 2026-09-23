@@ -42,6 +42,13 @@ function App() {
     next, prev, reset, goToStep, togglePlay, setSpeed, setIsPlaying
   } = useTracePlayer(trace);
 
+  // Stop playing if code becomes stale
+  useEffect(() => {
+    if (isStale && isPlaying) {
+      togglePlay();
+    }
+  }, [isStale, isPlaying, togglePlay]);
+
   useEffect(() => {
     document.documentElement.className = theme;
     localStorage.setItem('theme', theme);
