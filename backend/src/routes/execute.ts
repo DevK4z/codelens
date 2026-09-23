@@ -61,7 +61,7 @@ router.post('/', async (req, res) => {
 
     for (const token of FORBIDDEN_TOKENS) {
       if (code.includes(token)) {
-        return res.status(400).json({ success: false, compilationError: \Forbidden keyword/token found: \\ });
+        return res.status(400).json({ success: false, compilationError: `Forbidden keyword/token found: ${token}` });
       }
     }
 
@@ -83,7 +83,7 @@ router.post('/', async (req, res) => {
     };
     
     if (runResult.exitCode !== 0) {
-        response.runtimeError = runResult.stderr || \Process exited with code \\;
+        response.runtimeError = runResult.stderr || `Process exited with code ${runResult.exitCode}`;
     }
 
     // Add sandbox warning if running locally in production (should not happen if RUNNER=docker is enforced)
