@@ -1,8 +1,9 @@
 import { ExecuteResponse } from './types';
 
-// Use environment variable if provided, otherwise default to relative path (for prod proxy) or localhost
-const API_BASE = import.meta.env.VITE_API_URL || 
-  (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api');
+// Use environment variable if provided
+// Fallback to localhost:3001 in dev, or relative /api in prod
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 
+  (import.meta.env.DEV ? 'http://localhost:3001/api' : '/api');
 
 export async function executeCode(code: string, stdin: string): Promise<ExecuteResponse> {
   const res = await fetch(`${API_BASE}/execute`, {
