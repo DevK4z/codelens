@@ -6,7 +6,7 @@ import { ControlBar } from './components/ControlBar';
 import { VisualizationPanel } from './components/VisualizationPanel';
 import { BottomTabs } from './components/BottomTabs';
 import { generateExplanation } from './engine/explanations';
-import { executeCode, healthCheck } from './engine/api';
+import { executeCode, healthCheck, API_BASE } from './engine/api';
 import { useTracePlayer } from './engine/tracePlayer';
 import { TraceEvent, VariableRoleMap, ThemeMode } from './engine/types';
 import { SAMPLES } from './data/samples';
@@ -55,8 +55,14 @@ function App() {
   }, [theme]);
 
   const checkConnection = async () => {
+    if (!API_BASE) {
+      setBackendAvailable(false);
+      setError('Chưa cấu hình máy chủ chạy code. Bạn vẫn có thể xem các bài mẫu.');
+      return false;
+    }
     const available = await healthCheck();
     setBackendAvailable(available);
+    if (available && error?.includes('Chưa cấu hình')) setError(null);
     return available;
   };
 
@@ -141,6 +147,9 @@ function App() {
     const currentRunId = runIdRef.current;
 
     try {
+      if (!API_BASE) {
+        throw new Error('Chưa cấu hình máy chủ chạy code. Bạn vẫn có thể xem các bài mẫu.');
+      }
       const response = await executeCode(code, stdin);
 
       // Bỏ qua kết quả nếu người dùng đã nhấn Chạy lần khác
@@ -213,7 +222,14 @@ function App() {
         currentCode={code}
       />
 
-      {error && <div role="alert" className="p-3 bg-red-500/15 text-red-500">{error}</div>}
+      {error && (
+        <div role="alert" className="p-3 bg-red-500/15 border-l-4 border-red-500 text-red-100 flex items-center justify-between text-sm">
+          <span><strong>Lỗi:</strong> {error}</span>
+          <button onClick={checkConnection} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs transition-colors ml-4 whitespace-nowrap">
+            Kiểm tra lại kết nối
+          </button>
+        </div>
+      )}
       {(compilationError || runtimeError) && <div role="alert" className="p-3 bg-red-500/15 text-red-500 whitespace-pre-wrap">{compilationError || runtimeError}</div>}
       {isStale && (
         <div className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-4 py-2 text-sm text-center border-b border-yellow-500/30 flex justify-center items-center gap-4">
