@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import cors from 'cors';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -37,5 +37,5 @@ app.get('/api/health', async (_req, res) => {
 app.use('/api/execute', executeRouter);
 
 app.listen(port, host, () => {
-  console.log(\CodeLens Backend running on \System.Management.Automation.Internal.Host.InternalHost:\\);
+  console.log(`CodeLens Backend running on http://${host}:${port}`);
 });
