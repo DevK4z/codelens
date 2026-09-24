@@ -38,9 +38,7 @@ Call log:
     - option "Sắp xếp nổi bọt - Sắp xếp mảng bằng thuật toán B..."
     - option "Giai thừa đệ quy - Tính n! bằng đệ quy..."
   - button "Chế độ sáng"
-- code:
-  - textbox "Editor content"
-- text: Stdin
+- text: Loading... Stdin
 - textbox "Nhập dữ liệu đầu vào (stdin)...": 7 1 3 5 7 9 11 13 7
 - strong: Dòng 4 · Bước 1/25
 - paragraph: Gọi hàm main()
@@ -64,8 +62,6 @@ Call log:
 - button "Giải thích"
 - button "Console"
 - text: Không có biến nào trong phạm vi hiện tại.
-- alert
-- alert
 ```
 
 # Test source

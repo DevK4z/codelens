@@ -14,14 +14,14 @@
 ```
 Error: expect(locator).toBeVisible() failed
 
-Locator: getByRole('button', { name: 'Đang chạy...' })
+Locator: locator('.monaco-editor')
 Expected: visible
 Timeout: 5000ms
 Error: element(s) not found
 
 Call log:
-  - Expect "toBeVisible" getByRole('button', { name: 'Đang chạy...' }) with timeout 5000ms
-  - waiting for getByRole('button', { name: 'Đang chạy...' })
+  - Expect "toBeVisible" locator('.monaco-editor') with timeout 5000ms
+  - waiting for locator('.monaco-editor')
 
 ```
 
@@ -38,13 +38,12 @@ Call log:
     - option "Sắp xếp nổi bọt - Sắp xếp mảng bằng thuật toán B..."
     - option "Giai thừa đệ quy - Tính n! bằng đệ quy..." [selected]
   - button "Chế độ sáng"
-- code:
-  - textbox "Editor content"
-- text: Stdin
+- text: Loading... Stdin
 - textbox "Nhập dữ liệu đầu vào (stdin)...": "5"
-- strong: Dòng 1 · Bước 1/1
-- paragraph: Thực thi dòng 1
+- strong: Dòng 11 · Bước 1/27
+- paragraph: Gọi hàm main()
 - heading "Trực quan hóa" [level=2]
+- text: Bản ghi bài mẫu
 - paragraph: Không có cấu trúc dữ liệu đặc biệt nào được thiết lập.
 - paragraph:
   - text: Chỉ định vai trò "Mảng" cho biến trong tab
@@ -53,9 +52,9 @@ Call log:
 - button "Chạy"
 - button "Đặt lại"
 - button "Bước trước" [disabled]
-- button "Phát" [disabled]
-- button "Bước tiếp" [disabled]
-- text: Bước 1 / 1
+- button "Phát"
+- button "Bước tiếp"
+- text: Bước 1 / 27
 - slider "Bước thực thi": "0"
 - text: "Tốc độ:"
 - button "0.25x"
@@ -68,8 +67,6 @@ Call log:
 - button "Giải thích"
 - button "Console"
 - text: Không có biến nào trong phạm vi hiện tại.
-- alert
-- alert
 ```
 
 # Test source
@@ -111,11 +108,11 @@ Call log:
   34 |   test('should load the editor and run code', async ({ page }) => {
   35 |     await expect(page.locator('h1')).toContainText('CodeLens');
   36 |     await page.getByRole('combobox').selectOption('factorial');
-  37 |     await expect(page.locator('.monaco-editor')).toBeVisible();
+> 37 |     await expect(page.locator('.monaco-editor')).toBeVisible();
+     |                                                  ^ Error: expect(locator).toBeVisible() failed
   38 | 
   39 |     await page.getByRole('button', { name: 'Chạy' }).click();
-> 40 |     await expect(page.getByRole('button', { name: 'Đang chạy...' })).toBeVisible();
-     |                                                                      ^ Error: expect(locator).toBeVisible() failed
+  40 |     await expect(page.getByRole('button', { name: 'Đang chạy...' })).toBeVisible();
   41 |     await expect(page.getByRole('button', { name: 'Chạy' })).toBeVisible({ timeout: 10000 });
   42 | 
   43 |     await expect(page.getByText('Trực quan hóa')).toBeVisible();
