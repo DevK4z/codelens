@@ -15,14 +15,13 @@ interface BottomTabsProps {
   compilationError?: string;
   runtimeError?: string;
   sandboxWarning?: string;
-  code: string;
 }
 
 type TabType = 'vars' | 'callstack' | 'explanation' | 'console';
 
 export function BottomTabs({ 
   event, prevEvent, variableRoles, onRoleChange,
-  stdout, compilationError, runtimeError, sandboxWarning, code
+  stdout, compilationError, runtimeError, sandboxWarning
 }: BottomTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>('vars');
 
@@ -54,7 +53,7 @@ export function BottomTabs({
       <div className="flex-1 overflow-hidden">
         {activeTab === 'vars' && <VariablePanel event={event} variableRoles={variableRoles} onRoleChange={onRoleChange} />}
         {activeTab === 'callstack' && <CallStackPanel event={event} />}
-        {activeTab === 'explanation' && <ExplanationPanel event={event} prevEvent={prevEvent} code={code} stdout={stdout} />}
+        {activeTab === 'explanation' && <ExplanationPanel event={event} prevEvent={prevEvent} />}
         {activeTab === 'console' && (
           <ConsolePanel 
             stdout={stdout} 
@@ -67,3 +66,4 @@ export function BottomTabs({
     </div>
   );
 }
+
