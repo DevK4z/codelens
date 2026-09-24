@@ -37,5 +37,5 @@ app.get('/api/health', async (_req, res) => {
 app.use('/api/execute', executeRouter);
 
 app.listen(port, host, () => {
-  console.log(`CodeLens Backend running on http://${host}:${port}`);
+  console.log(\CodeLens Backend running on \System.Management.Automation.Internal.Host.InternalHost:\\);
 });
