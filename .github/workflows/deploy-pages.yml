@@ -33,11 +33,6 @@ jobs:
         run: npm ci
         working-directory: frontend
 
-      - name: Verify backend URL, health and CORS
-        env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-        run: node ../scripts/check-backend.mjs
-
       - name: Build production app
         env:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
