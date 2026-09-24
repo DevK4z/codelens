@@ -296,6 +296,7 @@ function App() {
         compilationError={compilationError}
         runtimeError={runtimeError}
         sandboxWarning={sandboxWarning}
+        code={code}
       />
     </div>
   );
