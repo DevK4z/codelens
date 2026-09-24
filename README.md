@@ -136,3 +136,31 @@ Báº£n sá»­a Ä‘Ã£ tÃ­ch há»£p thay Ä‘á»•i má»›i trÃªn main vá» schema `arrayAcce
 Backend Ä‘Ã£ dÃ¹ng Ä‘uÃ´i `.js` trong import ná»™i bá»™ Ä‘á»ƒ `node dist/server.js` cháº¡y Ä‘Æ°á»£c sau build. Regression kiá»ƒm tra thÃªm return cÃ³ tÃ¡c dá»¥ng phá»¥, ghi máº£ng vá»›i i++, short-circuit, scope, vector, string/char vÃ  so sÃ¡nh sá»‘ tháº­p phÃ¢n. Build frontend/backend, bá»™ test vÃ  smoke test API local Ä‘Ã£ cháº¡y thÃ nh cÃ´ng. API production Ä‘Æ°á»£c kiá»ƒm tra tráº£ 503 trong khi chÆ°a cÃ³ DockerRunner thá»±c táº¿.
 
 Kiá»ƒm thá»­ tÆ°Æ¡ng tÃ¡c trÃ¬nh duyá»‡t chÆ°a hoÃ n thÃ nh: táº£i Chromium trong mÃ´i trÆ°á»ng kiá»ƒm tra tháº¥t báº¡i. Cáº§n kiá»ƒm tra desktop/mobile, editor vÃ  timeline trÆ°á»›c khi merge/deploy. CÃ¡c ca C++ ngoÃ i táº­p con parser váº«n chÆ°a Ä‘Æ°á»£c báº£o Ä‘áº£m tá»•ng quÃ¡t; khÃ´ng coi nhá»¯ng test Ä‘Ã£ Ä‘áº¡t lÃ  chá»©ng minh há»— trá»£ toÃ n bá»™ C++.
+
+## S?a k?t n?i GitHub Pages -> backend
+
+GitHub Pages ch? tri?n khai frontend. Repo variable "VITE_API_BASE_URL" dang tr?ng s?
+khi?n b?n build không có máy ch? d? g?i code; nh?n th? l?i không t? t?o backend.
+
+1. Tri?n khai backend trên máy có Node.js và Docker. C?u hình môi tru?ng theo
+   "backend/.env.example"; dây là m?u, không du?c t? d?ng n?p. Gi? production dùng
+   DockerRunner, không d?i sang LocalRunner d? vu?t l?i sandbox.
+2. Build image trên chính máy ch?y backend: "docker build -t codelens-sandbox ./runner".
+   Ch?y "npm ci && npm run build && npm start" trong "backend" v?i bi?n môi tru?ng dã d?t.
+   C?u hình HTTPS/reverse proxy chuy?n "/api/*" t?i c?ng backend.
+3. "CORS_ORIGINS=https://devk4z.github.io" (không thêm "/codelens/").
+   "HOST=0.0.0.0" cho backend c?n nh?n k?t n?i ngoài container; n?u reverse proxy cùng máy,
+   có th? gi? "127.0.0.1". Không d?i HOST local ch? d? s?a frontend.
+4. GitHub -> Settings -> Secrets and variables -> Actions -> Variables:
+   d?t "VITE_API_BASE_URL" b?ng URL HTTPS **th?t** c?a backend, k?t thúc b?ng "/api".
+   URL ví d? trong tài li?u không ph?i máy ch? dã tri?n khai.
+5. Ch?y l?i workflow "Deploy to GitHub Pages". Bi?n Vite du?c nhúng khi build,
+   ch? s?a bi?n r?i reload trang là chua d?.
+
+Workflow m?i d?ng tru?c tri?n khai n?u thi?u URL, health l?i ho?c CORS không cho phép
+origin c?a Pages và POST JSON. "/api/health" tr? 503 khi thi?u Docker/image ? ch? d?
+production. Health ch? ki?m tra h? t?ng; c?n ch?y m?t bài m?u d? ki?m ch?ng biên d?ch
+và trace sau tri?n khai. Giao di?n hi?n th? lý do ki?m tra th?t b?i và xóa thông báo
+k?t n?i khi ki?m tra l?i thành công.
+
+Ki?m tra b? xác th?c c?u hình: "node --test scripts/check-backend.test.mjs".

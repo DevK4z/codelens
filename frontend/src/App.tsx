@@ -6,7 +6,7 @@ import { ControlBar } from './components/ControlBar';
 import { VisualizationPanel } from './components/VisualizationPanel';
 import { BottomTabs } from './components/BottomTabs';
 import { generateExplanation } from './engine/explanations';
-import { executeCode, healthCheck, API_BASE } from './engine/api';
+import { executeCode, healthCheck } from './engine/api';
 import { useTracePlayer } from './engine/tracePlayer';
 import { TraceEvent, VariableRoleMap, ThemeMode } from './engine/types';
 import { SAMPLES } from './data/samples';
@@ -55,15 +55,16 @@ function App() {
   }, [theme]);
 
   const checkConnection = async () => {
-    if (!API_BASE) {
+    try {
+      await healthCheck();
+      setBackendAvailable(true);
+      setError(null);
+      return true;
+    } catch (err: unknown) {
       setBackendAvailable(false);
-      setError('Chưa cấu hình máy chủ chạy code. Bạn vẫn có thể xem các bài mẫu.');
+      setError(err instanceof Error ? err.message : 'Không kết nối được backend.');
       return false;
     }
-    const available = await healthCheck();
-    setBackendAvailable(available);
-    if (available && error?.includes('Chưa cấu hình')) setError(null);
-    return available;
   };
 
   useEffect(() => { void checkConnection(); }, []);
@@ -147,9 +148,6 @@ function App() {
     const currentRunId = runIdRef.current;
 
     try {
-      if (!API_BASE) {
-        throw new Error('Chưa cấu hình máy chủ chạy code. Bạn vẫn có thể xem các bài mẫu.');
-      }
       const response = await executeCode(code, stdin);
 
       // Bỏ qua kết quả nếu người dùng đã nhấn Chạy lần khác

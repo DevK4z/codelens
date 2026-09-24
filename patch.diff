@@ -1,0 +1,301 @@
+﻿diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 0bea3b7..aaeb367 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -63,6 +63,9 @@ jobs:
+       - name: Install dependencies
+         run: npm ci
+ 
++      - name: Check deployment validation
++        run: node --test ../scripts/check-backend.test.mjs
++
+       - name: Build frontend
+         run: npm run build
+ 
+diff --git a/.github/workflows/deploy-pages.yml b/.github/workflows/deploy-pages.yml
+index d100106..e3cd967 100644
+--- a/.github/workflows/deploy-pages.yml
++++ b/.github/workflows/deploy-pages.yml
+@@ -33,6 +33,11 @@ jobs:
+         run: npm ci
+         working-directory: frontend
+ 
++      - name: Verify backend URL, health and CORS
++        env:
++          VITE_API_BASE_URL: $\{{ vars.VITE_API_BASE_URL }}
++        run: node ../scripts/check-backend.mjs
++
+       - name: Build production app
+         env:
+           VITE_API_BASE_URL: $\{{ vars.VITE_API_BASE_URL }}
+diff --git a/README.md b/README.md
+index c36221b..df400f4 100644
+--- a/README.md
++++ b/README.md
+@@ -136,3 +136,32 @@ Bản sửa đã tích hợp thay đổi mới trên main về schema rrayAcce
+ Backend đã dùng đuôi .js trong import nội bộ để 
+ode dist/server.js chạy được sau build. Regression kiểm tra thêm return có tác dụng phụ, ghi mảng với i++, short-circuit, scope, vector, string/char và so sánh số thập phân. Build frontend/backend, bộ test và smoke test API local đã chạy thành công. API production được kiểm tra trả 503 trong khi chưa có DockerRunner thực tế.
+ 
+ Kiểm thử tương tác trình duyệt chưa hoàn thành: tải Chromium trong môi trường kiểm tra thất bại. Cần kiểm tra desktop/mobile, editor và timeline trước khi merge/deploy. Các ca C++ ngoài tập con parser vẫn chưa được bảo đảm tổng quát; không coi những test đã đạt là chứng minh hỗ trợ toàn bộ C++.
++
++
++## Sửa kết nối GitHub Pages → backend
++
++GitHub Pages chỉ triển khai frontend. Repo variable VITE_API_BASE_URL đang trống sẽ
++khiến bản build không có máy chủ để gửi code; nhấn thử lại không tự tạo backend.
++
++1. Triển khai backend trên máy có Node.js và Docker. Cấu hình môi trường theo
++   ackend/.env.example; đây là mẫu, không được tự động nạp. Giữ production dùng
++   DockerRunner, không đổi sang LocalRunner để vượt lỗi sandbox.
++2. Build image trên chính máy chạy backend: docker build -t codelens-sandbox ./runner.
++   Chạy 
+pm ci && npm run build && npm start trong ackend với biến môi trường đã đặt.
++   Cấu hình HTTPS/reverse proxy chuyển /api/* tới cổng backend.
++3. CORS_ORIGINS=https://devk4z.github.io (không thêm /codelens/).
++   HOST=0.0.0.0 cho backend cần nhận kết nối ngoài container; nếu reverse proxy cùng máy,
++   có thể giữ 127.0.0.1. Không đổi HOST local chỉ để sửa frontend.
++4. GitHub → Settings → Secrets and variables → Actions → Variables:
++   đặt VITE_API_BASE_URL bằng URL HTTPS **thật** của backend, kết thúc bằng /api.
++   URL ví dụ trong tài liệu không phải máy chủ đã triển khai.
++5. Chạy lại workflow Deploy to GitHub Pages. Biến Vite được nhúng khi build,
++   chỉ sửa biến rồi reload trang là chưa đủ.
++
++Workflow mới dừng trước triển khai nếu thiếu URL, health lỗi hoặc CORS không cho phép
++origin của Pages và POST JSON. /api/health trả 503 khi thiếu Docker/image ở chế độ
++production. Health chỉ kiểm tra hạ tầng; cần chạy một bài mẫu để kiểm chứng biên dịch
++và trace sau triển khai. Giao diện hiển thị lý do kiểm tra thất bại và xóa thông báo
++kết nối khi kiểm tra lại thành công.
++
++Kiểm tra bộ xác thực cấu hình: 
+ode --test scripts/check-backend.test.mjs.
+diff --git a/backend/.env.example b/backend/.env.example
+new file mode 100644
+index 0000000..974d19c
+--- /dev/null
++++ b/backend/.env.example
+@@ -0,0 +1,7 @@
++# Set these environment variables in the hosting service or shell.
++# This file is a template; server.ts does not automatically load .env.
++NODE_ENV=production
++HOST=0.0.0.0
++PORT=3001
++CORS_ORIGINS=https://devk4z.github.io
++RUNNER=docker
+diff --git a/backend/src/server.ts b/backend/src/server.ts
+index df4ebde..58e064a 100644
+--- a/backend/src/server.ts
++++ b/backend/src/server.ts
+@@ -1,20 +1,36 @@
+ import express from 'express';
+ import cors from 'cors';
++import { execFile } from 'node:child_process';
++import { promisify } from 'node:util';
+ import executeRouter from './routes/execute.js';
+ 
+ const app = express();
+ const port = Number(process.env.PORT || 3001);
+ const host = process.env.HOST || '127.0.0.1';
+ 
+-// CORS enabled for localhost:5173
+-app.use(cors({ origin: (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',') }));
++// Origins contain scheme and host, but no path such as /codelens/.
++const origins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
++  .split(',').map(origin => origin.trim().replace(/\/+$/, '')).filter(Boolean);
++app.use(cors({ origin: origins }));
+ 
+ // JSON body parser with 1MB limit
+ app.use(express.json({ limit: '1mb' }));
+ 
+ // Health check: GET /api/health
+-app.get('/api/health', (req, res) => {
+-  res.json({ status: 'ok' });
++const execFileAsync = promisify(execFile);
++app.get('/api/health', async (_req, res) => {
++  res.set('Cache-Control', 'no-store');
++  const docker = process.env.NODE_ENV === 'production' || process.env.RUNNER === 'docker';
++  if (docker) {
++    try {
++      // Both checks must use the same Docker daemon as DockerRunner.
++      await execFileAsync('docker', ['info', '--format', '{{.ServerVersion}}'], { timeout: 3000 });
++      await execFileAsync('docker', ['image', 'inspect', 'codelens-sandbox'], { timeout: 3000 });
++    } catch {
++      return res.status(503).json({ status: 'unavailable', error: 'Backend đã nhận kết nối nhưng Docker hoặc image codelens-sandbox chưa sẵn sàng.' });
++    }
++  }
++  res.json({ status: 'ok', runner: docker ? 'docker' : 'local' });
+ });
+ 
+ // Execute route: POST /api/execute
+diff --git a/frontend/src/App.tsx b/frontend/src/App.tsx
+index 94acc4d..becaf15 100644
+--- a/frontend/src/App.tsx
++++ b/frontend/src/App.tsx
+@@ -6,7 +6,7 @@ import { ControlBar } from './components/ControlBar';
+ import { VisualizationPanel } from './components/VisualizationPanel';
+ import { BottomTabs } from './components/BottomTabs';
+ import { generateExplanation } from './engine/explanations';
+-import { executeCode, healthCheck, API_BASE } from './engine/api';
++import { executeCode, healthCheck } from './engine/api';
+ import { useTracePlayer } from './engine/tracePlayer';
+ import { TraceEvent, VariableRoleMap, ThemeMode } from './engine/types';
+ import { SAMPLES } from './data/samples';
+@@ -55,15 +55,16 @@ function App() {
+   }, [theme]);
+ 
+   const checkConnection = async () => {
+-    if (!API_BASE) {
++    try {
++      await healthCheck();
++      setBackendAvailable(true);
++      setError(null);
++      return true;
++    } catch (err: unknown) {
+       setBackendAvailable(false);
+-      setError('Chưa cấu hình máy chủ chạy code. Bạn vẫn có thể xem các bài mẫu.');
++      setError(err instanceof Error ? err.message : 'Không kết nối được backend.');
+       return false;
+     }
+-    const available = await healthCheck();
+-    setBackendAvailable(available);
+-    if (available && error?.includes('Chưa cấu hình')) setError(null);
+-    return available;
+   };
+ 
+   useEffect(() => { void checkConnection(); }, []);
+@@ -147,9 +148,6 @@ function App() {
+     const currentRunId = runIdRef.current;
+ 
+     try {
+-      if (!API_BASE) {
+-        throw new Error('Chưa cấu hình máy chủ chạy code. Bạn vẫn có thể xem các bài mẫu.');
+-      }
+       const response = await executeCode(code, stdin);
+ 
+       // Bỏ qua kết quả nếu người dùng đã nhấn Chạy lần khác
+diff --git a/frontend/src/engine/api.ts b/frontend/src/engine/api.ts
+index a2bed82..8187525 100644
+--- a/frontend/src/engine/api.ts
++++ b/frontend/src/engine/api.ts
+@@ -1,10 +1,10 @@
+ import { ExecuteResponse } from './types';
+ 
+-const configured = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
++const configured = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
+ export const API_BASE = configured || (['localhost', '127.0.0.1'].includes(window.location.hostname) ? 'http://localhost:3001/api' : '');
+ 
+ export async function executeCode(code: string, stdin: string): Promise<ExecuteResponse> {
+-  if (!API_BASE) throw new Error('Chưa cấu hình máy chủ chạy code. Bạn vẫn có thể xem các bài mẫu.');
++  assertApiConfigured();
+   
+   let res;
+   try {
+@@ -38,10 +38,34 @@ export async function executeCode(code: string, stdin: string): Promise<ExecuteR
+   return { ...data, trace, stdout: data.stdout || '' };
+ }
+ 
+-export async function healthCheck(): Promise<boolean> {
+-  if (!API_BASE) return false;
++function assertApiConfigured(): void {
++  if (!API_BASE) throw new Error('Chưa cấu hình backend. Đặt Repository variable VITE_API_BASE_URL thành URL HTTPS của backend có đuôi /api, rồi chạy lại Deploy to GitHub Pages.');
++  let url: URL;
++  try { url = new URL(API_BASE); }
++  catch { throw new Error('VITE_API_BASE_URL phải là URL đầy đủ, ví dụ https://backend.example/api.'); }
++  if (!['http:', 'https:'].includes(url.protocol) || url.search || url.hash || url.username || url.password)
++    throw new Error('URL backend phải dùng HTTP/HTTPS, không chứa thông tin đăng nhập, query hoặc fragment.');
++  if (url.hostname.endsWith('.github.io'))
++    throw new Error('GitHub Pages chỉ phục vụ trang tĩnh. Hãy đặt URL của backend riêng vào VITE_API_BASE_URL.');
++  if (window.location.protocol === 'https:' && url.protocol !== 'https:')
++    throw new Error('Trang HTTPS cần backend HTTPS để tránh bị trình duyệt chặn kết nối.');
++}
++
++export async function healthCheck(): Promise<void> {
++  assertApiConfigured();
++  let res: Response;
+   try {
+-    const res = await fetch(${API_BASE}/health, { signal: AbortSignal.timeout(3000) });
+-    return res.ok && res.headers.get('content-type')?.includes('application/json') === true && (await res.json()).status === 'ok';
+-  } catch { return false; }
++    res = await fetch(${API_BASE}/health, { signal: AbortSignal.timeout(15000), cache: 'no-store' });
++  } catch (error: unknown) {
++    if (error instanceof Error && error.name === 'TimeoutError')
++      throw new Error('Backend chưa phản hồi sau 15 giây. Nếu máy chủ đang khởi động, hãy thử kết nối lại.');
++    throw new Error('Không truy cập được backend. Kiểm tra URL, máy chủ và CORS_ORIGINS (cần chứa ' + window.location.origin + ').');
++  }
++  if (!res.headers.get('content-type')?.includes('application/json'))
++    throw new Error(API health trả về HTTP  + res.status +  và không phải JSON. Kiểm tra URL backend và đường dẫn /api.);
++  let data;
++  try { data = await res.json(); }
++  catch { throw new Error('API health trả JSON không hợp lệ.'); }
++  if (!res.ok || data?.status !== 'ok')
++    throw new Error(typeof data?.error === 'string' ? data.error : Backend chưa sẵn sàng (HTTP  + res.status + ).);
+ }
+diff --git a/scripts/check-backend.mjs b/scripts/check-backend.mjs
+new file mode 100644
+index 0000000..ae53813
+--- /dev/null
++++ b/scripts/check-backend.mjs
+@@ -0,0 +1,33 @@
++import { pathToFileURL } from 'node:url';
++
++export async function checkBackend(value, request = fetch) {
++  if (!value?.trim()) throw new Error('Set repository variable VITE_API_BASE_URL before deploying Pages.');
++  const url = new URL(value.trim().replace(/\/+$/, ''));
++  if (url.protocol !== 'https:' || url.hostname.endsWith('.github.io') ||
++      ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
++      url.username || url.password || url.search || url.hash || !url.pathname.endsWith('/api')) {
++    throw new Error('VITE_API_BASE_URL must be a public HTTPS backend URL ending in /api, not GitHub Pages.');
++  }
++  const origin = 'https://devk4z.github.io';
++  const health = await request(${url.href}/health, {
++    headers: { Origin: origin }, signal: AbortSignal.timeout(20000), redirect: 'error'
++  });
++  if (!health.ok || !health.headers.get('content-type')?.includes('application/json'))
++    throw new Error(Backend health is unavailable or not JSON (HTTP  + health.status + ).);
++  if ((await health.json())?.status !== 'ok') throw new Error('Backend health is not ready.');
++  if (![origin, '*'].includes(health.headers.get('access-control-allow-origin')))
++    throw new Error(Set backend CORS_ORIGINS= (no /codelens path).);
++  const preflight = await request(${url.href}/execute, {
++    method: 'OPTIONS', signal: AbortSignal.timeout(10000), redirect: 'error',
++    headers: { Origin: origin, 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type' }
++  });
++  if (!preflight.ok || ![origin, '*'].includes(preflight.headers.get('access-control-allow-origin')) ||
++      !preflight.headers.get('access-control-allow-methods')?.split(',').map(s => s.trim().toUpperCase()).includes('POST') ||
++      !preflight.headers.get('access-control-allow-headers')?.split(',').map(s => s.trim().toLowerCase()).includes('content-type'))
++    throw new Error('Backend must allow CORS preflight for POST /api/execute with Content-Type.');
++}
++
++if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
++  try { await checkBackend(process.env.VITE_API_BASE_URL); console.log('Backend health and CORS checks passed.'); }
++  catch (error) { console.error(error.message); process.exitCode = 1; }
++}
+diff --git a/scripts/check-backend.test.mjs b/scripts/check-backend.test.mjs
+new file mode 100644
+index 0000000..f0bf1d2
+--- /dev/null
++++ b/scripts/check-backend.test.mjs
+@@ -0,0 +1,25 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { checkBackend } from './check-backend.mjs';
++const origin = 'https://devk4z.github.io';
++const mock = (cors = origin, status = 200, allowed = 'POST') => async (_url, options) =>
++  options.method === 'OPTIONS' ? new Response(null, { status: 204, headers: {
++    'Access-Control-Allow-Origin': cors, 'Access-Control-Allow-Methods': allowed,
++    'Access-Control-Allow-Headers': 'Content-Type' } }) :
++  new Response(JSON.stringify({status: 'ok'}), { status, headers: {
++    'Content-Type': 'application/json', 'Access-Control-Allow-Origin': cors } });
++test('reject missing/static/insecure/wrong-path backend before making a request', async () => {
++  for (const value of ['', 'https://devk4z.github.io/codelens/api', 'http://backend.example/api', 'https://backend.example', 'https://localhost/api'])
++    await assert.rejects(checkBackend(value, () => { assert.fail('must not fetch'); }));
++});
++test('accept healthy backend with POST preflight and trailing whitespace/slash', async () => {
++  await checkBackend(' https://backend.example/api/ ', mock());
++});
++test('reject wrong CORS origin, failed health, and missing POST preflight', async () => {
++  await assert.rejects(checkBackend('https://backend.example/api', mock('http://localhost:5173')), /CORS/);
++  await assert.rejects(checkBackend('https://backend.example/api', mock(origin, 503)), /503/);
++  await assert.rejects(checkBackend('https://backend.example/api', mock(origin, 200, 'GET')), /preflight/);
++});
++test('reject static HTML health responses', async () => {
++  await assert.rejects(checkBackend('https://backend.example/api', async () => new Response('<html/>')), /JSON/);
++});
