@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { TraceEvent } from '../engine/types';
 import { generateExplanation } from '../engine/explanations';
 import { explainCodeWithAI, AIExplanationResult } from '../engine/ai';
@@ -55,13 +55,13 @@ export function ExplanationPanel({ event, prevEvent, code, stdout }: Explanation
     <div className="h-full flex flex-col">
       <div className="flex border-b border-[var(--border)] bg-[var(--bg-secondary)]">
         <button 
-          className={\px-4 py-2 text-sm font-medium \\}
+          className={`px-4 py-2 text-sm font-medium ${activeTab === 'current' ? 'text-[var(--accent)] border-b-2 border-[var(--accent)] bg-[var(--bg-panel)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
           onClick={() => setActiveTab('current')}
         >
           🤖 Quan sát
         </button>
         <button 
-          className={\px-4 py-2 text-sm font-medium flex items-center gap-1 \\}
+          className={`px-4 py-2 text-sm font-medium flex items-center gap-1 ${activeTab === 'overview' ? 'text-[var(--accent)] border-b-2 border-[var(--accent)] bg-[var(--bg-panel)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
           onClick={() => setActiveTab('overview')}
         >
           ✨ AI Giải thích
@@ -122,7 +122,7 @@ export function ExplanationPanel({ event, prevEvent, code, stdout }: Explanation
                   disabled={loading}
                   className="bg-[var(--accent)] text-white px-4 py-2 rounded shadow-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
                 >
-                  {loading ? 'Đang phân tích...' : '✨ Phân tích thuật toán và kết quả'}
+                  {loading ? 'Đang phân tích...' : '✨ Phân tích thuật toán'}
                 </button>
                 <button 
                   onClick={() => setIsEditingKey(true)}

@@ -1,4 +1,4 @@
-﻿import { ExecuteResponse } from './types';
+import { ExecuteResponse } from './types';
 
 const configured = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
 export const API_BASE = configured || (['localhost', '127.0.0.1'].includes(window.location.hostname) ? 'http://localhost:3001/api' : '');
@@ -8,7 +8,7 @@ export async function executeCode(code: string, stdin: string): Promise<ExecuteR
   
   let res;
   try {
-    res = await fetch(\\/execute\, {
+    res = await fetch(`${API_BASE}/execute`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, stdin, language: 'cpp' }),
       signal: AbortSignal.timeout(30000)
@@ -27,7 +27,7 @@ export async function executeCode(code: string, stdin: string): Promise<ExecuteR
   }
 
   const data = await res.json();
-  if (!res.ok && !data.compilationError && !data.runtimeError) throw new Error(data.error || \Lỗi máy chủ: \\);
+  if (!res.ok && !data.compilationError && !data.runtimeError) throw new Error(data.error || `Lỗi máy chủ: ${res.status}`);
   if (typeof data.success !== 'boolean') throw new Error('Phản hồi backend không đúng định dạng JSON mong đợi.');
   if (data.success && !Array.isArray(data.trace)) throw new Error('Backend thiếu execution trace.');
   
@@ -55,17 +55,17 @@ export async function healthCheck(): Promise<void> {
   assertApiConfigured();
   let res: Response;
   try {
-    res = await fetch(\\/health\, { signal: AbortSignal.timeout(15000), cache: 'no-store' });
+    res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(15000), cache: 'no-store' });
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'TimeoutError')
       throw new Error('Backend chưa phản hồi sau 15 giây. Nếu máy chủ đang khởi động, hãy thử kết nối lại.');
     throw new Error('Không truy cập được backend. Kiểm tra URL, máy chủ và CORS_ORIGINS (cần chứa ' + window.location.origin + ').');
   }
   if (!res.headers.get('content-type')?.includes('application/json'))
-    throw new Error(\API health trả về HTTP \ và không phải JSON. Kiểm tra URL backend và đường dẫn /api.\);
+    throw new Error(`API health trả về HTTP ${res.status} và không phải JSON. Kiểm tra URL backend và đường dẫn /api.`);
   let data;
   try { data = await res.json(); }
   catch { throw new Error('API health trả JSON không hợp lệ.'); }
   if (!res.ok || data?.status !== 'ok')
-    throw new Error(typeof data?.error === 'string' ? data.error : \Backend chưa sẵn sàng (HTTP \).\);
+    throw new Error(typeof data?.error === 'string' ? data.error : `Backend chưa sẵn sàng (HTTP ${res.status}).`);
 }
