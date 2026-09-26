@@ -131,12 +131,18 @@ export function ExerciseBankModal({ isOpen, onClose, onSelect }: ExerciseBankMod
                   <div className="mt-auto pt-3 flex gap-2">
                     <button 
                       onClick={() => {
-                        onSelect(ex);
-                        onClose();
+                        if (ex.kind === 'R') {
+                          // Just close or do nothing, or maybe just close.
+                          // It's a reference item, we don't open code for it.
+                          onClose();
+                        } else {
+                          onSelect(ex);
+                          onClose();
+                        }
                       }}
                       className="px-4 py-2 bg-[var(--accent)] text-white rounded hover:bg-[var(--accent-hover)] font-medium text-sm flex-1"
                     >
-                      {ex.kind === 'R' ? 'Xem tài liệu' : 'Mở bài này'}
+                      {ex.kind === 'R' ? 'Đã hiểu' : 'Mở bài này'}
                     </button>
                     <button
                       onClick={() => {

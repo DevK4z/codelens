@@ -24,6 +24,46 @@ export interface ExerciseItem {
 
 export const EXERCISES: ExerciseItem[] = [
   {
+    "id": "L1-01",
+    "chapter": "L1",
+    "title": "Phân tích độ phức tạp Bubble Sort",
+    "source_file": "L1 - Gioi thieu.pdf",
+    "pdf_pages": [
+      16,
+      17
+    ],
+    "kind": "V",
+    "statement": "Phân tích thời gian của đoạn bubbleSort có hai vòng lặp lồng nhau trong hình trang 17.",
+    "source_data": "Vòng ngoài i=n-1 về 0; vòng trong j=1..i; đổi A[j-1], A[j] khi sai thứ tự.",
+    "notes": "Slide là ví dụ phân tích, không ghi một đề bài riêng. Mã trong ảnh bị cắt ở phần dưới; không tự nhận phần thiếu là mã gốc."
+  },
+  {
+    "id": "L1-02",
+    "chapter": "L1",
+    "title": "Phân tích thuật toán nhân hai ma trận",
+    "source_file": "L1 - Gioi thieu.pdf",
+    "pdf_pages": [
+      17
+    ],
+    "kind": "V",
+    "statement": "Phân tích thuật toán nhân cơ bản hai ma trận A, B kích thước n×n, dùng ba vòng lặp để tạo R=A×B.",
+    "source_data": "R[i,j]=0; với k=0..n-1: R[i,j]+=A[i,k]*B[k,j].",
+    "notes": ""
+  },
+  {
+    "id": "L2-01",
+    "chapter": "L2",
+    "title": "Ước chung lớn nhất bằng đệ quy",
+    "source_file": "L2 - De quy - 1.pdf",
+    "pdf_pages": [
+      6
+    ],
+    "kind": "V",
+    "statement": "Tìm UCLN của hai số nguyên dương bằng đệ quy trừ: nếu a=b trả a; nếu a>b gọi với (a-b,b); ngược lại gọi với (a,b-a).",
+    "source_data": "",
+    "notes": ""
+  },
+  {
     "id": "L2-02",
     "chapter": "L2",
     "title": "Giai thừa bằng đệ quy",
@@ -90,9 +130,9 @@ export const EXERCISES: ExerciseItem[] = [
     "notes": "",
     "constraints": "n <= 20",
     "proposed_input": "3",
-    "proposed_output": "000\\n001\\n010\\n011\\n100\\n101\\n110\\n111",
+    "proposed_output": "000\n001\n010\n011\n100\n101\n110\n111",
     "solution_stdin": "3",
-    "solution_code": "#include <iostream>\\n#include <vector>\\nusing namespace std;\\n\\nvoid gen(int n, vector<int>& a, int i) {\\n    if (i == n) {\\n        for (int x : a) cout << x;\\n        cout << \"\\\\n\";\\n        return;\\n    }\\n    a[i] = 0;\\n    gen(n, a, i + 1);\\n    a[i] = 1;\\n    gen(n, a, i + 1);\\n}\\n\\nint main() {\\n    int n;\\n    if (cin >> n) {\\n        vector<int> a(n);\\n        gen(n, a, 0);\\n    }\\n    return 0;\\n}"
+    "solution_code": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nvoid gen(int n, vector<int>& a, int i) {\n    if (i == n) {\n        for (int x : a) cout << x;\n        cout << \"\\n\";\n        return;\n    }\n    a[i] = 0;\n    gen(n, a, i + 1);\n    a[i] = 1;\n    gen(n, a, i + 1);\n}\n\nint main() {\n    int n;\n    if (cin >> n) {\n        vector<int> a(n);\n        gen(n, a, 0);\n    }\n    return 0;\n}"
   },
   {
     "id": "L2-07",
@@ -108,9 +148,9 @@ export const EXERCISES: ExerciseItem[] = [
     "notes": "",
     "constraints": "n <= 10",
     "proposed_input": "3",
-    "proposed_output": "123\\n132\\n213\\n231\\n312\\n321",
+    "proposed_output": "123\n132\n213\n231\n312\n321",
     "solution_stdin": "3",
-    "solution_code": "#include <iostream>\\n#include <vector>\\nusing namespace std;\\n\\nvoid gen(int n, vector<int>& a, vector<bool>& used, int i) {\\n    if (i == n) {\\n        for (int x : a) cout << x;\\n        cout << \"\\\\n\";\\n        return;\\n    }\\n    for (int v = 1; v <= n; v++) {\\n        if (!used[v]) {\\n            used[v] = true;\\n            a[i] = v;\\n            gen(n, a, used, i + 1);\\n            used[v] = false;\\n        }\\n    }\\n}\\n\\nint main() {\\n    int n;\\n    if (cin >> n) {\\n        vector<int> a(n);\\n        vector<bool> used(n + 1, false);\\n        gen(n, a, used, 0);\\n    }\\n    return 0;\\n}"
+    "solution_code": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nvoid gen(int n, vector<int>& a, vector<bool>& used, int i) {\n    if (i == n) {\n        for (int x : a) cout << x;\n        cout << \"\\n\";\n        return;\n    }\n    for (int v = 1; v <= n; v++) {\n        if (!used[v]) {\n            used[v] = true;\n            a[i] = v;\n            gen(n, a, used, i + 1);\n            used[v] = false;\n        }\n    }\n}\n\nint main() {\n    int n;\n    if (cin >> n) {\n        vector<int> a(n);\n        vector<bool> used(n + 1, false);\n        gen(n, a, used, 0);\n    }\n    return 0;\n}"
   },
   {
     "id": "L2-08",
@@ -126,9 +166,9 @@ export const EXERCISES: ExerciseItem[] = [
     "notes": "Danh sách minh họa trên slide thiếu 134,135,145; không dùng danh sách thiếu làm đáp án đầy đủ.",
     "constraints": "k <= n <= 20",
     "proposed_input": "5 3",
-    "proposed_output": "123\\n124\\n125\\n134\\n135\\n145\\n234\\n235\\n245\\n345",
+    "proposed_output": "123\n124\n125\n134\n135\n145\n234\n235\n245\n345",
     "solution_stdin": "5 3",
-    "solution_code": "#include <iostream>\\n#include <vector>\\nusing namespace std;\\n\\nvoid gen(int n, int k, vector<int>& a, int i) {\\n    if (i > k) {\\n        for (int j = 1; j <= k; j++) cout << a[j];\\n        cout << \"\\\\n\";\\n        return;\\n    }\\n    for (int v = a[i-1] + 1; v <= n - k + i; v++) {\\n        a[i] = v;\\n        gen(n, k, a, i + 1);\\n    }\\n}\\n\\nint main() {\\n    int n, k;\\n    if (cin >> n >> k) {\\n        vector<int> a(k + 1);\\n        a[0] = 0;\\n        gen(n, k, a, 1);\\n    }\\n    return 0;\\n}"
+    "solution_code": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nvoid gen(int n, int k, vector<int>& a, int i) {\n    if (i > k) {\n        for (int j = 1; j <= k; j++) cout << a[j];\n        cout << \"\\n\";\n        return;\n    }\n    for (int v = a[i-1] + 1; v <= n - k + i; v++) {\n        a[i] = v;\n        gen(n, k, a, i + 1);\n    }\n}\n\nint main() {\n    int n, k;\n    if (cin >> n >> k) {\n        vector<int> a(k + 1);\n        a[0] = 0;\n        gen(n, k, a, 1);\n    }\n    return 0;\n}"
   },
   {
     "id": "L2-09",

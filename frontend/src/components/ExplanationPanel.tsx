@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TraceEvent } from '../engine/types';
 import { generateExplanation } from '../engine/explanations';
 import { explainCodeWithAI, AIExplanationResult } from '../engine/ai';
@@ -13,20 +13,51 @@ interface ExplanationPanelProps {
 export function ExplanationPanel({ event, prevEvent, code, stdout }: ExplanationPanelProps) {
   const [activeTab, setActiveTab] = useState<'current' | 'overview'>('current');
   const [apiKey, setApiKey] = useState('');
+  const [saveKeyToStorage, setSaveKeyToStorage] = useState(false);
   const [isEditingKey, setIsEditingKey] = useState(false);
   const [loading, setLoading] = useState(false);
   const [aiResult, setAiResult] = useState<AIExplanationResult | null>(null);
   const [error, setError] = useState('');
+  const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Load key from storage on mount
   useEffect(() => {
     const savedKey = localStorage.getItem('gemini_api_key');
-    if (savedKey) setApiKey(savedKey);
+    if (savedKey) {
+      setApiKey(savedKey);
+      setSaveKeyToStorage(true);
+    }
   }, []);
+
+  // Invalidate AI result if code or stdout changes
+  useEffect(() => {
+    setAiResult(null);
+    setError('');
+  }, [code, stdout]);
 
   const handleSaveKey = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('gemini_api_key', apiKey);
+    if (saveKeyToStorage) {
+      localStorage.setItem('gemini_api_key', apiKey);
+    } else {
+      localStorage.removeItem('gemini_api_key');
+    }
     setIsEditingKey(false);
+  };
+
+  const handleClearKey = () => {
+    localStorage.removeItem('gemini_api_key');
+    setApiKey('');
+    setSaveKeyToStorage(false);
+    setIsEditingKey(true);
+  };
+
+  const handleCancelAI = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setLoading(false);
   };
 
   const handleAskAI = async () => {
@@ -41,13 +72,21 @@ export function ExplanationPanel({ event, prevEvent, code, stdout }: Explanation
 
     setLoading(true);
     setError('');
+    
+    abortControllerRef.current = new AbortController();
+    const timeoutId = setTimeout(() => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    }, 20000); // 20s timeout
+
     try {
-      const result = await explainCodeWithAI(code, stdout, apiKey);
+      const result = await explainCodeWithAI(code, stdout, apiKey, abortControllerRef.current.signal);
       setAiResult(result);
     } catch (err: any) {
       setError(err.message || 'Lỗi khi gọi AI.');
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -99,9 +138,9 @@ export function ExplanationPanel({ event, prevEvent, code, stdout }: Explanation
               <form onSubmit={handleSaveKey} className="mb-4 bg-[var(--bg-secondary)] p-4 rounded-md border border-[var(--border)]">
                 <h4 className="font-medium mb-2">Cấu hình Google Gemini API</h4>
                 <p className="text-sm text-[var(--text-secondary)] mb-3">
-                  Nhập API Key miễn phí từ <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-[var(--accent)] hover:underline">Google AI Studio</a> để kích hoạt tính năng này.
+                  Nhập API Key miễn phí từ <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-[var(--accent)] hover:underline">Google AI Studio</a> để phân tích code.
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mb-3">
                   <input
                     type="password"
                     value={apiKey}
@@ -111,19 +150,36 @@ export function ExplanationPanel({ event, prevEvent, code, stdout }: Explanation
                     required
                   />
                   <button type="submit" className="bg-[var(--accent)] text-white px-3 py-1.5 rounded text-sm hover:opacity-90 transition-opacity">
-                    Lưu
+                    Lưu Key
                   </button>
+                  {apiKey && (
+                    <button type="button" onClick={handleClearKey} className="bg-red-500 text-white px-3 py-1.5 rounded text-sm hover:opacity-90">
+                      Xóa
+                    </button>
+                  )}
                 </div>
+                <label className="flex items-center gap-2 text-xs text-[var(--text-secondary)] cursor-pointer">
+                  <input type="checkbox" checked={saveKeyToStorage} onChange={(e) => setSaveKeyToStorage(e.target.checked)} />
+                  Lưu Key vào trình duyệt (Local Storage)
+                </label>
+                <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-2">
+                  Lưu ý: Mã nguồn của bạn sẽ được gửi tới Google Gemini API để phân tích.
+                </p>
               </form>
             ) : (
               <div className="flex justify-between items-center mb-4">
-                <button 
-                  onClick={handleAskAI}
-                  disabled={loading}
-                  className="bg-[var(--accent)] text-white px-4 py-2 rounded shadow-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
-                >
-                  {loading ? 'Đang phân tích...' : '✨ Phân tích thuật toán và kết quả'}
-                </button>
+                {loading ? (
+                  <button onClick={handleCancelAI} className="bg-red-500 text-white px-4 py-2 rounded shadow-sm hover:opacity-90 transition-opacity flex items-center gap-2">
+                    ⏹ Hủy phân tích
+                  </button>
+                ) : (
+                  <button 
+                    onClick={handleAskAI}
+                    className="bg-[var(--accent)] text-white px-4 py-2 rounded shadow-sm hover:opacity-90 transition-opacity flex items-center gap-2"
+                  >
+                    ✨ Phân tích thuật toán và kết quả
+                  </button>
+                )}
                 <button 
                   onClick={() => setIsEditingKey(true)}
                   className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline"

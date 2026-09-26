@@ -4,7 +4,7 @@ export interface AIExplanationResult {
   details: string;
 }
 
-export async function explainCodeWithAI(code: string, stdout: string, apiKey: string): Promise<AIExplanationResult> {
+export async function explainCodeWithAI(code: string, stdout: string, apiKey: string, signal?: AbortSignal): Promise<AIExplanationResult> {
   if (!apiKey) {
     throw new Error('Vui lòng nhập API Key của Google Gemini.');
   }
@@ -34,12 +34,22 @@ Chỉ trả về JSON thuần túy, không format markdown xung quanh.`;
       headers: {
         'Content-Type': 'application/json',
       },
+      signal,
       body: JSON.stringify({
         contents: [{
           parts: [{ text: prompt }]
         }],
         generationConfig: {
           responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              overview: { type: "string" },
+              complexity: { type: "string" },
+              details: { type: "string" }
+            },
+            required: ["overview", "complexity", "details"]
+          },
           temperature: 0.2
         }
       })
@@ -56,8 +66,16 @@ Chỉ trả về JSON thuần túy, không format markdown xung quanh.`;
       throw new Error('Gemini API không trả về nội dung.');
     }
 
-    return JSON.parse(text) as AIExplanationResult;
+    const parsed = JSON.parse(text) as AIExplanationResult;
+    if (!parsed.overview || !parsed.complexity || !parsed.details) {
+      throw new Error('Phản hồi từ AI thiếu trường dữ liệu.');
+    }
+    return parsed;
   } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new Error('Đã hủy yêu cầu hoặc quá thời gian chờ.');
+    }
     throw new Error(error.message || 'Lỗi không xác định khi gọi AI.');
   }
 }
+
