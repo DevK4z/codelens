@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
+import { ExerciseBankModal } from './components/ExerciseBankModal';
+import { ExerciseItem } from './data/exercises';
 import { CodeEditor } from './components/CodeEditor';
 import { StdinInput } from './components/StdinInput';
 import { ControlBar } from './components/ControlBar';
@@ -27,6 +29,7 @@ function App() {
   const [isDemo, setIsDemo] = useState(false);
   const [stdout, setStdout] = useState('');
 
+  const [isExerciseBankOpen, setIsExerciseBankOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem('theme');
     return (saved as ThemeMode) || 'dark';
@@ -105,6 +108,19 @@ function App() {
   }, [currentStep, trace]);
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+
+  const handleSelectExercise = (ex: ExerciseItem) => {
+    const generatedCode = ex.solution_code || `#include <iostream>\nusing namespace std;\n\nint main() {\n    // [${ex.id}] ${ex.title}\n    // Viết code C++ của bạn ở đây\n    \n    return 0;\n}`;
+    const simulatedSample = {
+      id: ex.id,
+      name: ex.title,
+      description: ex.statement,
+      code: generatedCode,
+      stdin: ex.proposed_input || '',
+      suggestedRoles: ex.suggestedRoles || {}
+    };
+    handleSelectSample(simulatedSample);
+  };
 
   const handleSelectSample = (sample: any) => {
     invalidateRun();
@@ -221,10 +237,16 @@ function App() {
 
   return (
     <div className="h-screen w-full flex flex-col bg-[var(--bg-primary)] overflow-hidden text-[var(--text-primary)]">
+      <ExerciseBankModal 
+        isOpen={isExerciseBankOpen} 
+        onClose={() => setIsExerciseBankOpen(false)} 
+        onSelect={handleSelectExercise}
+      />
       <Header
         theme={theme}
         toggleTheme={toggleTheme}
         onSelectSample={handleSelectSample}
+        onOpenExerciseBank={() => setIsExerciseBankOpen(true)}
         isBackendAvailable={backendAvailable}
         onCheckConnection={checkConnection}
         currentCode={code}
