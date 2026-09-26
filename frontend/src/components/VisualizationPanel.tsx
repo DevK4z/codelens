@@ -25,9 +25,6 @@ export function VisualizationPanel({ event, variableRoles, isDemo }: Visualizati
             <p className="max-w-md">
               Viết mã C++ ở trình soạn thảo bên trái, nhập dữ liệu đầu vào và nhấn <strong>Chạy</strong> để xem quá trình thực thi từng bước.
             </p>
-            <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-4 max-w-sm text-center">
-              ⚠️ CodeLens hiện tại được tối ưu để theo dõi Mảng (1D) và Gọi hàm Đệ quy. Các cấu trúc dữ liệu phức tạp khác có thể không được trực quan hóa.
-            </p>
           </div>
         ) : (
           <div className="flex flex-col h-full">
@@ -37,9 +34,6 @@ export function VisualizationPanel({ event, variableRoles, isDemo }: Visualizati
               <div className="h-full flex flex-col items-center justify-center p-8 text-[var(--text-secondary)]">
                 <p>Không có cấu trúc dữ liệu đặc biệt nào được thiết lập.</p>
                 <p className="text-sm mt-2">Chỉ định vai trò "Mảng" cho biến trong tab <strong>Biến</strong> để xem trực quan hóa.</p>
-                <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-4 max-w-sm text-center">
-                  ⚠️ Lưu ý: CodeLens hiện chỉ hỗ trợ đồ họa trực quan cho Mảng (1 chiều) và Đệ quy. Các cấu trúc phức tạp khác (Cây, Đồ thị, Con trỏ) sẽ chỉ hiển thị ở tab Biến.
-                </p>
               </div>
             )}
           </div>
