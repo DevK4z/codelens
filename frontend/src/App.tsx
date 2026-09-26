@@ -54,16 +54,24 @@ function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const checkConnection = async () => {
+  const checkConnection = async (): Promise<boolean> => {
     if (!API_BASE) {
       setBackendAvailable(false);
       setError('Chưa cấu hình máy chủ chạy code. Bạn vẫn có thể xem các bài mẫu.');
       return false;
     }
-    const available = await healthCheck();
-    setBackendAvailable(available);
-    if (available && error?.includes('Chưa cấu hình')) setError(null);
-    return available;
+    try {
+      await healthCheck();
+      setBackendAvailable(true);
+      if (error && (error.includes('Chưa cấu hình') || error.includes('Không kết nối được') || error.includes('Backend chưa sẵn sàng'))) {
+         setError(null);
+      }
+      return true;
+    } catch (err: any) {
+      setBackendAvailable(false);
+      setError(err.message);
+      return false;
+    }
   };
 
   useEffect(() => { void checkConnection(); }, []);
@@ -296,10 +304,10 @@ function App() {
         compilationError={compilationError}
         runtimeError={runtimeError}
         sandboxWarning={sandboxWarning}
+        code={code}
       />
     </div>
   );
 }
 
 export default App;
-
