@@ -94,6 +94,8 @@ export function ExplanationPanel({ event, prevEvent, code, stdout }: Explanation
             )}
           </div>
         ) : (
+
+          
           <div className="h-full flex flex-col">
             {(!apiKey || isEditingKey) ? (
               <form onSubmit={handleSaveKey} className="mb-4 bg-[var(--bg-secondary)] p-4 rounded-md border border-[var(--border)]">
