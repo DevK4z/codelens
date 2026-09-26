@@ -4,12 +4,6 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
-    inputs:
-      demo_only:
-        description: 'Deploy Demo-Only Mode (No code execution)'
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -28,34 +22,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Verify Backend Configuration
-        env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-          DEMO_ONLY: ${{ github.event.inputs.demo_only }}
-        run: |
-          if [ "$DEMO_ONLY" = "true" ]; then
-            echo "Deploying in Demo-Only mode. Code execution will be disabled."
-            exit 0
-          fi
-          
-          if [ -z "$VITE_API_BASE_URL" ]; then
-            echo "::error::VITE_API_BASE_URL is missing. Please set it in Settings -> Secrets and variables -> Actions -> Variables."
-            echo "::error::It must be the full HTTPS URL of your deployed backend ending in /api"
-            exit 1
-          fi
-          
-          if [[ "$VITE_API_BASE_URL" == http://* ]]; then
-            echo "::error::VITE_API_BASE_URL must use HTTPS, not HTTP. Mixed content will be blocked by browsers."
-            exit 1
-          fi
-          
-          if [[ "$VITE_API_BASE_URL" == *github.io* ]]; then
-            echo "::error::VITE_API_BASE_URL cannot point to GitHub Pages. GitHub Pages only hosts the frontend."
-            exit 1
-          fi
-          
-          echo "Backend URL configured: $VITE_API_BASE_URL"
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -66,13 +32,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
         working-directory: frontend
-
-      - name: Verify backend URL, health and CORS
-        if: ${{ github.event.inputs.demo_only != 'true' }}
-        env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-        run: node scripts/check-backend.mjs || echo "Backend check skipped or failed, proceeding with build anyway..."
-        working-directory: .
 
       - name: Build production app
         env:
@@ -99,3 +58,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
