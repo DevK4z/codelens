@@ -28,6 +28,8 @@ function App() {
   const [sandboxWarning, setSandboxWarning] = useState<string | undefined>();
   const [isDemo, setIsDemo] = useState(false);
   const [stdout, setStdout] = useState('');
+  const [selectedExercise, setSelectedExercise] = useState<ExerciseItem | null>(null);
+  const [showHints, setShowHints] = useState(false);
 
   const [isExerciseBankOpen, setIsExerciseBankOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -110,16 +112,37 @@ function App() {
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   const handleSelectExercise = (ex: ExerciseItem) => {
-    const generatedCode = ex.solution_code || `#include <iostream>\nusing namespace std;\n\nint main() {\n    // [${ex.id}] ${ex.title}\n    // Viết code C++ của bạn ở đây\n    \n    return 0;\n}`;
+    setSelectedExercise(ex);
+    setShowHints(false);
+    
+    let generatedCode = `#include <iostream>\nusing namespace std;\n\nint main() {\n    // [${ex.id}] ${ex.title}\n    // Viết code C++ của bạn ở đây\n    \n    return 0;\n}`;
+    
+    if (ex.kind === 'V' && ex.solution_code) {
+        generatedCode = ex.solution_code;
+    }
+
     const simulatedSample = {
       id: ex.id,
       name: ex.title,
       description: ex.statement,
       code: generatedCode,
-      stdin: ex.proposed_input || '',
+      stdin: (ex.kind === 'V' && ex.solution_stdin) ? ex.solution_stdin : (ex.proposed_input || ''),
       suggestedRoles: ex.suggestedRoles || {}
     };
     handleSelectSample(simulatedSample);
+  };
+
+  const loadSolutionCode = () => {
+    if (!selectedExercise || !selectedExercise.solution_code) return;
+    if (window.confirm('Bạn có chắc chắn muốn xem code mẫu? Code hiện tại của bạn sẽ bị ghi đè.')) {
+      setCode(selectedExercise.solution_code);
+      if (selectedExercise.solution_stdin) setStdin(selectedExercise.solution_stdin);
+      invalidateRun();
+      setTrace([]);
+      setStdout('');
+      setCompilationError(undefined);
+      setRuntimeError(undefined);
+    }
   };
 
   const handleSelectSample = (sample: any) => {
@@ -251,6 +274,40 @@ function App() {
         onCheckConnection={checkConnection}
         currentCode={code}
       />
+
+      {selectedExercise && (
+        <div className="p-3 bg-blue-500/10 border-l-4 border-blue-500 text-sm flex flex-col gap-2">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <strong className="text-blue-400">[{selectedExercise.id}] {selectedExercise.title}</strong>
+              <p className="text-[var(--text-secondary)] mt-1 whitespace-pre-wrap">{selectedExercise.statement}</p>
+              {selectedExercise.constraints && <p className="text-xs text-[var(--text-secondary)] mt-1">Ràng buộc: {selectedExercise.constraints}</p>}
+            </div>
+            <button onClick={() => setSelectedExercise(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] shrink-0" aria-label="Ẩn đề bài">✕</button>
+          </div>
+          
+          <div className="flex gap-3 mt-1">
+            {selectedExercise.hints && selectedExercise.hints.length > 0 && (
+              <button onClick={() => setShowHints(!showHints)} className="text-[var(--accent)] hover:underline flex items-center gap-1">
+                💡 {showHints ? 'Ẩn gợi ý' : `Xem gợi ý (${selectedExercise.hints.length})`}
+              </button>
+            )}
+            {selectedExercise.solution_code && selectedExercise.kind !== 'V' && (
+              <button onClick={loadSolutionCode} className="text-green-500 hover:underline flex items-center gap-1">
+                📜 Xem code mẫu
+              </button>
+            )}
+          </div>
+          
+          {showHints && selectedExercise.hints && selectedExercise.hints.length > 0 && (
+            <div className="mt-2 pl-4 border-l-2 border-[var(--accent)] text-xs text-[var(--text-primary)] flex flex-col gap-2">
+              {selectedExercise.hints.map((hint, i) => (
+                <p key={i}><strong>Gợi ý {i + 1}:</strong> {hint}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div role="alert" className="p-3 bg-red-500/15 border-l-4 border-red-500 text-red-100 flex items-center justify-between text-sm">
