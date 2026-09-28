@@ -1,6 +1,7 @@
 import { ExecuteResponse } from './types';
 
-const configured = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
+const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
+const configured = (env?.VITE_API_BASE_URL || env?.VITE_API_URL || '').trim().replace(/\/+$/, '');
 export const API_BASE = configured || (['localhost', '127.0.0.1'].includes(window.location.hostname) ? 'http://localhost:3001/api' : '');
 
 export async function executeCode(code: string, stdin: string): Promise<ExecuteResponse> {
