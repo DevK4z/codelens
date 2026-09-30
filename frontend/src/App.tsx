@@ -23,6 +23,8 @@ function App() {
   const runIdRef = useRef<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const connectionCheckId = useRef(0);
   const [compilationError, setCompilationError] = useState<string | undefined>();
   const [runtimeError, setRuntimeError] = useState<string | undefined>();
   const [sandboxWarning, setSandboxWarning] = useState<string | undefined>();
@@ -60,21 +62,17 @@ function App() {
   }, [theme]);
 
   const checkConnection = async (): Promise<boolean> => {
-    if (!API_BASE) {
-      setBackendAvailable(false);
-      setError('Chưa cấu hình máy chủ chạy code. Bạn vẫn có thể xem các bài mẫu.');
-      return false;
-    }
+    const checkId = ++connectionCheckId.current;
     try {
       await healthCheck();
+      if (checkId !== connectionCheckId.current) return false;
       setBackendAvailable(true);
-      if (error && (error.includes('Chưa cấu hình') || error.includes('Không kết nối được') || error.includes('Backend chưa sẵn sàng'))) {
-         setError(null);
-      }
+      setConnectionError(null);
       return true;
     } catch (err: any) {
+      if (checkId !== connectionCheckId.current) return false;
       setBackendAvailable(false);
-      setError(err.message);
+      setConnectionError(err.message);
       return false;
     }
   };
@@ -195,7 +193,8 @@ function App() {
 
     try {
       if (!API_BASE) {
-        throw new Error('Chưa cấu hình máy chủ chạy code. Bạn vẫn có thể xem các bài mẫu.');
+        await checkConnection();
+        return;
       }
       const response = await executeCode(code, stdin);
 
@@ -212,7 +211,9 @@ function App() {
       }
 
       setIsDemo(false);
+      connectionCheckId.current += 1;
       setBackendAvailable(true);
+      setConnectionError(null);
       setTrace(response.trace);
       setTraceCode(code);
       setTraceStdin(stdin);
@@ -309,9 +310,9 @@ function App() {
         </div>
       )}
 
-      {error && (
+      {(connectionError || error) && (
         <div role="alert" className="p-3 bg-red-500/15 border-l-4 border-red-500 text-red-100 flex items-center justify-between text-sm">
-          <span><strong>Lỗi:</strong> {error}</span>
+          <span><strong>Lỗi:</strong> {connectionError || error}</span>
           <button onClick={checkConnection} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs transition-colors ml-4 whitespace-nowrap">
             Kiểm tra lại kết nối
           </button>

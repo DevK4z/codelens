@@ -290,7 +290,7 @@ Từ thư mục gốc:
 node --test scripts/check-backend.test.mjs
 ```
 
-Có thể dùng `scripts/check-backend.mjs` với biến `VITE_API_BASE_URL` để kiểm tra health và CORS. Workflow Pages tại phiên bản đối chiếu chưa gọi script này; không mặc định mọi lần deploy đã qua kiểm tra kết nối.
+Có thể dùng `scripts/check-backend.mjs` với biến `VITE_API_BASE_URL` để kiểm tra health và CORS. Workflow Pages gọi script này trước khi build và dừng deploy nếu thiếu URL, health chưa sẵn sàng hoặc CORS/preflight không hợp lệ.
 
 Các lệnh trên là hướng dẫn kiểm tra, không phải tuyên bố phiên bản hiện tại đã vượt qua tất cả kiểm thử.
 
@@ -317,3 +317,23 @@ Các lệnh trên là hướng dẫn kiểm tra, không phải tuyên bố phiê
 Tạo nhánh riêng, mô tả vấn đề và gửi pull request với thay đổi có thể kiểm chứng. Khi báo lỗi thực thi, hãy kèm đoạn C++ tối giản, stdin, kết quả mong đợi, kết quả thực tế và thông báo lỗi. Không đưa API key hoặc dữ liệu riêng tư vào issue, log hay commit.
 
 README này mô tả những gì mã nguồn thể hiện và các phần còn thiếu; không xác nhận trạng thái hoạt động của backend hay website đang triển khai.
+
+
+### Khắc phục lỗi thiếu máy chủ chạy code
+
+1. Triển khai backend trên máy chủ hỗ trợ Docker và HTTPS. GitHub Pages không chạy backend C++.
+2. Đặt `CORS_ORIGINS=https://devk4z.github.io` trong môi trường backend.
+3. Khi dùng `backend/deploy.sh`, PM2 đọc `backend/.env` bằng `--env-file=.env` (Node 22+). Script giữ cấu hình `.env` đã có. Đảm bảo upstream Nginx dùng cùng `PORT` trong file này.
+4. Trong repository: Settings → Secrets and variables → Actions → Variables, đặt `VITE_API_BASE_URL` bằng URL backend thật có đuôi `/api`.
+5. Chạy lại workflow **Deploy to GitHub Pages**. Biến Vite được đóng gói lúc build, nên chỉ tải lại trang không cập nhật URL.
+
+Không còn URL tunnel mặc định trong `.env.production`. Nếu chưa có máy chủ, cần triển khai backend trước; thay URL hoặc CORS trong frontend không tạo ra backend.
+
+Kiểm tra độc lập (URL dưới đây chỉ là ví dụ định dạng):
+
+```bash
+VITE_API_BASE_URL=https://backend.example/api node scripts/check-backend.mjs
+node --test scripts/check-backend.test.mjs
+```
+
+Script xác thực URL HTTPS, health JSON và CORS cho GET/POST JSON; không gửi code hay thực thi chương trình. Health thành công không thay thế kiểm thử Docker thực thi C++.

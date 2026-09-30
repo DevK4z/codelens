@@ -48,6 +48,7 @@ npm ci
 npm run build
 
 # 7. Cấu hình biến môi trường
+if [ ! -f .env ]; then
 cat <<EOF > .env
 PORT=3000
 HOST=127.0.0.1
@@ -55,12 +56,15 @@ NODE_ENV=production
 RUNNER=docker
 CORS_ORIGINS=https://devk4z.github.io
 EOF
+else
+    echo "Giữ nguyên cấu hình .env hiện có."
+fi
 
 # 8. Cài đặt PM2 và khởi động Backend
 echo "Đang cấu hình PM2..."
 npm install -g pm2
-pm2 stop codelens-backend || true
-pm2 start dist/server.js --name "codelens-backend"
+pm2 delete codelens-backend || true
+pm2 start dist/server.js --name "codelens-backend" --cwd /opt/codelens/backend --node-args="--env-file=.env"
 pm2 save
 pm2 startup | tail -n 1 | bash
 
