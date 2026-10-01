@@ -56,6 +56,7 @@ export function parse(tokens: Token[]): AST.Program {
   function parseProgram(): AST.Program {
     const includes: AST.IncludeDirective[] = [];
     const usings: AST.UsingDirective[] = [];
+    const macros: AST.MacroDirective[] = [];
     const functions: AST.FunctionDecl[] = [];
     const globalStatements: AST.Statement[] = [];
     const t = peek();
@@ -65,6 +66,8 @@ export function parse(tokens: Token[]): AST.Program {
         includes.push(parseInclude());
       } else if (peek().value === 'using') {
         usings.push(parseUsing());
+      } else if (peek().value.startsWith('#define') || peek().value.startsWith('#pragma')) {
+        macros.push({ type: 'MacroDirective', macro: advance().value, line: peek().line, col: peek().col });
       } else {
         // Simple heuristic to differentiate function vs global statement
         // Look ahead for '(' after an identifier following a type
@@ -98,6 +101,7 @@ export function parse(tokens: Token[]): AST.Program {
       col: t.col,
       includes,
       usings,
+      macros,
       functions,
       globalStatements
     };
@@ -124,23 +128,29 @@ export function parse(tokens: Token[]): AST.Program {
 
   function parseType(): AST.TypeNode {
     const t = peek();
-    const typeNames = ['int', 'double', 'char', 'bool', 'string', 'void', 'vector'];
-    if (typeNames.includes(t.value)) {
-      advance();
+    const isConst = match('const');
+    const t2 = peek();
+    const typeNames = ['int', 'long', 'double', 'char', 'bool', 'string', 'void', 'vector'];
+    if (typeNames.includes(t2.value)) {
+      let base = advance().value;
+      if (base === 'long' && peek().value === 'long') {
+        base = base + ' ' + advance().value;
+      }
+      if (isConst) base = 'const ' + base;
       const node: AST.TypeNode = {
         type: 'TypeNode',
-        base: t.value as any,
-        line: t.line,
-        col: t.col
+        base: base as any,
+        line: t2.line,
+        col: t2.col
       };
-      if (t.value === 'vector') {
+      if (base.includes('vector')) {
         expect('<');
         node.templateArg = parseType();
         expect('>');
       }
       return node;
     }
-    throw new ParseError(`Kiểu dữ liệu '${t.value}' chưa được hỗ trợ trong CodeLens v1. Hỗ trợ: int, double, char, bool, string, vector<T>.`, t.line, t.col);
+    throw new ParseError(`Kiểu dữ liệu '${t2.value}' chưa được hỗ trợ trong CodeLens v1. Hỗ trợ: int, long, long long, double, char, bool, string, vector<T>.`, t2.line, t2.col);
   }
 
   function parseFunction(): AST.FunctionDecl {
@@ -193,7 +203,7 @@ export function parse(tokens: Token[]): AST.Program {
     // but a real implementation would handle multi-declarations properly.
     // We'll wrap multi-declarations in block statements or return arrays if we change the signature.
     // For simplicity of ast nodes, we return an array of statements here.
-    const typeNames = ['int', 'double', 'char', 'bool', 'string', 'vector'];
+    const typeNames = ['int', 'long', 'double', 'char', 'bool', 'string', 'vector', 'const'];
     if (typeNames.includes(peek().value)) {
         return parseVarDecls();
     }
@@ -293,7 +303,7 @@ export function parse(tokens: Token[]): AST.Program {
     const t = advance();
     expect('(');
     let init: AST.Statement | undefined;
-    const typeNames = ['int', 'double', 'char', 'bool', 'string', 'vector'];
+    const typeNames = ['int', 'long', 'double', 'char', 'bool', 'string', 'vector', 'const'];
     if (typeNames.includes(peek().value)) {
       init = parseVarDecls()[0]; // Just take first for simplicity in AST if multi
     } else if (peek().value !== ';') {

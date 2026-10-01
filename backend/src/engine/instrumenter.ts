@@ -281,6 +281,9 @@ export function instrument(ast: AST.Program, originalSource: string): string {
   for (const us of ast.usings) {
     output += `using namespace ${us.namespace};\n`;
   }
+  for (const mac of ast.macros || []) {
+    output += `${mac.macro}\n`;
+  }
   for (const stmt of ast.globalStatements) {
     output += genStatement(stmt);
   }

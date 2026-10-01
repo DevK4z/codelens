@@ -8,8 +8,14 @@ export interface Program extends ASTNode {
   type: 'Program';
   includes: IncludeDirective[];
   usings: UsingDirective[];
+  macros: MacroDirective[];
   functions: FunctionDecl[];
   globalStatements: Statement[];
+}
+
+export interface MacroDirective extends ASTNode {
+  type: 'MacroDirective';
+  macro: string;
 }
 
 export interface IncludeDirective extends ASTNode {

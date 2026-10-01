@@ -18,7 +18,7 @@ export interface Token {
 }
 
 const KEYWORDS = new Set([
-  'int', 'double', 'char', 'bool', 'void', 'string', 'vector',
+  'int', 'long', 'double', 'char', 'bool', 'void', 'string', 'vector', 'const',
   'if', 'else', 'for', 'while', 'do', 'return', 'break', 'continue',
   'true', 'false', 'using', 'namespace', 'std', 'endl', 'swap',
   'cout', 'cin', 'push_back', 'size', 'include'
@@ -87,11 +87,23 @@ export function tokenize(source: string): Token[] {
       continue;
     }
 
-    // Preprocessor #include
-    if (char === '#' && source.substr(i, 8) === '#include') {
-      tokens.push({ type: 'preprocessor', value: '#include', line, col });
-      i += 8; col += 8;
-      continue;
+    // Preprocessor directives
+    if (char === '#') {
+      if (source.substr(i, 8) === '#include') {
+        tokens.push({ type: 'preprocessor', value: '#include', line, col });
+        i += 8; col += 8;
+        continue;
+      }
+      if (source.substr(i, 7) === '#define' || source.substr(i, 7) === '#pragma') {
+        let macro = '';
+        const startCol = col;
+        while (i < source.length && source[i] !== '\n') {
+          macro += source[i];
+          advance();
+        }
+        tokens.push({ type: 'preprocessor', value: macro, line, col: startCol });
+        continue;
+      }
     }
 
     // Strings
