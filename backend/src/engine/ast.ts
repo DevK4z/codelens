@@ -45,8 +45,9 @@ export interface ParamDecl extends ASTNode {
 
 export interface TypeNode extends ASTNode {
   type: 'TypeNode';
-  base: 'int' | 'double' | 'char' | 'bool' | 'string' | 'void' | 'vector';
+  base: string;
   templateArg?: TypeNode;
+  templateArg2?: TypeNode;
   isArray?: boolean;
   arraySize?: Expression;
 }

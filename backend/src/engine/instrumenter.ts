@@ -32,8 +32,11 @@ export function instrument(ast: AST.Program, originalSource: string): string {
   }
 
   function genType(t: AST.TypeNode): string {
-    if (t.base === 'vector' && t.templateArg) {
-      return `vector<${genType(t.templateArg)}>`;
+    if (t.base.includes('vector') && t.templateArg) {
+      return `${t.base}<${genType(t.templateArg)}>`;
+    }
+    if (t.base.includes('pair') && t.templateArg && t.templateArg2) {
+      return `${t.base}<${genType(t.templateArg)}, ${genType(t.templateArg2)}>`;
     }
     return t.base;
   }

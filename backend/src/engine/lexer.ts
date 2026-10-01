@@ -18,7 +18,7 @@ export interface Token {
 }
 
 const KEYWORDS = new Set([
-  'int', 'long', 'double', 'char', 'bool', 'void', 'string', 'vector', 'const', 'unsigned',
+  'int', 'long', 'double', 'char', 'bool', 'void', 'string', 'vector', 'const', 'unsigned', 'pair', 'auto',
   'if', 'else', 'for', 'while', 'do', 'return', 'break', 'continue',
   'true', 'false', 'using', 'namespace', 'std', 'endl', 'swap',
   'cout', 'cin', 'push_back', 'size', 'include'

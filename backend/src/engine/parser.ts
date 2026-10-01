@@ -131,7 +131,7 @@ export function parse(tokens: Token[]): AST.Program {
     const isConst = match('const');
     const isUnsigned = match('unsigned');
     const t2 = peek();
-    const typeNames = ['int', 'long', 'double', 'char', 'bool', 'string', 'void', 'vector'];
+    const typeNames = ['int', 'long', 'double', 'char', 'bool', 'string', 'void', 'vector', 'pair', 'auto'];
     
     let base = 'int'; // default for standalone unsigned
     if (typeNames.includes(t2.value)) {
@@ -140,7 +140,7 @@ export function parse(tokens: Token[]): AST.Program {
         base = base + ' ' + advance().value;
       }
     } else if (!isUnsigned) {
-      throw new ParseError(`Kiểu dữ liệu '${t2.value}' chưa được hỗ trợ trong CodeLens v1. Hỗ trợ: int, long, long long, double, char, bool, string, vector<T>.`, t2.line, t2.col);
+      throw new ParseError(`Kiểu dữ liệu '${t2.value}' chưa được hỗ trợ trong CodeLens v1. Hỗ trợ: int, long, long long, double, char, bool, string, vector<T>, pair<T, U>, auto.`, t2.line, t2.col);
     }
 
     if (isUnsigned) base = 'unsigned ' + base;
@@ -154,6 +154,12 @@ export function parse(tokens: Token[]): AST.Program {
       if (base.includes('vector')) {
         expect('<');
         node.templateArg = parseType();
+        expect('>');
+      } else if (base.includes('pair')) {
+        expect('<');
+        node.templateArg = parseType();
+        expect(',');
+        node.templateArg2 = parseType();
         expect('>');
       }
       return node;
@@ -209,7 +215,7 @@ export function parse(tokens: Token[]): AST.Program {
     // but a real implementation would handle multi-declarations properly.
     // We'll wrap multi-declarations in block statements or return arrays if we change the signature.
     // For simplicity of ast nodes, we return an array of statements here.
-    const typeNames = ['int', 'long', 'double', 'char', 'bool', 'string', 'vector', 'const', 'unsigned'];
+    const typeNames = ['int', 'long', 'double', 'char', 'bool', 'string', 'vector', 'const', 'unsigned', 'pair', 'auto'];
     if (typeNames.includes(peek().value)) {
         return parseVarDecls();
     }
@@ -309,7 +315,7 @@ export function parse(tokens: Token[]): AST.Program {
     const t = advance();
     expect('(');
     let init: AST.Statement | undefined;
-    const typeNames = ['int', 'long', 'double', 'char', 'bool', 'string', 'vector', 'const', 'unsigned'];
+    const typeNames = ['int', 'long', 'double', 'char', 'bool', 'string', 'vector', 'const', 'unsigned', 'pair', 'auto'];
     if (typeNames.includes(peek().value)) {
       init = parseVarDecls()[0]; // Just take first for simplicity in AST if multi
     } else if (peek().value !== ';') {
