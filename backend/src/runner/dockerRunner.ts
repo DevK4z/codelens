@@ -26,8 +26,8 @@ export class DockerRunner implements Runner {
         'run', '-i', '--rm', '--name', containerName,
         '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
         '--pids-limit', '64', '--read-only',
-        '--tmpfs', '/sandbox:rw,exec,nosuid,size=128m',
-        '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m',
+        '--tmpfs', '/sandbox:rw,exec,nosuid,size=128m,mode=1777',
+        '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m,mode=1777',
         '--network', 'none', // Critical: no network access
         '--memory', '256m', // Limit memory
         '--cpus', '1.0', // Limit CPU
