@@ -34,7 +34,7 @@ export interface ExecuteResponse {
   sandboxWarning?: string;
 }
 
-const FORBIDDEN_TOKENS = ['system(', 'exec(', 'popen(', 'fork(', '#define', '#pragma', 'asm', '__attribute__'];
+const FORBIDDEN_TOKENS = ['system(', 'exec(', 'popen(', 'fork(', '__attribute__'];
 
 router.post('/', async (req, res) => {
   try {
