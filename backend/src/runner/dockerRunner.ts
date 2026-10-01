@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { execFile } from 'child_process';
 import { Runner, RunResult, RunLimits } from './sandbox.js';
 import { TraceEvent } from '../routes/execute.js';
@@ -14,14 +15,19 @@ export class DockerRunner implements Runner {
 
     return await new Promise<RunResult>((resolve, reject) => {
       // The docker container will read a JSON payload containing 'code' and 'stdin'
-      const payload = JSON.stringify({ code: instrumentedCode, stdin: stdin || '' });
+      const payload = JSON.stringify({ code: instrumentedCode, stdin: stdin || '', standard: currentLimits.standard || 'gnu++17', timeoutMs: currentLimits.timeoutMs });
 
       // Calculate a conservative memory and CPU limit based on Node.js constraints
       // Adding a buffer of a few seconds to docker timeout so the inner timeout triggers first
-      const dockerTimeoutMs = currentLimits.timeoutMs + 2000;
+      const dockerTimeoutMs = currentLimits.timeoutMs + 27000;
 
+      const containerName = `codelens-${randomUUID()}`;
       const args = [
-        'run', '-i', '--rm',
+        'run', '-i', '--rm', '--name', containerName,
+        '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
+        '--pids-limit', '64', '--read-only',
+        '--tmpfs', '/sandbox:rw,exec,nosuid,size=128m',
+        '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m',
         '--network', 'none', // Critical: no network access
         '--memory', '256m', // Limit memory
         '--cpus', '1.0', // Limit CPU
@@ -37,9 +43,12 @@ export class DockerRunner implements Runner {
         let timeLimitExceeded = false;
         let exitCode = error ? error.code || 1 : 0;
 
-        if (error && error.killed && error.signal === 'SIGTERM') {
-          timeLimitExceeded = true;
+        if (error?.killed || error?.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') {
+          // Killing docker CLI alone does not stop its container.
+          execFile('docker', ['rm', '-f', containerName], { timeout: 5000 }, () => {});
+          timeLimitExceeded = !!error.killed;
         }
+        if (exitCode === 124) timeLimitExceeded = true;
 
         // If the container failed to start (e.g. image not found)
         if (stderr && stderr.includes('Cannot connect to the Docker daemon')) {
@@ -54,8 +63,8 @@ export class DockerRunner implements Runner {
         // The bash script inside Docker outputs a JSON object if there is a compilation error
         try {
            const parsedStdout = JSON.parse(stdout);
-           if (parsedStdout.compilationError) {
-             const compErr: any = new Error(`Compilation failed:\n${parsedStdout.compilationError}`);
+           if (exitCode === 65 && typeof parsedStdout.compilationError === 'string') {
+             const compErr: any = new Error(`Compilation failed:\n${parsedStdout.compilationError || 'Compiler stopped before producing diagnostics (check time/memory limits).'}`);
              compErr.name = 'CompilationError';
              reject(compErr);
              return;
@@ -65,9 +74,9 @@ export class DockerRunner implements Runner {
         }
 
         // Parse stderr for trace events exactly like LocalRunner
-        const lines = stderr.split('\n');
+        const lines = currentLimits.captureTrace === false ? [] : stderr.split('\n');
         const trace: TraceEvent[] = [];
-        let actualStderr = '';
+        let actualStderr = currentLimits.captureTrace === false ? stderr : '';
         let stepLimitExceeded = false;
 
         for (const line of lines) {

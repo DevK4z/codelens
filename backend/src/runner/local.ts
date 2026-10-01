@@ -26,7 +26,7 @@ export class LocalRunner implements Runner {
 
       // Compile
       await new Promise<void>((resolve, reject) => {
-        execFile('g++', ['-std=c++17', '-O0', '-g', '-o', exeFile, codeFile], { windowsHide: true, timeout: 15000, maxBuffer: currentLimits.maxOutputBytes }, (error, stdout, stderr) => {
+        execFile('g++', [`-std=${currentLimits.standard || 'gnu++17'}`, '-O0', '-g', '-o', exeFile, codeFile], { windowsHide: true, timeout: 15000, maxBuffer: currentLimits.maxOutputBytes }, (error, stdout, stderr) => {
           if (error) {
             const err: any = new Error(`Compilation failed:\n${stderr}`);
             err.name = 'CompilationError';
@@ -53,9 +53,9 @@ export class LocalRunner implements Runner {
              timeLimitExceeded = true;
           }
 
-          const lines = stderr.split('\n');
+          const lines = currentLimits.captureTrace === false ? [] : stderr.split('\n');
           const trace: TraceEvent[] = [];
-          let actualStderr = '';
+          let actualStderr = currentLimits.captureTrace === false ? stderr : '';
           let stepLimitExceeded = false;
 
           for (const line of lines) {

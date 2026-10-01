@@ -15,6 +15,10 @@ import { SAMPLES } from './data/samples';
 import { getFallbackDemoTrace } from './data/demoTraces';
 
 function App() {
+  const [executionMode, setExecutionMode] = useState<'run' | 'visualize'>('run');
+  const [standard, setStandard] = useState<'gnu++17' | 'gnu++20'>('gnu++17');
+  const [nativeResult, setNativeResult] = useState<{ stdout: string; stderr: string; success: boolean } | null>(null);
+
   const [code, setCode] = useState(SAMPLES[0].code);
   const [stdin, setStdin] = useState(SAMPLES[0].stdin);
   const [trace, setTrace] = useState<TraceEvent[]>([]);
@@ -82,6 +86,7 @@ function App() {
 
   const invalidateRun = () => {
     runIdRef.current += 1;
+    setNativeResult(null);
     setIsLoading(false);
     setIsPlaying(false);
   };
@@ -145,6 +150,7 @@ function App() {
 
   const handleSelectSample = (sample: any) => {
     invalidateRun();
+    setExecutionMode('visualize');
     setSandboxWarning(undefined);
     setIsDemo(false);
     setCode(sample.code);
@@ -177,6 +183,7 @@ function App() {
   };
 
   const handleRun = async () => {
+    setNativeResult(null);
     setIsLoading(true);
     setIsDemo(false);
     setError(null);
@@ -196,7 +203,7 @@ function App() {
         await checkConnection();
         return;
       }
-      const response = await executeCode(code, stdin);
+      const response = await executeCode(code, stdin, executionMode, standard);
 
       // Bỏ qua kết quả nếu người dùng đã nhấn Chạy lần khác
       if (currentRunId !== runIdRef.current) return;
@@ -218,6 +225,9 @@ function App() {
       setTraceCode(code);
       setTraceStdin(stdin);
       setStdout(response.stdout || '');
+      if (response.executionMode === 'run') {
+        setNativeResult({ stdout: response.stdout || '', stderr: response.stderr || '', success: response.success });
+      }
       setSandboxWarning(response.sandboxWarning || undefined);
 
       // Auto-assign roles for custom code
@@ -275,6 +285,37 @@ function App() {
         onCheckConnection={checkConnection}
         currentCode={code}
       />
+
+      <div className="flex flex-wrap items-center gap-3 p-3 border-b border-[var(--border)] text-sm">
+        <label>Chế độ{' '}
+          <select aria-label="Chế độ chạy" value={executionMode} disabled={isLoading}
+            className="bg-[var(--bg-panel)] border border-[var(--border)] rounded p-2"
+            onChange={e => { invalidateRun(); setExecutionMode(e.target.value as 'run' | 'visualize'); setTrace([]); setStdout(''); setIsDemo(false); }}>
+            <option value="run">Chạy C++ / thi đấu</option>
+            <option value="visualize">Trực quan hóa từng bước</option>
+          </select>
+        </label>
+        <label>Chuẩn C++{' '}
+          <select aria-label="Chuẩn C++" value={standard} disabled={isLoading}
+            className="bg-[var(--bg-panel)] border border-[var(--border)] rounded p-2"
+            onChange={e => { invalidateRun(); setStandard(e.target.value as 'gnu++17' | 'gnu++20'); setTrace([]); setStdout(''); }}>
+            <option value="gnu++17">GNU++17</option>
+            <option value="gnu++20">GNU++20</option>
+          </select>
+        </label>
+        <span className="text-[var(--text-secondary)]">
+          {executionMode === 'run'
+            ? 'Chạy code gốc: macro, template, lambda, STL, PBDS. Xem kết quả STDOUT; không có bước trực quan hóa.'
+            : 'Chỉ hỗ trợ tập cú pháp của bộ trực quan hóa. Với code nâng cao, chọn Chạy C++ / thi đấu.'}
+        </span>
+      </div>
+      {nativeResult && (
+        <section aria-label="Kết quả chạy C++" className="p-3 border-b border-[var(--border)] text-sm max-h-64 overflow-auto">
+          <strong>{nativeResult.success ? 'Chạy xong' : 'Chạy thất bại'} — STDOUT</strong>
+          <pre className="whitespace-pre-wrap break-words">{nativeResult.stdout || '(Không có đầu ra)'}</pre>
+          {nativeResult.stderr && <><strong>STDERR</strong><pre className="whitespace-pre-wrap break-words">{nativeResult.stderr}</pre></>}
+        </section>
+      )}
 
       {selectedExercise && (
         <div className="p-3 bg-blue-500/10 border-l-4 border-blue-500 text-sm flex flex-col gap-2">
