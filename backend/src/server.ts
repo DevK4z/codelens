@@ -9,9 +9,17 @@ const port = Number(process.env.PORT || 3001);
 const host = process.env.HOST || '127.0.0.1';
 
 // Origins contain scheme and host, but no path such as /codelens/.
-const origins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
-  .split(',').map(origin => origin.trim().replace(/\/+$/, '')).filter(Boolean);
-app.use(cors({ origin: origins }));
+const originList = (process.env.CORS_ORIGINS || '')
+  .split(',').map(o => o.trim().replace(/\/+$/, '')).filter(Boolean);
+app.use(cors({
+  origin: (incoming, cb) => {
+    if (!incoming) return cb(null, true);
+    // Always allow localhost (any port) for local development
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(incoming)) return cb(null, true);
+    if (originList.includes(incoming)) return cb(null, true);
+    cb(new Error(`CORS: origin ${incoming} not allowed`));
+  }
+}));
 
 // JSON body parser with 1MB limit
 app.use(express.json({ limit: '1mb' }));
