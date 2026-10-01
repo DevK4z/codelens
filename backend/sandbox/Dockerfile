@@ -1,14 +1,8 @@
-FROM alpine:3.18
-
-RUN apk add --no-cache g++ jq bash
-
+FROM alpine:3.20
+RUN apk add --no-cache g++ jq coreutils
+RUN adduser -D -H runner
 WORKDIR /sandbox
-COPY run.sh /sandbox/
-RUN chmod +x /sandbox/run.sh
-
-# Chạy bằng user không đặc quyền để an toàn
-RUN adduser -D runner && chown -R runner:runner /sandbox
+COPY run.sh /usr/local/bin/codelens-run
+RUN chmod +x /usr/local/bin/codelens-run && chown runner:runner /sandbox
 USER runner
-
-CMD ["/sandbox/run.sh"]
-
+ENTRYPOINT ["/usr/local/bin/codelens-run"]

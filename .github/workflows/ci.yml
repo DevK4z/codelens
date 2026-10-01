@@ -78,10 +78,20 @@ jobs:
         run: |
           docker build -t codelens-sandbox:latest ./runner
 
-      - name: Integration test - run C++ via JSON protocol
-        run: |
-          OUTPUT=$(echo '{"code": "#include <iostream>\nusing namespace std;\nint main(){int a,b;cin>>a>>b;cout<<a+b<<endl;return 0;}", "stdin": "3 5"}' | docker run -i --rm codelens-sandbox:latest)
-          echo "Container output: $OUTPUT"
-          echo "$OUTPUT" | grep -q '8' || { echo "FAIL: expected output to contain 8"; exit 1; }
-          echo "PASS: sandbox protocol works correctly"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
+      - name: Install backend test dependencies
+        run: npm ci --prefix backend
+
+      - name: Test native C++ and API through the production DockerRunner
+        run: npm --prefix backend run test:native
+        env:
+          TEST_DOCKER: '1'
+
+      - name: Verify alternate sandbox build context stays identical
+        run: |
+          diff runner/Dockerfile backend/sandbox/Dockerfile
+          diff runner/run.sh backend/sandbox/run.sh

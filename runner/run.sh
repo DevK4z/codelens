@@ -1,24 +1,19 @@
 #!/bin/sh
-# CodeLens C++ Sandbox Runner
-# Reads JSON {"code":"...","stdin":"..."} from stdin, compiles and runs C++ code.
-# Trace events go to stderr, program stdout goes to stdout.
-
-set -e
-
-# Read entire stdin as JSON payload
-PAYLOAD=$(cat)
-
-# Extract 'code' and 'stdin' fields using jq
-echo "$PAYLOAD" | jq -r '.code' > /tmp/code.cpp
-echo "$PAYLOAD" | jq -r '.stdin // empty' > /tmp/input.txt
-
-# Compile
-if ! COMPILE_ERR=$(g++ -std=c++17 -O0 -o /tmp/code /tmp/code.cpp 2>&1); then
-  # Escape the compilation error for JSON output
-  ESCAPED=$(printf '%s' "$COMPILE_ERR" | jq -Rs .)
-  printf '{"compilationError": %s}\n' "$ESCAPED"
-  exit 0
+set -eu
+cat > payload.json
+jq -j '.code' payload.json > code.cpp
+jq -j '.stdin // ""' payload.json > input.txt
+standard=$(jq -r '.standard // "gnu++17"' payload.json)
+case "$standard" in
+  gnu++17|gnu++20) ;;
+  *) echo 'Unsupported C++ standard' >&2; exit 64 ;;
+esac
+# Bound compilation separately from execution. Never interpolate compiler flags from source.
+if timeout -k 1 25 g++ -std="$standard" -O0 -g -o code code.cpp 2> compile_err.txt; then
+  :
+else
+  jq -n --rawfile err compile_err.txt '{compilationError: $err}'
+  exit 65
 fi
-
-# Run with stdin from input.txt
-timeout 5 /tmp/code < /tmp/input.txt
+seconds=$(jq -r '((.timeoutMs // 5000) / 1000 | ceil) | if . < 1 then 1 elif . > 5 then 5 else . end' payload.json)
+timeout -k 1 "$seconds" ./code < input.txt

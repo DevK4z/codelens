@@ -4,15 +4,15 @@ const env = (import.meta as ImportMeta & { env?: Record<string, string | undefin
 const configured = (env?.VITE_API_BASE_URL || env?.VITE_API_URL || '').trim().replace(/\/+$/, '');
 export const API_BASE = configured || (['localhost', '127.0.0.1'].includes(window.location.hostname) ? 'http://localhost:3001/api' : '');
 
-export async function executeCode(code: string, stdin: string): Promise<ExecuteResponse> {
+export async function executeCode(code: string, stdin: string, mode: 'run' | 'visualize' = 'visualize', standard: 'gnu++17' | 'gnu++20' = 'gnu++17'): Promise<ExecuteResponse> {
   assertApiConfigured();
   
   let res;
   try {
     res = await fetch(`${API_BASE}/execute`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, stdin, language: 'cpp' }),
-      signal: AbortSignal.timeout(30000)
+      body: JSON.stringify({ code, stdin, language: 'cpp', mode, standard }),
+      signal: AbortSignal.timeout(40000)
     });
   } catch (err: any) {
     if (err.name === 'TimeoutError') throw new Error('Hết thời gian chờ kết nối đến backend.');

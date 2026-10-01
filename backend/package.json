@@ -8,7 +8,8 @@
     "start": "node dist/server.js",
     "test": "node --import tsx src/test_samples.ts && node --import tsx test_errors.ts && npm run test:regression",
     "test:regression": "node --import tsx regression.test.ts",
-    "traces": "node --import tsx export_demo_traces.ts"
+    "traces": "node --import tsx export_demo_traces.ts",
+    "test:native": "node --import tsx --test native.test.ts"
   },
   "dependencies": {
     "cors": "^2.8.6",

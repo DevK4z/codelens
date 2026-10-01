@@ -34,6 +34,9 @@ export interface ExecuteResponse {
   timeLimitExceeded?: boolean;
   stepLimitExceeded?: boolean;
   sandboxWarning?: string;
+  executionMode?: 'run' | 'visualize';
+  visualizationWarning?: string;
+  stderr?: string;
   isDemo?: boolean;
 }
 

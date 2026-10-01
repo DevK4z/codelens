@@ -337,3 +337,42 @@ node --test scripts/check-backend.test.mjs
 ```
 
 Script xác thực URL HTTPS, health JSON và CORS cho GET/POST JSON; không gửi code hay thực thi chương trình. Health thành công không thay thế kiểm thử Docker thực thi C++.
+
+
+### Chạy C++ / lập trình thi đấu
+
+Chọn **Chạy C++ / thi đấu** và **GNU++17** hoặc **GNU++20** trên thanh công cụ.
+Code gốc được GCC trong Docker biên dịch trực tiếp, không đi qua parser trực quan hóa.
+Hỗ trợ cú pháp mà GCC/libstdc++ trong image cung cấp, bao gồm `bits/stdc++.h`, macro
+(kể cả `#define int long long` với `signed main()`), template, lambda, structured
+bindings, STL, GNU PBDS, `__int128`, builtins, và các tính năng C++20 đã được compiler
+triển khai. Không cam kết mọi phiên bản C++, thư viện bên ngoài, module nhiều file,
+interactive judge, CPU-specific pragmas hoặc extension riêng của MSVC.
+
+Kết quả STDOUT/STDERR được hiển thị riêng; chế độ này **không tạo trace**. Chọn
+**Trực quan hóa từng bước** khi học các thuật toán dùng tập cú pháp parser hỗ trợ.
+Lỗi parser/instrumentation không có nghĩa code C++ gốc không hợp lệ. Không tự động
+chạy lại bằng chế độ khác để tránh thực thi chương trình hai lần.
+
+Sau khi cập nhật code, cần build lại sandbox và backend trên máy chạy tunnel:
+
+```powershell
+# Từ thư mục gốc repository; Docker Desktop phải đang chạy
+ docker build -t codelens-sandbox ./backend/sandbox
+ cd backend
+ npm ci
+ npm run build
+ $env:RUNNER="docker"
+ npm start
+```
+
+Dừng tiến trình backend cũ trước khi chạy lại; giữ tunnel đang chạy để không đổi URL.
+Frontend cần build/deploy lại để có thanh chọn chế độ. API `POST /api/execute` nhận
+thêm `mode: "run" | "visualize"` và `standard: "gnu++17" | "gnu++20"`; client cũ
+không gửi mode vẫn dùng visualize. Chạy native bắt buộc Docker, kể cả development.
+Giới hạn: code 50.000 ký tự, stdin 10.000 ký tự, compile 25 giây, chạy 5 giây,
+RAM container 256 MiB, 64 tiến trình, không network và không mount thư mục host.
+Code chỉ đọc/ghi file tạm bên trong container; nhập/xuất bài thi nên dùng stdin/stdout.
+
+Kiểm thử: `npm --prefix backend run test:native` dùng GCC local với fixtures tin cậy;
+CI đặt `TEST_DOCKER=1` để kiểm tra cùng bộ fixtures qua DockerRunner và HTTP API.
