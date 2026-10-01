@@ -107,9 +107,7 @@ export function parse(tokens: Token[]): AST.Program {
     const t = advance(); // #include
     let header = '';
     expect('<');
-    const headerName = advance(); // assume single identifier or multiple due to lexer
-    header = headerName.value;
-    while (peek().value === '/' || peek().value === '.' || peek().type === 'identifier') {
+    while (peek().value !== '>' && peek().type !== 'eof') {
         header += advance().value;
     }
     expect('>');
