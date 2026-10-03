@@ -18,10 +18,12 @@ export interface Token {
 }
 
 const KEYWORDS = new Set([
-  'int', 'long', 'double', 'char', 'bool', 'void', 'string', 'vector', 'const', 'unsigned', 'pair', 'auto',
+  'int', 'long', 'short', 'signed', 'unsigned', 'float', 'double', 'char', 'bool', 'void',
+  'string', 'vector', 'pair', 'auto', 'const', 'volatile',
   'if', 'else', 'for', 'while', 'do', 'return', 'break', 'continue',
+  'switch', 'case', 'default', 'typedef',
   'true', 'false', 'using', 'namespace', 'std', 'endl', 'swap',
-  'cout', 'cin', 'push_back', 'size', 'include'
+  'cout', 'cin', 'cerr', 'push_back', 'size', 'include'
 ]);
 
 const OPERATORS = new Set([
@@ -30,7 +32,7 @@ const OPERATORS = new Set([
 ]);
 
 const PUNCTUATION = new Set([
-  '(', ')', '{', '}', '[', ']', ';', ',', '.', '#', '&'
+  '(', ')', '{', '}', '[', ']', ';', ',', '.', '#', '&', '?', ':'
 ]);
 
 export function tokenize(source: string): Token[] {

@@ -77,6 +77,7 @@ export interface LValue extends ASTNode {
   type: 'LValue';
   name: string;
   index?: Expression;
+  member?: string; // for p.first = ..., p.second = ...
 }
 
 export interface IfStmt extends ASTNode {
@@ -98,6 +99,24 @@ export interface WhileStmt extends ASTNode {
   type: 'WhileStmt';
   condition: Expression;
   body: Statement;
+}
+
+export interface DoWhileStmt extends ASTNode {
+  type: 'DoWhileStmt';
+  condition: Expression;
+  body: Statement;
+}
+
+export interface SwitchStmt extends ASTNode {
+  type: 'SwitchStmt';
+  expression: Expression;
+  cases: CaseClause[];
+}
+
+export interface CaseClause extends ASTNode {
+  type: 'CaseClause';
+  test?: Expression; // undefined = default
+  body: Statement[];
 }
 
 export interface ReturnStmt extends ASTNode {
@@ -141,6 +160,8 @@ export type Statement =
   | IfStmt 
   | ForStmt 
   | WhileStmt 
+  | DoWhileStmt
+  | SwitchStmt
   | ReturnStmt 
   | ExpressionStmt 
   | BlockStmt 
@@ -175,6 +196,19 @@ export interface IndexExpr extends ASTNode {
   index: Expression;
 }
 
+export interface MethodCallExpr extends ASTNode {
+  type: 'MethodCallExpr';
+  object: string;
+  method: string;
+  args: Expression[];
+}
+
+export interface MemberAccessExpr extends ASTNode {
+  type: 'MemberAccessExpr';
+  object: string;
+  member: string;
+}
+
 export interface Identifier extends ASTNode {
   type: 'Identifier';
   name: string;
@@ -201,9 +235,16 @@ export interface BoolLiteral extends ASTNode {
   value: boolean;
 }
 
-export interface SizeExpr extends ASTNode {
-  type: 'SizeExpr';
-  object: string;
+export interface TernaryExpr extends ASTNode {
+  type: 'TernaryExpr';
+  condition: Expression;
+  thenExpr: Expression;
+  elseExpr: Expression;
+}
+
+export interface InitializerListExpr extends ASTNode {
+  type: 'InitializerListExpr';
+  elements: Expression[];
 }
 
 export interface CastExpr extends ASTNode {
@@ -217,10 +258,13 @@ export type Expression =
   | UnaryExpr 
   | CallExpr 
   | IndexExpr 
+  | MethodCallExpr
+  | MemberAccessExpr
   | Identifier 
   | NumberLiteral 
   | StringLiteral 
   | CharLiteral 
   | BoolLiteral 
-  | SizeExpr 
+  | TernaryExpr
+  | InitializerListExpr
   | CastExpr;

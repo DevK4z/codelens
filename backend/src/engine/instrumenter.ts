@@ -61,12 +61,15 @@ export function instrument(ast: AST.Program, originalSource: string): string {
       case 'UnaryExpr': return expr.prefix ? `${expr.operator}${genExpr(expr.operand)}` : `${genExpr(expr.operand)}${expr.operator}`;
       case 'CallExpr': return `${expr.callee}(${expr.args.map(genExpr).join(', ')})`;
       case 'IndexExpr': return `${expr.object}[${genExpr(expr.index)}]`;
+      case 'MethodCallExpr': return `${expr.object}.${expr.method}(${expr.args.map(genExpr).join(', ')})`;
+      case 'MemberAccessExpr': return `${expr.object}.${expr.member}`;
       case 'Identifier': return expr.name;
       case 'NumberLiteral': return expr.raw ?? expr.value.toString();
       case 'StringLiteral': return `"${expr.value}"`;
       case 'CharLiteral': return `'${expr.value}'`;
       case 'BoolLiteral': return expr.value ? 'true' : 'false';
-      case 'SizeExpr': return `${expr.object}.size()`;
+      case 'TernaryExpr': return `(${genExpr(expr.condition)} ? ${genExpr(expr.thenExpr)} : ${genExpr(expr.elseExpr)})`;
+      case 'InitializerListExpr': return `{${expr.elements.map(genExpr).join(', ')}}`;
       case 'CastExpr': return `(${genType(expr.targetType)})${genExpr(expr.expression)}`;
     }
   }
@@ -98,6 +101,8 @@ export function instrument(ast: AST.Program, originalSource: string): string {
       stmt.type !== 'CoutStmt' &&
       stmt.type !== 'IfStmt' &&
       stmt.type !== 'WhileStmt' &&
+      stmt.type !== 'DoWhileStmt' &&
+      stmt.type !== 'SwitchStmt' &&
       stmt.type !== 'BreakStmt' && 
       stmt.type !== 'ContinueStmt'
     ) {
@@ -118,7 +123,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
         // Build declaration string
         let declStr = `${genType(stmt.varType)} ${stmt.name}`;
         if (stmt.isArray) {
-            declStr += `[${genExpr(stmt.arraySize!)}]`;
+            declStr += `[${stmt.arraySize ? genExpr(stmt.arraySize) : ''}]`;
 
         }
         if (stmt.initializer) {
@@ -140,7 +145,11 @@ export function instrument(ast: AST.Program, originalSource: string): string {
       case 'Assignment':
         out += `[&]() {\n`;
         out += `  auto __cl_val = ${genExpr(stmt.value)};\n`;
-        if (stmt.target.index) {
+        if (stmt.target.member) {
+          // Member assignment: p.first = ..., p.second = ...
+          out += `  ${stmt.target.name}.${stmt.target.member} ${stmt.operator} __cl_val;\n`;
+          out += `  __cl_begin(${stmt.line}, "assign"); ${emitVarSnapshot()} __cl_sb.mark_changed("${stmt.target.name}"); __cl_end();\n`;
+        } else if (stmt.target.index) {
           out += `  auto __cl_idx = ${genExpr(stmt.target.index)};\n`;
           out += `  ${stmt.target.name}[__cl_idx] ${stmt.operator} __cl_val;\n`;
           out += `  __cl_sb.set_arr_init((void*)&${stmt.target.name}, __cl_idx);\n`;
@@ -190,6 +199,29 @@ export function instrument(ast: AST.Program, originalSource: string): string {
         if (stmt.body.type === 'BlockStmt') out += genStatement(stmt.body);
         else { pushScope(); out += `{\n${genStatement(stmt.body)}\n}`; popScope(); }
         out += '\n';
+        break;
+
+      case 'DoWhileStmt':
+        out += `do `;
+        if (stmt.body.type === 'BlockStmt') out += genStatement(stmt.body);
+        else { pushScope(); out += `{\n${genStatement(stmt.body)}\n}`; popScope(); }
+        out += ` while (${genCondition(stmt.condition, stmt.line)});\n`;
+        break;
+
+      case 'SwitchStmt':
+        out += `__cl_begin(${stmt.line}, "line"); ${emitVarSnapshot()} __cl_end();\n`;
+        out += `switch (${genExpr(stmt.expression)}) {\n`;
+        for (const c of stmt.cases) {
+          if (c.test) {
+            out += `case ${genExpr(c.test)}:\n`;
+          } else {
+            out += `default:\n`;
+          }
+          for (const s of c.body) {
+            out += genStatement(s);
+          }
+        }
+        out += `}\n`;
         break;
 
       case 'ReturnStmt':

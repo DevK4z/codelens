@@ -43,8 +43,7 @@ export function parse(tokens: Token[]): AST.Program {
     return { type: 'TypeAliasDecl', name: name.value, targetType: target, line: start.line, col: start.col };
   }
 
-  // Filter out newlines to simplify parsing, although maintaining them might be useful for exact locations
-  // We'll keep line/col from tokens
+  // Filter out newlines to simplify parsing
   const tokensNoNewline = tokens.filter(t => t.type !== 'newline');
 
   function peek(): Token {
@@ -101,15 +100,20 @@ export function parse(tokens: Token[]): AST.Program {
       } else {
         // Consume the complete type for lookahead, including aliases/templates.
         const start = current;
-        parseType();
-        identifier();
-        const isFunc = peek().value === '(' &&
-          (tokensNoNewline[current + 1]?.value === ')' || builtinTypes.has(tokensNoNewline[current + 1]?.value) || aliases.has(tokensNoNewline[current + 1]?.value));
-        current = start;
-        
-        if (isFunc) {
-          functions.push(parseFunction());
-        } else {
+        try {
+          parseType();
+          identifier();
+          const isFunc = peek().value === '(' &&
+            (tokensNoNewline[current + 1]?.value === ')' || builtinTypes.has(tokensNoNewline[current + 1]?.value) || aliases.has(tokensNoNewline[current + 1]?.value));
+          current = start;
+          
+          if (isFunc) {
+            functions.push(parseFunction());
+          } else {
+            globalStatements.push(...parseVarDecls());
+          }
+        } catch {
+          current = start;
           globalStatements.push(...parseVarDecls());
         }
       }
@@ -234,7 +238,7 @@ export function parse(tokens: Token[]): AST.Program {
   }
 
   function parseStatements(): AST.Statement[] {
-    if (peek().value === 'typedef' || peek().value === 'using') {
+    if (peek().value === 'typedef' || (peek().value === 'using' && tokensNoNewline[current + 1]?.value !== 'namespace')) {
       return [parseAlias()];
     }
     if (isTypeStart()) return parseVarDecls();
@@ -254,7 +258,9 @@ export function parse(tokens: Token[]): AST.Program {
       
       if (match('[')) {
         isArray = true;
-        arraySize = parseExpression();
+        if (peek().value !== ']') {
+          arraySize = parseExpression();
+        }
         expect(']');
       } else if (match('(')) {
         // vector<int> a(10)
@@ -263,7 +269,11 @@ export function parse(tokens: Token[]): AST.Program {
       }
       
       if (match('=')) {
-        initializer = parseExpression();
+        if (peek().value === '{') {
+          initializer = parseInitializerList();
+        } else {
+          initializer = parseExpression();
+        }
       }
       
       decls.push({
@@ -283,14 +293,32 @@ export function parse(tokens: Token[]): AST.Program {
     return decls;
   }
 
+  function parseInitializerList(): AST.InitializerListExpr {
+    const t = expect('{');
+    const elements: AST.Expression[] = [];
+    if (peek().value !== '}') {
+      do {
+        if (peek().value === '{') {
+          elements.push(parseInitializerList());
+        } else {
+          elements.push(parseExpression());
+        }
+      } while (match(','));
+    }
+    expect('}');
+    return { type: 'InitializerListExpr', elements, line: t.line, col: t.col };
+  }
+
   function parseStatement(): AST.Statement {
     const t = peek();
     if (t.value === 'if') return parseIfStmt();
     if (t.value === 'for') return parseForStmt();
     if (t.value === 'while') return parseWhileStmt();
+    if (t.value === 'do') return parseDoWhileStmt();
+    if (t.value === 'switch') return parseSwitchStmt();
     if (t.value === 'return') return parseReturnStmt();
     if (t.value === 'cin') return parseCinStmt();
-    if (t.value === 'cout') return parseCoutStmt();
+    if (t.value === 'cout' || t.value === 'cerr') return parseCoutStmt();
     if (t.value === 'break') { advance(); expect(';'); return { type: 'BreakStmt', line: t.line, col: t.col }; }
     if (t.value === 'continue') { advance(); expect(';'); return { type: 'ContinueStmt', line: t.line, col: t.col }; }
     if (t.value === '{') return parseBlock();
@@ -307,6 +335,8 @@ export function parse(tokens: Token[]): AST.Program {
         lval = { type: 'LValue', name: expr.name, line: expr.line, col: expr.col };
       } else if (expr.type === 'IndexExpr') {
         lval = { type: 'LValue', name: expr.object, index: expr.index, line: expr.line, col: expr.col };
+      } else if (expr.type === 'MemberAccessExpr') {
+        lval = { type: 'LValue', name: expr.object, member: expr.member, line: expr.line, col: expr.col };
       } else {
         throw new ParseError(`Biểu thức không hợp lệ ở vế trái phép gán.`, t.line, t.col);
       }
@@ -335,9 +365,9 @@ export function parse(tokens: Token[]): AST.Program {
     expect('(');
     let init: AST.Statement | undefined;
     if (isTypeStart()) {
-      init = parseVarDecls()[0]; // Just take first for simplicity in AST if multi
+      init = parseVarDecls()[0];
     } else if (peek().value !== ';') {
-      init = parseStatement(); // Statement parses expr_stmt or assignment with ;
+      init = parseStatement();
     } else {
       expect(';');
     }
@@ -350,7 +380,7 @@ export function parse(tokens: Token[]): AST.Program {
     
     let update: AST.Expression | undefined;
     if (peek().value !== ')') {
-      update = parseExpression();
+      update = parseCommaExpression();
     }
     expect(')');
     const body = parseStatement();
@@ -365,6 +395,50 @@ export function parse(tokens: Token[]): AST.Program {
     expect(')');
     const body = parseStatement();
     return { type: 'WhileStmt', condition: cond, body, line: t.line, col: t.col };
+  }
+
+  function parseDoWhileStmt(): AST.DoWhileStmt {
+    const t = advance(); // 'do'
+    const body = parseStatement();
+    expect('while');
+    expect('(');
+    const cond = parseExpression();
+    expect(')');
+    expect(';');
+    return { type: 'DoWhileStmt', condition: cond, body, line: t.line, col: t.col };
+  }
+
+  function parseSwitchStmt(): AST.SwitchStmt {
+    const t = advance(); // 'switch'
+    expect('(');
+    const expression = parseExpression();
+    expect(')');
+    expect('{');
+    const cases: AST.CaseClause[] = [];
+    while (peek().value !== '}' && peek().type !== 'eof') {
+      if (peek().value === 'case') {
+        const caseTok = advance();
+        const test = parseExpression();
+        expect(':');
+        const body: AST.Statement[] = [];
+        while (peek().value !== 'case' && peek().value !== 'default' && peek().value !== '}' && peek().type !== 'eof') {
+          body.push(...parseStatements());
+        }
+        cases.push({ type: 'CaseClause', test, body, line: caseTok.line, col: caseTok.col });
+      } else if (peek().value === 'default') {
+        const defTok = advance();
+        expect(':');
+        const body: AST.Statement[] = [];
+        while (peek().value !== 'case' && peek().value !== 'default' && peek().value !== '}' && peek().type !== 'eof') {
+          body.push(...parseStatements());
+        }
+        cases.push({ type: 'CaseClause', body, line: defTok.line, col: defTok.col });
+      } else {
+        break;
+      }
+    }
+    expect('}');
+    return { type: 'SwitchStmt', expression, cases, line: t.line, col: t.col };
   }
 
   function parseReturnStmt(): AST.ReturnStmt {
@@ -406,8 +480,24 @@ export function parse(tokens: Token[]): AST.Program {
     return { type: 'CoutStmt', expressions: exprs, line: t.line, col: t.col };
   }
 
+  function parseCommaExpression(): AST.Expression {
+    let expr = parseExpression();
+    while (match(',')) {
+      const right = parseExpression();
+      expr = { type: 'BinaryExpr', left: expr, operator: ',', right, line: expr.line, col: expr.col };
+    }
+    return expr;
+  }
+
   function parseExpression(): AST.Expression {
-    return parseLogicalOr();
+    let expr = parseLogicalOr();
+    if (match('?')) {
+      const thenExpr = parseExpression();
+      expect(':');
+      const elseExpr = parseExpression();
+      expr = { type: 'TernaryExpr', condition: expr, thenExpr, elseExpr, line: expr.line, col: expr.col };
+    }
+    return expr;
   }
 
   function parseLogicalOr(): AST.Expression {
@@ -497,13 +587,21 @@ export function parse(tokens: Token[]): AST.Program {
         if (expr.type !== 'Identifier') throw new ParseError('Invalid call target', expr.line, expr.col);
         expr = { type: 'CallExpr', callee: expr.name, args, line: expr.line, col: expr.col };
       } else if (match('.')) {
-        const method = advance().value;
-        expect('('); expect(')');
-        if (method === 'size') {
-          if (expr.type !== 'Identifier') throw new ParseError('Invalid size target', expr.line, expr.col);
-          expr = { type: 'SizeExpr', object: expr.name, line: expr.line, col: expr.col };
+        const member = advance().value;
+        if (peek().value === '(') {
+          // Method call: obj.method(args...)
+          expect('(');
+          const mArgs: AST.Expression[] = [];
+          if (peek().value !== ')') {
+            do { mArgs.push(parseExpression()); } while (match(','));
+          }
+          expect(')');
+          const objName = expr.type === 'Identifier' ? expr.name : (expr.type === 'IndexExpr' ? expr.object : 'unknown');
+          expr = { type: 'MethodCallExpr', object: objName, method: member, args: mArgs, line: expr.line, col: expr.col };
         } else {
-            throw new ParseError(`Phương thức '${method}' chưa được hỗ trợ`, expr.line, expr.col);
+          // Member access: obj.first, obj.second
+          const objName = expr.type === 'Identifier' ? expr.name : (expr.type === 'IndexExpr' ? expr.object : 'unknown');
+          expr = { type: 'MemberAccessExpr', object: objName, member, line: expr.line, col: expr.col };
         }
       } else if (peek().value === '++' || peek().value === '--') {
         const op = advance().value as any;
