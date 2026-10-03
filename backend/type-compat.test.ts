@@ -23,7 +23,7 @@ test('typedef long long and multi-word return types/parameters', async () => {
   await check('typedef long long ll; long long twice(unsigned long long n) { return n * 2; } int main() { ll x = twice(3000000000ULL); cout << x; return 0; }', '6000000000', 'x', 6000000000);
 });
 test('using alias chains and global declarations', async () => {
-  await check('using ll = long long; using Count = ll; const Count LIMIT = 4000000000LL; Count total; int main() { total = LIMIT; Count x = total; cout << x; return 0; }', '4000000000', 'x', 4000000000);
+  await check('using ll = long long; using Count = ll; const Count LIMIT = 4000000000LL; Count total; int main() { total = LIMIT; Count x = Count(total); cout << x; return 0; }', '4000000000', 'x', 4000000000);
 });
 test('long long int and reversed signedness specifiers', async () => {
   await check('long long int twice(long unsigned int n) { return n * 2; } int main() { long long int x = twice(21); cout << x; return 0; }', '42', 'x', 42);
@@ -40,7 +40,7 @@ test('hexadecimal, binary, exponent and digit separators', async () => {
 test('nested templates and aliases produce array snapshots', async () => {
   await check('using Matrix = vector<vector<long long>>; int main() { Matrix x(2); cout << x.size(); return 0; }', '2', 'x', [[], []]);
 });
-test('auto pair and auto vector serialize actual types', async () => {
+test('auto pair serializes its actual type', async () => {
   await check('int main() { auto x = make_pair(3, 4); cout << 7; return 0; }', '7', 'x', { first: 3, second: 4 });
 });
 test('uninitialized long long is not narrowed/read while taking snapshot', async () => {

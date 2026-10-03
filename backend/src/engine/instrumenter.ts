@@ -91,6 +91,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
     // Add step instrumentation for statements that don't have custom trace handling
     if (
       stmt.type !== 'BlockStmt' && 
+      stmt.type !== 'TypeAliasDecl' &&
       stmt.type !== 'VarDecl' && 
       stmt.type !== 'Assignment' &&
       stmt.type !== 'CinStmt' &&
@@ -104,6 +105,9 @@ export function instrument(ast: AST.Program, originalSource: string): string {
     }
 
     switch (stmt.type) {
+      case 'TypeAliasDecl':
+        out += `using ${stmt.name} = ${genType(stmt.targetType)};\n`;
+        break;
       case 'VarDecl':
         // Copy isArray info to TypeNode for scope tracking
         const varType = { ...stmt.varType, line: stmt.varType.line, col: stmt.varType.col } as AST.TypeNode;

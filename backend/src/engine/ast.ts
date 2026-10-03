@@ -128,7 +128,14 @@ export interface ContinueStmt extends ASTNode {
   type: 'ContinueStmt';
 }
 
-export type Statement = 
+export interface TypeAliasDecl extends ASTNode {
+  type: 'TypeAliasDecl';
+  name: string;
+  targetType: TypeNode;
+}
+
+export type Statement =
+  | TypeAliasDecl
   | VarDecl 
   | Assignment 
   | IfStmt 

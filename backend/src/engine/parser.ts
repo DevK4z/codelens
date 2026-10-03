@@ -24,7 +24,8 @@ export function parse(tokens: Token[]): AST.Program {
     if (t.type !== 'identifier') throw new ParseError(`Mong đợi tên biến hoặc hàm, nhưng tìm thấy '${t.value}'`, t.line, t.col);
     return advance();
   }
-  function parseAlias(): void {
+  function parseAlias(): AST.TypeAliasDecl {
+    const start = peek();
     const isTypedef = match('typedef');
     let name: Token;
     let target: AST.TypeNode;
@@ -39,6 +40,7 @@ export function parse(tokens: Token[]): AST.Program {
     }
     expect(';');
     aliases.set(name.value, target);
+    return { type: 'TypeAliasDecl', name: name.value, targetType: target, line: start.line, col: start.col };
   }
 
   // Filter out newlines to simplify parsing, although maintaining them might be useful for exact locations
@@ -91,7 +93,7 @@ export function parse(tokens: Token[]): AST.Program {
       if (peek().value === '#include') {
         includes.push(parseInclude());
       } else if (peek().value === 'typedef' || (peek().value === 'using' && tokensNoNewline[current + 1]?.value !== 'namespace')) {
-        parseAlias();
+        globalStatements.push(parseAlias());
       } else if (peek().value === 'using') {
         usings.push(parseUsing());
       } else if (peek().value.startsWith('#define') || peek().value.startsWith('#pragma')) {
@@ -233,8 +235,7 @@ export function parse(tokens: Token[]): AST.Program {
 
   function parseStatements(): AST.Statement[] {
     if (peek().value === 'typedef' || peek().value === 'using') {
-      parseAlias();
-      return [];
+      return [parseAlias()];
     }
     if (isTypeStart()) return parseVarDecls();
     return [parseStatement()];
