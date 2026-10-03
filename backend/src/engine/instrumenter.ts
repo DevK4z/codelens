@@ -47,18 +47,9 @@ export function instrument(ast: AST.Program, originalSource: string): string {
     for (const v of vars) {
       if (v.type.isArray && v.type.arraySize) {
           out += `__cl_sb.var_arr("${v.name}", (void*)&${v.name}, ${v.name}, ${genExpr(v.type.arraySize)}); `;
-      } else if (v.type.base === 'vector') {
-          out += `__cl_sb.var_vec("${v.name}", (void*)&${v.name}, ${v.name}); `;
-      } else if (v.type.base === 'string') {
-          out += `__cl_sb.var_str("${v.name}", (void*)&${v.name}, ${v.name}); `;
-      } else if (v.type.base === 'char') {
-          out += `__cl_sb.var_char("${v.name}", (void*)&${v.name}, ${v.name}); `;
-      } else if (v.type.base === 'bool') {
-          out += `__cl_sb.var_bool("${v.name}", (void*)&${v.name}, ${v.name}); `;
-      } else if (v.type.base === 'double') {
-          out += `__cl_sb.var_double("${v.name}", (void*)&${v.name}, ${v.name}); `;
       } else {
-          out += `__cl_sb.var_int("${v.name}", (void*)&${v.name}, ${v.name}); `;
+          // Let C++ deduce the actual type (including auto, aliases and const).
+          out += `__cl_sb.var_value("${v.name}", (void*)&${v.name}, ${v.name}); `;
       }
     }
     return out;
@@ -71,7 +62,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
       case 'CallExpr': return `${expr.callee}(${expr.args.map(genExpr).join(', ')})`;
       case 'IndexExpr': return `${expr.object}[${genExpr(expr.index)}]`;
       case 'Identifier': return expr.name;
-      case 'NumberLiteral': return expr.value.toString();
+      case 'NumberLiteral': return expr.raw ?? expr.value.toString();
       case 'StringLiteral': return `"${expr.value}"`;
       case 'CharLiteral': return `'${expr.value}'`;
       case 'BoolLiteral': return expr.value ? 'true' : 'false';
@@ -94,7 +85,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
     return `([&]() { ${evaluate} bool __cl_cond = __cl_L ${expr.operator} __cl_R; __cl_begin(${line}, "compare"); ${emitVarSnapshot()} __cl_sb.set_compare(${JSON.stringify(genExpr(expr.left))}, ${JSON.stringify(genExpr(expr.right))}, __cl_L, __cl_R, "${expr.operator}", __cl_cond); ${accesses} __cl_end(); return __cl_cond; }())`;
   }
 
-  function genStatement(stmt: AST.Statement): string {
+  function genStatement(stmt: AST.Statement, global = false): string {
     let out = '';
     
     // Add step instrumentation for statements that don't have custom trace handling
@@ -127,7 +118,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
 
         }
         if (stmt.initializer) {
-          if (stmt.varType.base === 'vector' && !stmt.isArray) {
+          if (stmt.varType.base.replace(/\b(const|volatile)\s*/g, '').trim() === 'vector' && !stmt.isArray) {
             declStr += `(${genExpr(stmt.initializer)})`;
           } else {
             declStr += ` = ${genExpr(stmt.initializer)}`;
@@ -137,6 +128,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
         // IMPORTANT: Emit declaration FIRST so variable is in scope for trace
         out += declStr + '\n';
         addVar(stmt.name, varType);
+        if (global) break; // Namespace scope cannot contain trace statements; globals are zero-initialized.
         out += `__cl_VarGuard __cl_guard_${stmt.name}((void*)&${stmt.name}, ${stmt.initializer || ['vector', 'string'].includes(stmt.varType.base) ? 'true' : 'false'});\n`;
         out += `__cl_begin(${stmt.line}, "vardecl"); ${emitVarSnapshot()} __cl_sb.mark_changed("${stmt.name}"); __cl_end();\n`;
         break;
@@ -288,7 +280,7 @@ export function instrument(ast: AST.Program, originalSource: string): string {
     output += `${mac.macro}\n`;
   }
   for (const stmt of ast.globalStatements) {
-    output += genStatement(stmt);
+    output += genStatement(stmt, true);
   }
   
   for (const func of ast.functions) {

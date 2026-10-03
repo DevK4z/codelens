@@ -175,6 +175,7 @@ export interface Identifier extends ASTNode {
 
 export interface NumberLiteral extends ASTNode {
   type: 'NumberLiteral';
+  raw?: string;
   value: number;
 }
 

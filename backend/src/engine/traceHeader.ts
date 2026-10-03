@@ -36,9 +36,27 @@ static string __cl_escape(const string& s) {
 static string __cl_json(const string& s) { return "\"" + __cl_escape(s) + "\""; }
 static string __cl_json(char c) { return __cl_json(string(1, c)); }
 static string __cl_json(bool b) { return b ? "true" : "false"; }
+template<typename T> static string __cl_json(const vector<T>& value);
+template<typename A, typename B> static string __cl_json(const pair<A,B>& value);
 template<typename T> static string __cl_json(const T& value) {
   if constexpr (is_floating_point_v<T>) if (!isfinite(value)) return "null";
+  // JSON consumers use IEEE-754 numbers. Keep large integers exact as strings.
+  if constexpr (is_integral_v<T>) {
+    if constexpr (is_signed_v<T>) {
+      if (value > 9007199254740991LL || value < -9007199254740991LL) return __cl_json(to_string(value));
+    } else {
+      if (value > 9007199254740991ULL) return __cl_json(to_string(value));
+    }
+  }
   stringstream ss; ss << setprecision(17) << value; return ss.str();
+}
+template<typename T> static string __cl_json(const vector<T>& value) {
+  string out="[";
+  for(size_t i=0;i<value.size();++i) { if(i) out+=","; out+=__cl_json(static_cast<T>(value[i])); }
+  return out+"]";
+}
+template<typename A, typename B> static string __cl_json(const pair<A,B>& value) {
+  return "{\"first\":"+__cl_json(value.first)+",\"second\":"+__cl_json(value.second)+"}";
 }
 class __cl_OStreamWrapper {
 public:
