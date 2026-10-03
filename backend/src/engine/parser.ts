@@ -14,6 +14,34 @@ export class ParseError extends Error {
 
 export function parse(tokens: Token[]): AST.Program {
   let current = 0;
+  const aliases = new Map<string, AST.TypeNode>();
+  const builtinTypes = new Set(['int', 'long', 'short', 'signed', 'unsigned', 'float', 'double', 'char', 'bool', 'string', 'void', 'vector', 'pair', 'auto', 'const', 'volatile']);
+  function isTypeStart(): boolean {
+    return builtinTypes.has(peek().value) || aliases.has(peek().value);
+  }
+  function identifier(): Token {
+    const t = peek();
+    if (t.type !== 'identifier') throw new ParseError(`Mong đợi tên biến hoặc hàm, nhưng tìm thấy '${t.value}'`, t.line, t.col);
+    return advance();
+  }
+  function parseAlias(): AST.TypeAliasDecl {
+    const start = peek();
+    const isTypedef = match('typedef');
+    let name: Token;
+    let target: AST.TypeNode;
+    if (isTypedef) {
+      target = parseType();
+      name = identifier();
+    } else {
+      expect('using');
+      name = identifier();
+      expect('=');
+      target = parseType();
+    }
+    expect(';');
+    aliases.set(name.value, target);
+    return { type: 'TypeAliasDecl', name: name.value, targetType: target, line: start.line, col: start.col };
+  }
 
   // Filter out newlines to simplify parsing, although maintaining them might be useful for exact locations
   // We'll keep line/col from tokens
@@ -64,33 +92,25 @@ export function parse(tokens: Token[]): AST.Program {
     while (peek().type !== 'eof') {
       if (peek().value === '#include') {
         includes.push(parseInclude());
+      } else if (peek().value === 'typedef' || (peek().value === 'using' && tokensNoNewline[current + 1]?.value !== 'namespace')) {
+        globalStatements.push(parseAlias());
       } else if (peek().value === 'using') {
         usings.push(parseUsing());
       } else if (peek().value.startsWith('#define') || peek().value.startsWith('#pragma')) {
         macros.push({ type: 'MacroDirective', macro: advance().value, line: peek().line, col: peek().col });
       } else {
-        // Simple heuristic to differentiate function vs global statement
-        // Look ahead for '(' after an identifier following a type
-        let isFunc = false;
-        let p = current;
-        if (tokensNoNewline[p].type === 'keyword' || tokensNoNewline[p].type === 'identifier') {
-          p++;
-          if (tokensNoNewline[p].value === '<') {
-            while (tokensNoNewline[p].value !== '>' && tokensNoNewline[p].type !== 'eof') p++;
-            p++;
-          }
-          if (tokensNoNewline[p].type === 'identifier') {
-            p++;
-            if (tokensNoNewline[p].value === '(') {
-              isFunc = true;
-            }
-          }
-        }
+        // Consume the complete type for lookahead, including aliases/templates.
+        const start = current;
+        parseType();
+        identifier();
+        const isFunc = peek().value === '(' &&
+          (tokensNoNewline[current + 1]?.value === ')' || builtinTypes.has(tokensNoNewline[current + 1]?.value) || aliases.has(tokensNoNewline[current + 1]?.value));
+        current = start;
         
         if (isFunc) {
           functions.push(parseFunction());
         } else {
-          globalStatements.push(parseStatement());
+          globalStatements.push(...parseVarDecls());
         }
       }
     }
@@ -128,47 +148,47 @@ export function parse(tokens: Token[]): AST.Program {
 
   function parseType(): AST.TypeNode {
     const t = peek();
-    const isConst = match('const');
-    const isUnsigned = match('unsigned');
-    const t2 = peek();
-    const typeNames = ['int', 'long', 'double', 'char', 'bool', 'string', 'void', 'vector', 'pair', 'auto'];
-    
-    let base = 'int'; // default for standalone unsigned
-    if (typeNames.includes(t2.value)) {
-      base = advance().value;
-      if (base === 'long' && peek().value === 'long') {
-        base = base + ' ' + advance().value;
+    const qualifiers: string[] = [];
+    while (['const', 'volatile'].includes(peek().value)) qualifiers.push(advance().value);
+    let node: AST.TypeNode;
+    const alias = aliases.get(peek().value);
+    if (alias) {
+      advance();
+      node = { ...alias, line: t.line, col: t.col };
+    } else {
+      const words: string[] = [];
+      while (['signed', 'unsigned', 'short', 'long', 'int', 'float', 'double', 'char', 'bool', 'void'].includes(peek().value)) {
+        words.push(advance().value);
       }
-    } else if (!isUnsigned) {
-      throw new ParseError(`Kiểu dữ liệu '${t2.value}' chưa được hỗ trợ trong CodeLens v1. Hỗ trợ: int, long, long long, double, char, bool, string, vector<T>, pair<T, U>, auto.`, t2.line, t2.col);
+      if (words.length) {
+        node = { type: 'TypeNode', base: words.join(' '), line: t.line, col: t.col };
+      } else if (['string', 'auto', 'vector', 'pair'].includes(peek().value)) {
+        const base = advance().value;
+        node = { type: 'TypeNode', base, line: t.line, col: t.col };
+        if (base === 'vector' || base === 'pair') {
+          expect('<');
+          node.templateArg = parseType();
+          if (base === 'pair') { expect(','); node.templateArg2 = parseType(); }
+          // In a type, >> closes two nested templates; keep shifts elsewhere intact.
+          if (peek().value === '>>') {
+            const close = peek();
+            tokensNoNewline.splice(current, 1, { ...close, value: '>' }, { ...close, value: '>', col: close.col + 1 });
+          }
+          expect('>');
+        }
+      } else {
+        throw new ParseError(`Bộ trực quan hóa chưa hỗ trợ kiểu '${peek().value}'`, peek().line, peek().col);
+      }
     }
-
-    if (isUnsigned) base = 'unsigned ' + base;
-    if (isConst) base = 'const ' + base;
-    const node: AST.TypeNode = {
-      type: 'TypeNode',
-      base: base as any,
-      line: t.line,
-      col: t.col
-    };
-      if (base.includes('vector')) {
-        expect('<');
-        node.templateArg = parseType();
-        expect('>');
-      } else if (base.includes('pair')) {
-        expect('<');
-        node.templateArg = parseType();
-        expect(',');
-        node.templateArg2 = parseType();
-        expect('>');
-      }
-      return node;
+    while (['const', 'volatile'].includes(peek().value)) qualifiers.push(advance().value);
+    if (qualifiers.length) node.base = [...new Set(qualifiers)].join(' ') + ' ' + node.base;
+    return node;
   }
 
   function parseFunction(): AST.FunctionDecl {
     const t = peek();
     const returnType = parseType();
-    const nameToken = advance();
+    const nameToken = identifier();
     expect('(');
     const params: AST.ParamDecl[] = [];
     if (peek().value !== ')') {
@@ -177,7 +197,7 @@ export function parse(tokens: Token[]): AST.Program {
         const paramCol = peek().col;
         const pType = parseType();
         const isRef = match('&');
-        const pName = advance().value;
+        const pName = identifier().value;
         params.push({
           type: 'ParamDecl',
           line: paramLine,
@@ -202,23 +222,22 @@ export function parse(tokens: Token[]): AST.Program {
 
   function parseBlock(): AST.BlockStmt {
     const t = expect('{');
+    const outerAliases = new Map(aliases);
     const statements: AST.Statement[] = [];
     while (peek().value !== '}' && peek().type !== 'eof') {
       statements.push(...parseStatements());
     }
     expect('}');
+    aliases.clear();
+    for (const [name, target] of outerAliases) aliases.set(name, target);
     return { type: 'BlockStmt', statements, line: t.line, col: t.col };
   }
 
   function parseStatements(): AST.Statement[] {
-    // If it's a type, it's a declaration which might be multiple. We'll simplify to returning one for now,
-    // but a real implementation would handle multi-declarations properly.
-    // We'll wrap multi-declarations in block statements or return arrays if we change the signature.
-    // For simplicity of ast nodes, we return an array of statements here.
-    const typeNames = ['int', 'long', 'double', 'char', 'bool', 'string', 'vector', 'const', 'unsigned', 'pair', 'auto'];
-    if (typeNames.includes(peek().value)) {
-        return parseVarDecls();
+    if (peek().value === 'typedef' || peek().value === 'using') {
+      return [parseAlias()];
     }
+    if (isTypeStart()) return parseVarDecls();
     return [parseStatement()];
   }
 
@@ -228,7 +247,7 @@ export function parse(tokens: Token[]): AST.Program {
     const decls: AST.VarDecl[] = [];
     
     do {
-      const nameT = expect(peek().value, 'Expected identifier'); // simple expect
+      const nameT = identifier();
       let isArray = false;
       let arraySize: AST.Expression | undefined;
       let initializer: AST.Expression | undefined;
@@ -315,8 +334,7 @@ export function parse(tokens: Token[]): AST.Program {
     const t = advance();
     expect('(');
     let init: AST.Statement | undefined;
-    const typeNames = ['int', 'long', 'double', 'char', 'bool', 'string', 'vector', 'const', 'unsigned', 'pair', 'auto'];
-    if (typeNames.includes(peek().value)) {
+    if (isTypeStart()) {
       init = parseVarDecls()[0]; // Just take first for simplicity in AST if multi
     } else if (peek().value !== ';') {
       init = parseStatement(); // Statement parses expr_stmt or assignment with ;
@@ -499,7 +517,7 @@ export function parse(tokens: Token[]): AST.Program {
 
   function parsePrimary(): AST.Expression {
     const t = advance();
-    if (t.type === 'number') return { type: 'NumberLiteral', value: parseFloat(t.value), line: t.line, col: t.col };
+    if (t.type === 'number') return { type: 'NumberLiteral', value: parseFloat(t.value), raw: t.value, line: t.line, col: t.col };
     if (t.type === 'string') return { type: 'StringLiteral', value: t.value, line: t.line, col: t.col };
     if (t.type === 'char') return { type: 'CharLiteral', value: t.value, line: t.line, col: t.col };
     if (t.value === 'true') return { type: 'BoolLiteral', value: true, line: t.line, col: t.col };

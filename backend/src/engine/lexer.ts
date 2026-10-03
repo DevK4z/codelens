@@ -147,13 +147,10 @@ export function tokenize(source: string): Token[] {
 
     // Numbers
     if (/[0-9]/.test(char)) {
-      let num = '';
       const startCol = col;
       const startLine = line;
-      while (i < source.length && /[0-9.]/.test(source[i])) {
-        num += source[i];
-        advance();
-      }
+      const num = source.slice(i).match(/^(?:0[xX][0-9a-fA-F']+|0[bB][01']+|[0-9][0-9']*(?:\.[0-9']*)?(?:[eE][+-]?[0-9']+)?)[uUlLfF]*/)?.[0] || char;
+      for (let n = 0; n < num.length; n++) advance();
       tokens.push({ type: 'number', value: num, line: startLine, col: startCol });
       continue;
     }
