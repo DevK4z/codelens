@@ -75,8 +75,8 @@ test('debugger detects compiler errors, process failures and timeouts', {skip: !
   const crash = await runner.run('int main(){int *p=nullptr; return *p;}', '', {debugTrace:true});
   assert.notEqual(crash.exitCode,0);
   assert.match(crash.stderr,/SIGSEGV/);
-  const timeout = await runner.run('int main(){for(;;){}}', '', {debugTrace:true,timeoutMs:1000});
-  assert.equal(timeout.timeLimitExceeded,true);
+  const timeout = await runner.run('#include <unistd.h>\nint main(){sleep(3);}', '', {debugTrace:true,timeoutMs:1000});
+  assert.equal(timeout.timeLimitExceeded,true,JSON.stringify(timeout));
 });
 test('debugger step limit stops repeated executed source lines', {skip: !enabled}, async () => {
   const result = await runner.run(`int main() {
