@@ -13,17 +13,20 @@ import { useTracePlayer } from './engine/tracePlayer';
 import { TraceEvent, VariableRoleMap, ThemeMode } from './engine/types';
 import { SAMPLES } from './data/samples';
 import { getFallbackDemoTrace } from './data/demoTraces';
+import { readSavedRun, saveRun } from './utils/savedRun';
 
 function App() {
-  const [executionMode, setExecutionMode] = useState<'run' | 'visualize'>('run');
-  const [standard, setStandard] = useState<'gnu++17' | 'gnu++20'>('gnu++17');
+  const [savedRun, setSavedRun] = useState(readSavedRun);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const [executionMode, setExecutionMode] = useState<'run' | 'visualize'>(savedRun?.mode ?? 'run');
+  const [standard, setStandard] = useState<'gnu++17' | 'gnu++20'>(savedRun?.standard ?? 'gnu++17');
   const [nativeResult, setNativeResult] = useState<{ stdout: string; stderr: string; success: boolean } | null>(null);
 
-  const [code, setCode] = useState(SAMPLES[0].code);
-  const [stdin, setStdin] = useState(SAMPLES[0].stdin);
+  const [code, setCode] = useState(savedRun?.code ?? SAMPLES[0].code);
+  const [stdin, setStdin] = useState(savedRun?.stdin ?? SAMPLES[0].stdin);
   const [trace, setTrace] = useState<TraceEvent[]>([]);
-  const [traceCode, setTraceCode] = useState(SAMPLES[0].code);
-  const [traceStdin, setTraceStdin] = useState(SAMPLES[0].stdin);
+  const [traceCode, setTraceCode] = useState(savedRun?.code ?? SAMPLES[0].code);
+  const [traceStdin, setTraceStdin] = useState(savedRun?.stdin ?? SAMPLES[0].stdin);
   const runIdRef = useRef<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,8 +42,10 @@ function App() {
 
   const [isExerciseBankOpen, setIsExerciseBankOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>(() => {
-    const saved = localStorage.getItem('theme');
-    return (saved as ThemeMode) || 'dark';
+    try {
+      const saved = localStorage.getItem('theme');
+      return saved === 'light' ? 'light' : 'dark';
+    } catch { return 'dark'; }
   });
 
   const [variableRoles, setVariableRoles] = useState<VariableRoleMap>(SAMPLES[0].suggestedRoles);
@@ -62,7 +67,7 @@ function App() {
 
   useEffect(() => {
     document.documentElement.className = theme;
-    localStorage.setItem('theme', theme);
+    try { localStorage.setItem('theme', theme); } catch { /* Storage may be blocked. */ }
   }, [theme]);
 
   const checkConnection = async (): Promise<boolean> => {
@@ -183,6 +188,10 @@ function App() {
   };
 
   const handleRun = async () => {
+    // Save synchronously before any backend request; failed runs are preserved too.
+    const saved = saveRun({ code, stdin, mode: executionMode, standard });
+    if (saved) setSavedRun(saved);
+    setSaveFailed(!saved);
     setNativeResult(null);
     setIsLoading(true);
     setIsDemo(false);
@@ -268,6 +277,8 @@ function App() {
   };
 
   const prevEvent = currentStep > 0 ? trace[currentStep - 1] : null;
+  const matchesSavedRun = savedRun && code === savedRun.code && stdin === savedRun.stdin &&
+    executionMode === savedRun.mode && standard === savedRun.standard;
 
   return (
     <div className="h-screen w-full flex flex-col bg-[var(--bg-primary)] overflow-hidden text-[var(--text-primary)]">
@@ -308,6 +319,15 @@ function App() {
             ? 'Chạy code gốc: macro, template, lambda, STL, PBDS. Xem kết quả STDOUT; không có bước trực quan hóa.'
             : 'Chỉ hỗ trợ tập cú pháp của bộ trực quan hóa. Với code nâng cao, chọn Chạy C++ / thi đấu.'}
         </span>
+      </div>
+      <div role="status" aria-live="polite" className="px-3 py-1 border-b border-[var(--border)] text-xs text-[var(--text-secondary)]">
+        {saveFailed
+          ? 'Không lưu được trong trình duyệt. Hãy sao chép code để giữ lại.'
+          : matchesSavedRun
+            ? `Đã lưu code và input trên trình duyệt lúc ${new Date(savedRun.savedAt).toLocaleTimeString('vi-VN')}. Mở lại web sẽ khôi phục bản này.`
+            : savedRun
+              ? 'Thay đổi chưa lưu — nhấn Chạy để lưu bản mới.'
+              : 'Code và input sẽ tự động lưu trên trình duyệt khi bạn nhấn Chạy.'}
       </div>
       {nativeResult && (
         <section aria-label="Kết quả chạy C++" className="p-3 border-b border-[var(--border)] text-sm max-h-64 overflow-auto">
