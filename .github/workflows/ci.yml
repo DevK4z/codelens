@@ -91,7 +91,14 @@ jobs:
         env:
           TEST_DOCKER: '1'
 
+      - name: Test GCC/GDB source visualization through Docker and API
+        run: npm --prefix backend run test:debugger
+        env:
+          TEST_DOCKER: '1'
+
       - name: Verify alternate sandbox build context stays identical
         run: |
           diff runner/Dockerfile backend/sandbox/Dockerfile
           diff runner/run.sh backend/sandbox/run.sh
+          diff runner/gdb_trace.py backend/sandbox/gdb_trace.py
+          diff runner/debug_result.py backend/sandbox/debug_result.py

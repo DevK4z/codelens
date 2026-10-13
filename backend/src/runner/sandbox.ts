@@ -13,6 +13,7 @@ export interface RunResult {
 export interface RunLimits {
   standard?: 'gnu++17' | 'gnu++20';
   captureTrace?: boolean;
+  debugTrace?: boolean;
   timeoutMs: number;      // default 5000
   maxOutputBytes: number;  // default 10MB
   maxSteps: number;        // default 10000

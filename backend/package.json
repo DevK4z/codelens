@@ -10,6 +10,7 @@
     "test:regression": "node --import tsx regression.test.ts",
     "traces": "node --import tsx export_demo_traces.ts",
     "test:types": "node --import tsx type-compat.test.ts",
+    "test:debugger": "node --import tsx --test debugger.test.ts",
     "test:native": "node --import tsx --test native.test.ts"
   },
   "dependencies": {

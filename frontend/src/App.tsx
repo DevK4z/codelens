@@ -228,7 +228,7 @@ function App() {
       if (response.executionMode === 'run') {
         setNativeResult({ stdout: response.stdout || '', stderr: response.stderr || '', success: response.success });
       }
-      setSandboxWarning(response.sandboxWarning || undefined);
+      setSandboxWarning([response.sandboxWarning, response.visualizationWarning].filter(Boolean).join(" ") || undefined);
 
       // Auto-assign roles for custom code
       if (response.trace.length > 0) {

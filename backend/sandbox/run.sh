@@ -16,4 +16,10 @@ else
   exit 65
 fi
 seconds=$(jq -r '((.timeoutMs // 5000) / 1000 | ceil) | if . < 1 then 1 elif . > 5 then 5 else . end' payload.json)
-timeout -k 1 "$seconds" ./code < input.txt
+if [ "$(jq -r '.debugTrace // false' payload.json)" = "true" ]; then
+  status=0
+  timeout -k 1 "$seconds" gdb -q -nx -batch -x /usr/local/lib/codelens/gdb_trace.py > gdb.log 2>&1 || status=$?
+  python3 /usr/local/lib/codelens/debug_result.py "$status"
+else
+  timeout -k 1 "$seconds" ./code < input.txt
+fi
