@@ -96,6 +96,28 @@ jobs:
         env:
           TEST_DOCKER: '1'
 
+      - name: Verify Windows CRLF build context can execute the entrypoint
+        run: |
+          cp -R backend/sandbox /tmp/codelens-crlf
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('/tmp/codelens-crlf/run.sh')
+          p.write_bytes(p.read_bytes().replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))
+          PY
+          docker build -t codelens-sandbox-crlf /tmp/codelens-crlf
+          docker run --rm -i --network none --cap-drop ALL --security-opt no-new-privileges --read-only --tmpfs /sandbox:rw,exec,nosuid,size=128m,mode=1777 --tmpfs /tmp:rw,noexec,nosuid,size=64m,mode=1777 codelens-sandbox-crlf <<'JSON' > /tmp/codelens-crlf-result.json
+          {"code":"#include <iostream>\nint main(){std::cout << \"ok\";}", "stdin":"", "debugTrace":true}
+          JSON
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path('/tmp/codelens-crlf-result.json').read_text())
+          assert result['codelensDebugger'] == 1, result
+          assert result['exitCode'] == 0, result
+          assert result['stdout'] == 'ok', result
+          assert len(result['trace']) > 0, result
+          PY
+
       - name: Verify alternate sandbox build context stays identical
         run: |
           diff runner/Dockerfile backend/sandbox/Dockerfile
