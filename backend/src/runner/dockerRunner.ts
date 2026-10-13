@@ -15,7 +15,7 @@ export class DockerRunner implements Runner {
 
     return await new Promise<RunResult>((resolve, reject) => {
       // The docker container will read a JSON payload containing 'code' and 'stdin'
-      const payload = JSON.stringify({ code: instrumentedCode, stdin: stdin || '', standard: currentLimits.standard || 'gnu++17', timeoutMs: currentLimits.timeoutMs });
+      const payload = JSON.stringify({ code: instrumentedCode, stdin: stdin || '', standard: currentLimits.standard || 'gnu++17', timeoutMs: currentLimits.timeoutMs, debugTrace: !!currentLimits.debugTrace, maxSteps: Math.min(currentLimits.maxSteps, 2000) });
 
       // Calculate a conservative memory and CPU limit based on Node.js constraints
       // Adding a buffer of a few seconds to docker timeout so the inner timeout triggers first
@@ -60,6 +60,16 @@ export class DockerRunner implements Runner {
            return;
         }
 
+        if (currentLimits.debugTrace) {
+          try {
+            const result = JSON.parse(stdout);
+            if (result.codelensDebugger === 1 && Array.isArray(result.trace)) {
+              resolve({ ...result, executionTimeMs });
+              return;
+            }
+          } catch { /* Compilation/container errors use the existing diagnostics below. */ }
+        }
+
         // The bash script inside Docker outputs a JSON object if there is a compilation error
         try {
            const parsedStdout = JSON.parse(stdout);
@@ -71,6 +81,12 @@ export class DockerRunner implements Runner {
            }
         } catch (e) {
            // Not a JSON object on stdout, means it successfully compiled and stdout is actual program stdout
+        }
+
+        if (currentLimits.debugTrace) {
+          resolve({ trace: [], stdout: '', stderr: stderr || 'Image Docker chưa hỗ trợ GCC/GDB. Build lại codelens-sandbox theo tài liệu rồi khởi động lại backend.',
+            exitCode: 1, executionTimeMs, timeLimitExceeded, stepLimitExceeded: false });
+          return;
         }
 
         // Parse stderr for trace events exactly like LocalRunner

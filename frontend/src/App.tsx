@@ -228,11 +228,11 @@ function App() {
       if (response.executionMode === 'run') {
         setNativeResult({ stdout: response.stdout || '', stderr: response.stderr || '', success: response.success });
       }
-      setSandboxWarning(response.sandboxWarning || undefined);
+      setSandboxWarning([response.sandboxWarning, response.visualizationWarning].filter(Boolean).join(" ") || undefined);
 
       // Auto-assign roles for custom code
       if (response.trace.length > 0) {
-        const lastVars = response.trace[response.trace.length - 1].variables;
+        const lastVars = [...response.trace].reverse().find(event => Object.keys(event.variables).length > 0)?.variables || {};
         const autoRoles: Record<string, string> = {};
         let hasArray = false;
 

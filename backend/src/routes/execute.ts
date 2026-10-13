@@ -68,7 +68,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, compilationError: 'Language must be cpp' });
     }
 
-    for (const token of (mode === 'visualize' ? FORBIDDEN_TOKENS : [])) {
+    for (const token of (mode === 'visualize' && !useDocker ? FORBIDDEN_TOKENS : [])) {
       if (code.includes(token)) {
         return res.status(400).json({ success: false, compilationError: `Forbidden keyword/token found: ${token}` });
       }
@@ -76,21 +76,21 @@ router.post('/', async (req, res) => {
 
     // Native mode sends the original source to GCC; the teaching parser is not a C++ validator.
     let instrumentedCode = code;
-    if (mode === 'visualize') {
+    if (mode === 'visualize' && !useDocker) {
       try {
         instrumentedCode = instrument(parse(tokenize(code)), code);
       } catch (error: any) {
         return res.json({ success: false, compilationError:
-          `Bộ trực quan hóa chưa xử lý được đoạn code này: ${error.message}. Hãy chọn “Chạy C++ / thi đấu” để GCC biên dịch code gốc.` });
+          `Bộ trực quan hóa chưa xử lý được đoạn code này: ${error.message}. Backend hiện dùng LocalRunner. Build lại image codelens-sandbox và khởi động với RUNNER=docker để trực quan hóa code gốc bằng GCC/GDB.` });
       }
     }
     let runResult;
     try {
       runResult = await runner.run(instrumentedCode, stdin || '', {
-        standard, captureTrace: mode === 'visualize'
+        standard, captureTrace: mode === 'visualize', debugTrace: mode === 'visualize' && useDocker
       });
     } catch (error: any) {
-      if (mode === 'visualize' && error.name === 'CompilationError') {
+      if (mode === 'visualize' && !useDocker && error.name === 'CompilationError') {
         error.message += '\nLỗi trên code đã gắn theo dõi; hãy thử “Chạy C++ / thi đấu” để kiểm tra code gốc.';
       }
       throw error;
@@ -98,7 +98,7 @@ router.post('/', async (req, res) => {
 
     const response: ExecuteResponse & { _instrumentedCode?: string } = {
       executionMode: mode,
-      visualizationWarning: mode === 'run' ? 'Đã chạy code gốc bằng GCC. Chế độ này không tạo bản ghi trực quan hóa từng bước.' : undefined,
+      visualizationWarning: mode === 'run' ? 'Đã chạy code gốc bằng GCC. Chế độ này không tạo bản ghi trực quan hóa từng bước.' : useDocker ? 'GCC/GDB theo dõi code gốc theo dòng: trạng thái trước dòng đang tô sáng. Một dòng có nhiều lệnh có thể chỉ có một điểm dừng. Biến tối ưu hóa hoặc kiểu phức tạp có thể không đọc được; mảng/container hiển thị tối đa 100 phần tử. Không có nhãn so sánh/swap tự động.' : undefined,
       stderr: runResult.stderr,
       success: runResult.exitCode === 0 && !runResult.timeLimitExceeded && !runResult.stepLimitExceeded,
       trace: runResult.trace,
@@ -107,7 +107,7 @@ router.post('/', async (req, res) => {
       executionTimeMs: runResult.executionTimeMs,
       timeLimitExceeded: runResult.timeLimitExceeded,
       stepLimitExceeded: runResult.stepLimitExceeded,
-      _instrumentedCode: instrumentedCode
+      _instrumentedCode: useDocker ? undefined : instrumentedCode
     };
     
     if (runResult.exitCode !== 0 || runResult.timeLimitExceeded || runResult.stepLimitExceeded) {
