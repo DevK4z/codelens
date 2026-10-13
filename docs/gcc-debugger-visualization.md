@@ -25,7 +25,7 @@ Nếu git pull báo thay đổi cục bộ, dừng và lưu/đối chiếu chún
 
 - Trạng thái tại mỗi điểm dừng là **trước khi thực thi dòng đang tô sáng**. Nhiều câu lệnh trên cùng dòng có thể chỉ tạo một điểm dừng. Hàm inline, macro và tối ưu hóa bằng pragma có thể làm dòng/biến không đủ thông tin debug.
 - GDB không suy ra đầy đủ việc khởi tạo biến. Biến có dòng khai báo chưa thực thi được hiển thị null; giá trị không đọc được hiển thị `<unavailable>` hoặc `<optimized out>`.
-- Mảng/container tối đa 100 phần tử, snapshot tối đa 4 tầng và 200 biến, stack tối đa 64 frame, trace tối đa 2000 điểm dừng. Số nguyên ngoài khoảng an toàn JavaScript dùng chuỗi thập phân.
+- Mảng/container tối đa 100 phần tử, snapshot tối đa 4 tầng và 200 biến, stack tối đa 64 frame, trace tối đa 2000 điểm dừng. Mỗi luồng stdout/stderr/trace giới hạn 1MiB; vượt giới hạn báo lỗi thay vì trả thành công với dữ liệu bị cắt. Số nguyên ngoài khoảng an toàn JavaScript dùng chuỗi thập phân.
 - Con trỏ được hiển thị địa chỉ, không tự động dereference. Kiểu STL phụ thuộc layout/pretty-printer mà GDB có; không cam kết hiển thị mọi kiểu.
 - Trace theo dòng không tự tạo các nhãn compare/swap/arrayAccess của bộ chèn theo dõi cũ. Stdout trong trace là nội dung đã flush tại thời điểm dừng; stdout cuối được trả riêng.
 - Giữ giới hạn CPU, RAM, process, thời gian compile/run, filesystem readonly, network none và cap-drop ALL. Không dùng `--privileged` hoặc bỏ seccomp. Nếu host không cho phép ptrace giữa GDB và tiến trình con của nó, trả lỗi debugger để người dùng biết thay vì giả lập trace.

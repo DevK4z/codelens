@@ -75,6 +75,7 @@ export function generateExplanation(event: TraceEvent, prevEvent?: TraceEvent, a
     case 'loop_end':
       return `Kết thúc một bước lặp.`;
     case 'line':
+      return event.detail || `Thực thi dòng ${event.line}`;
     default:
       return `Thực thi dòng ${event.line}`;
   }

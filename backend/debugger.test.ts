@@ -29,6 +29,8 @@ test('GCC/GDB traces original macros/templates/lambdas/shifts/STL without parser
   assert.equal(traced.stdout, original.stdout);
   assert.equal(traced.stdout, '16 34359738369');
   assert.equal(traced.stderr, '{"step":999}');
+  assert.equal(traced.trace.at(-1)?.stdout, traced.stdout);
+  assert.deepEqual(traced.trace.at(-1)?.variables, {});
   assert.ok(traced.trace.length > 0);
   assert.ok(traced.trace.some(e => e.variables.x === 34359738369));
   assert.ok(traced.trace.some(e => JSON.stringify(e.variables.a) === '[2,4,6]'));
@@ -85,4 +87,10 @@ test('debugger step limit stops repeated executed source lines', {skip: !enabled
 }`, '', {debugTrace:true,maxSteps:8});
   assert.equal(result.stepLimitExceeded,true);
   assert.equal(result.trace.length,8);
+});
+
+test('debugger reports oversized output rather than silently claiming success', {skip: !enabled}, async () => {
+  const result = await runner.run('#include <iostream>\n#include <string>\nint main(){std::cout << std::string(1100000, \'x\');}', '', {debugTrace:true});
+  assert.notEqual(result.exitCode, 0);
+  assert.match(result.stderr, /output exceeded/);
 });

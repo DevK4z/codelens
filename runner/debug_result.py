@@ -12,9 +12,13 @@ for line in text('debug.trace').splitlines():
     except ValueError:
         pass
 result = json.loads(text('debug.result') or '{}')
+overflow = any(Path(p).exists() and Path(p).stat().st_size > 1024 * 1024 for p in ('debug.trace', 'program.stdout', 'program.stderr'))
 timed_out = sys.argv[1] == '124'
 error = result.get('runtimeError')
 stderr = text('program.stderr')
+if overflow:
+    stderr += '\nDebugger output exceeded 1MiB limit.'
+    result['exitCode'] = 1
 if error:
     stderr += ('\n' if stderr else '') + error
 elif not result and not timed_out:

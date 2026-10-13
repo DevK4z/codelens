@@ -232,7 +232,7 @@ function App() {
 
       // Auto-assign roles for custom code
       if (response.trace.length > 0) {
-        const lastVars = response.trace[response.trace.length - 1].variables;
+        const lastVars = [...response.trace].reverse().find(event => Object.keys(event.variables).length > 0)?.variables || {};
         const autoRoles: Record<string, string> = {};
         let hasArray = false;
 

@@ -155,6 +155,13 @@ try:
             if len(trace) >= limit:
                 break
         gdb.execute('continue', to_string=True)
+    if exit_code is not None and trace:
+        # Process is gone: retain no invented final variables. Capture flushed output.
+        terminal = {'step': len(trace), 'line': trace[-1]['line'], 'event': 'stdout',
+                    'callStack': [], 'variables': {}, 'changed': [],
+                    'stdout': open('program.stdout', 'rb').read(1024 * 1024).decode('utf-8', errors='replace')}
+        with open('debug.trace', 'a') as stream:
+            stream.write(json.dumps(terminal) + '\n')
     limited = exit_code is None and not signal and len(trace) >= limit
     result = {'exitCode': exit_code if exit_code is not None else 1,
               'stepLimitExceeded': limited, 'runtimeError': ('Program stopped with ' + signal) if signal else None}

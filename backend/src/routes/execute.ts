@@ -81,7 +81,7 @@ router.post('/', async (req, res) => {
         instrumentedCode = instrument(parse(tokenize(code)), code);
       } catch (error: any) {
         return res.json({ success: false, compilationError:
-          `Bộ trực quan hóa chưa xử lý được đoạn code này: ${error.message}. Hãy chọn “Chạy C++ / thi đấu” để GCC biên dịch code gốc.` });
+          `Bộ trực quan hóa chưa xử lý được đoạn code này: ${error.message}. Backend hiện dùng LocalRunner. Build lại image codelens-sandbox và khởi động với RUNNER=docker để trực quan hóa code gốc bằng GCC/GDB.` });
       }
     }
     let runResult;

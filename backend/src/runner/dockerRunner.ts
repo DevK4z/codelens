@@ -83,6 +83,12 @@ export class DockerRunner implements Runner {
            // Not a JSON object on stdout, means it successfully compiled and stdout is actual program stdout
         }
 
+        if (currentLimits.debugTrace) {
+          resolve({ trace: [], stdout: '', stderr: stderr || 'Image Docker chưa hỗ trợ GCC/GDB. Build lại codelens-sandbox theo tài liệu rồi khởi động lại backend.',
+            exitCode: 1, executionTimeMs, timeLimitExceeded, stepLimitExceeded: false });
+          return;
+        }
+
         // Parse stderr for trace events exactly like LocalRunner
         const lines = currentLimits.captureTrace === false ? [] : stderr.split('\n');
         const trace: TraceEvent[] = [];
