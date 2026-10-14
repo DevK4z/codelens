@@ -32,7 +32,10 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
   const isCompared = (idx: number) => event.compareAccesses?.some(access => access.array === arrayVar && access.index === idx) ?? false;
 
   return (
-    <div className="p-6 flex flex-col items-center justify-center min-h-[320px] overflow-x-auto w-full">
+    <div className="p-6 flex flex-col items-start min-h-[260px] overflow-x-auto w-full">
+      {event.detail?.startsWith('GCC/GDB:') && <p className="mb-3 text-xs text-[var(--text-secondary)] max-w-full">
+        Giá trị đọc từ bộ nhớ tại điểm dừng. Với mảng cục bộ chưa khởi tạo, các ô chưa được ghi có thể chứa số rác; GDB không xác nhận được ô nào đã khởi tạo. Dùng khai báo như int arr[10] = {'{0}'}; nếu bạn muốn các ô ban đầu bằng 0.
+      </p>}
       {/* Compare Info Banner */}
       {event.compareInfo && (
         <div className="mb-6 px-4 py-2 rounded-full text-xs font-mono font-medium border border-yellow-500/30 bg-yellow-500/10 text-yellow-500 flex items-center gap-2 shadow-sm animate-pulse">
@@ -48,7 +51,7 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
       )}
 
       {/* Array Name and Size */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-6">
         <h3 className="text-base font-semibold text-[var(--text-primary)]">Mảng: <span className="font-mono text-[var(--accent)]">{arrayVar}</span></h3>
         <span className="text-xs text-[var(--text-secondary)] px-2 py-0.5 rounded bg-[var(--bg-secondary)] border border-[var(--border)] font-mono">
           {displayLength}/{rawArr.length} phần tử (theo trace)
@@ -56,7 +59,7 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
       </div>
 
       {/* Array Elements Grid */}
-      <div className="flex gap-2.5 relative px-4 pb-14 pt-2">
+      <div className="flex gap-2.5 relative px-1 pb-4 pt-2 w-max min-w-full">
         {arr.map((val, idx) => {
           let bgColor = 'bg-[var(--bg-panel)]';
           let borderColor = 'border-[var(--border)]';
@@ -98,16 +101,16 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
           }
           
           return (
-            <div key={idx} className="flex flex-col items-center min-w-[58px]">
+            <div key={idx} className="flex flex-col items-center w-24 shrink-0">
               {/* Index number on top */}
               <span className="text-[11px] font-mono text-[var(--text-secondary)] mb-1">[{idx}]</span>
               
               {/* Array Box */}
               <div 
-                className={`w-14 h-14 flex items-center justify-center border-2 rounded-xl text-lg transition-all duration-300 transform select-none ${bgColor} ${borderColor} ${textColor} ${isNull ? 'opacity-50' : ''}`}
-                title={isNull ? 'Chưa khởi tạo' : ''}
+                className={`w-24 min-h-16 px-2 py-3 flex items-center justify-center border-2 rounded-xl text-sm font-mono break-all whitespace-pre-wrap transition-all duration-300 transform select-none ${bgColor} ${borderColor} ${textColor} ${isNull ? 'opacity-50' : ''}`}
+                title={isNull ? 'Chưa có giá trị xác định' : JSON.stringify(val)}
               >
-                {isNull ? '?' : val}
+                {isNull ? '?' : typeof val === 'object' ? JSON.stringify(val) : String(val)}
               </div>
               
               {/* Operation label */}
