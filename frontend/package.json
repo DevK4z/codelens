@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node --experimental-strip-types --test storage.test.ts",
+    "test": "node --experimental-strip-types --test storage.test.ts explanations.test.ts",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
   },

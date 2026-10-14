@@ -81,9 +81,9 @@ export function ExplanationPanel({ event, prevEvent, code, stdout }: Explanation
                   </div>
                   <div>
                     <h3 className="font-medium mb-1">Dòng {event.line}:</h3>
-                    <p className="text-lg">{generateExplanation(event, prevEvent || undefined)}</p>
+                    <p className="text-base whitespace-pre-wrap break-words">{generateExplanation(event, prevEvent || undefined, undefined, code)}</p>
                     
-                    {event.detail && (
+                    {event.detail && event.event !== 'line' && (
                       <p className="mt-2 text-sm text-[var(--text-secondary)] bg-[var(--bg-secondary)] p-2 rounded">
                         Chi tiết: {event.detail}
                       </p>
