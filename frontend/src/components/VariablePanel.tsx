@@ -50,14 +50,14 @@ export function VariablePanel({ event, variableRoles, onRoleChange }: VariablePa
             
             let displayVal = String(val);
             if (val === null) {
-              displayVal = '? (Chưa khởi tạo)';
+              displayVal = '? (Chưa có giá trị xác định)';
             } else if (Array.isArray(val)) {
               const mapped = val.map(v => v === null ? '?' : v);
               displayVal = `[${mapped.length <= 10 ? mapped.join(', ') : mapped.slice(0, 10).join(', ') + ', ...'}]`;
             }
 
             return (
-              <tr key={name} className={`border-b border-[var(--border)] ${isChanged ? 'flash-changed border-l-4 border-l-orange-500 bg-orange-500 bg-opacity-10' : ''}`}>
+              <tr key={name} className={`border-b border-[var(--border)] ${isChanged ? 'flash-changed border-l-4 border-l-orange-500 bg-orange-500/10' : ''}`}>
                 <td className="px-4 py-2 font-mono font-medium">{name}</td>
                 <td className="px-4 py-2 font-mono break-all">{displayVal}</td>
                 <td className="px-4 py-2">

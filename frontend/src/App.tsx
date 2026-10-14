@@ -317,7 +317,7 @@ function App() {
         <span className="text-[var(--text-secondary)]">
           {executionMode === 'run'
             ? 'Chạy code gốc: macro, template, lambda, STL, PBDS. Xem kết quả STDOUT; không có bước trực quan hóa.'
-            : 'Chỉ hỗ trợ tập cú pháp của bộ trực quan hóa. Với code nâng cao, chọn Chạy C++ / thi đấu.'}
+            : 'Docker: GCC/GDB theo dõi code gốc theo dòng. Giá trị hiển thị ở trước dòng tô sáng; bản chạy local hỗ trợ tập cú pháp giới hạn.'}
         </span>
       </div>
       <div role="status" aria-live="polite" className="px-3 py-1 border-b border-[var(--border)] text-xs text-[var(--text-secondary)]">
@@ -406,7 +406,7 @@ function App() {
         </div>
 
         <div className="w-full md:w-[60%] flex flex-col h-full relative z-0">
-          {currentEvent && !isStale && <div className="p-3 border-b border-[var(--border)] bg-[var(--bg-panel)]" aria-live="polite">
+          {currentEvent && !isStale && <div className="p-3 max-h-[35%] shrink-0 overflow-auto border-b border-[var(--border)] bg-[var(--bg-panel)]" aria-live="polite">
             <strong>Dòng {currentEvent.line} · Bước {currentStep + 1}/{totalSteps}</strong>
             <p className="whitespace-pre-wrap break-words">{generateExplanation(currentEvent, prevEvent || undefined, SAMPLES.find(s => s.code === traceCode)?.id, traceCode)}</p>
           </div>}

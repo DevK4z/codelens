@@ -34,7 +34,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "n": null
+          "n": 0
         },
         "changed": [
           "n"
@@ -76,16 +76,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "variables": {
           "n": 5,
           "arr": [
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -108,16 +108,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "variables": {
           "n": 5,
           "arr": [
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -140,15 +140,15 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "n": 5,
           "arr": [
             1,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -180,14 +180,14 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr": [
             1,
             2,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -220,13 +220,13 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             2,
             3,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -260,12 +260,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             3,
             4,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -300,11 +300,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -338,11 +338,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ],
           "sum": 0
         },
@@ -371,11 +371,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ],
           "sum": 0
         },
@@ -403,11 +403,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ],
           "sum": 1
         },
@@ -437,11 +437,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ],
           "sum": 3
         },
@@ -471,11 +471,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ],
           "sum": 6
         },
@@ -505,11 +505,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ],
           "sum": 10
         },
@@ -539,11 +539,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ],
           "sum": 15
         },
@@ -572,11 +572,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ],
           "sum": 15
         },
@@ -603,11 +603,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ],
           "sum": 15
         },
@@ -635,11 +635,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ],
           "sum": 15
         },
@@ -649,7 +649,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
     ],
     "stdout": "15\n",
     "stepCount": 20,
-    "executionTimeMs": 6,
+    "executionTimeMs": 4,
     "isDemo": true,
     "sandboxWarning": "Dữ liệu mô phỏng từ lần chạy C++ thật (Chế độ xem trước GitHub Pages)"
   },
@@ -685,7 +685,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "n": null
+          "n": 0
         },
         "changed": [
           "n"
@@ -727,16 +727,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "variables": {
           "n": 7,
           "arr": [
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -759,16 +759,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "variables": {
           "n": 7,
           "arr": [
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -791,15 +791,15 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "n": 7,
           "arr": [
             1,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -831,14 +831,14 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr": [
             1,
             3,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -871,13 +871,13 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             3,
             5,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -911,12 +911,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             5,
             7,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -951,11 +951,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             5,
             7,
             9,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -991,10 +991,10 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             7,
             9,
             11,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -1031,9 +1031,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -1069,11 +1069,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ],
-          "target": null
+          "target": 0
         },
         "changed": [
           "target"
@@ -1102,9 +1102,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ],
           "target": 7
         },
@@ -1135,9 +1135,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ],
           "target": 7,
           "left": 0
@@ -1169,9 +1169,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ],
           "target": 7,
           "left": 0,
@@ -1204,9 +1204,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ],
           "target": 7,
           "left": 0,
@@ -1240,9 +1240,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ],
           "target": 7,
           "left": 0,
@@ -1284,9 +1284,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ],
           "target": 7,
           "left": 0,
@@ -1321,9 +1321,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ],
           "target": 7,
           "left": 0,
@@ -1370,9 +1370,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ],
           "target": 7,
           "left": 0,
@@ -1407,9 +1407,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ],
           "target": 7,
           "left": 0,
@@ -1441,9 +1441,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ],
           "target": 7,
           "left": 0,
@@ -1475,9 +1475,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ],
           "target": 7,
           "left": 0,
@@ -1510,9 +1510,9 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             9,
             11,
             13,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ],
           "target": 7,
           "left": 0,
@@ -1561,7 +1561,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "n": null
+          "n": 0
         },
         "changed": [
           "n"
@@ -1603,16 +1603,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "variables": {
           "n": 5,
           "arr": [
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -1635,16 +1635,16 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
         "variables": {
           "n": 5,
           "arr": [
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -1667,15 +1667,15 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "n": 5,
           "arr": [
             5,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -1707,14 +1707,14 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           "arr": [
             5,
             3,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -1747,13 +1747,13 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             5,
             3,
             1,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -1787,12 +1787,12 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             1,
             4,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -1827,11 +1827,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -1865,11 +1865,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -1896,11 +1896,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -1928,11 +1928,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -1979,11 +1979,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2014,11 +2014,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2055,11 +2055,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2095,11 +2095,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -2146,11 +2146,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2181,11 +2181,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             1,
             4,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2222,11 +2222,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             5,
             4,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2262,11 +2262,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             5,
             4,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -2313,11 +2313,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             5,
             4,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2348,11 +2348,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             4,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2389,11 +2389,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             5,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2429,11 +2429,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             5,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -2480,11 +2480,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             5,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2515,11 +2515,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             2,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2556,11 +2556,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2595,11 +2595,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -2627,11 +2627,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -2678,11 +2678,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2713,11 +2713,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2754,11 +2754,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2794,11 +2794,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -2844,11 +2844,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -2895,11 +2895,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             4,
             2,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2930,11 +2930,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             2,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -2971,11 +2971,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -3010,11 +3010,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -3042,11 +3042,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -3092,11 +3092,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -3143,11 +3143,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -3178,11 +3178,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             2,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -3219,11 +3219,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [
@@ -3258,11 +3258,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -3290,11 +3290,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -3338,11 +3338,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -3369,11 +3369,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -3400,11 +3400,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -3431,11 +3431,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -3462,11 +3462,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -3493,11 +3493,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -3523,11 +3523,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -3553,11 +3553,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -3584,11 +3584,11 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
             3,
             4,
             5,
-            null,
-            null,
-            null,
-            null,
-            null
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         },
         "changed": [],
@@ -3597,7 +3597,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
     ],
     "stdout": "1 2 3 4 5 \n",
     "stepCount": 55,
-    "executionTimeMs": 4,
+    "executionTimeMs": 3,
     "isDemo": true,
     "sandboxWarning": "Dữ liệu mô phỏng từ lần chạy C++ thật (Chế độ xem trước GitHub Pages)"
   },
@@ -3633,7 +3633,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
           }
         ],
         "variables": {
-          "n": null
+          "n": 0
         },
         "changed": [
           "n"
@@ -4632,7 +4632,7 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
     ],
     "stdout": "120\n",
     "stepCount": 27,
-    "executionTimeMs": 4,
+    "executionTimeMs": 3,
     "isDemo": true,
     "sandboxWarning": "Dữ liệu mô phỏng từ lần chạy C++ thật (Chế độ xem trước GitHub Pages)"
   }
