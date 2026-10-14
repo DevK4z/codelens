@@ -408,7 +408,7 @@ function App() {
         <div className="w-full md:w-[60%] flex flex-col h-full relative z-0">
           {currentEvent && !isStale && <div className="p-3 border-b border-[var(--border)] bg-[var(--bg-panel)]" aria-live="polite">
             <strong>Dòng {currentEvent.line} · Bước {currentStep + 1}/{totalSteps}</strong>
-            <p>{generateExplanation(currentEvent, prevEvent || undefined, SAMPLES.find(s => s.code === code)?.id)}</p>
+            <p className="whitespace-pre-wrap break-words">{generateExplanation(currentEvent, prevEvent || undefined, SAMPLES.find(s => s.code === traceCode)?.id, traceCode)}</p>
           </div>}
           <div className="flex-1 min-h-0">
             <VisualizationPanel
