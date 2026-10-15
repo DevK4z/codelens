@@ -97,6 +97,26 @@ def snapshot(frame, line):
         block = block.superblock
     return variables
 
+def frame_parameters(frame):
+    # Read each frame's own arguments. Never borrow the newest frame's locals
+    # or call functions in the inferior to format them.
+    params = {}
+    try:
+        block = frame.block()
+        while block and not block.is_global and not block.is_static:
+            for sym in block:
+                if sym.is_argument and sym.name and sym.name not in params:
+                    try:
+                        params[sym.name] = encode(frame.read_var(sym))
+                    except (gdb.error, RuntimeError):
+                        params[sym.name] = '<unavailable>'
+                    if len(params) >= 16:
+                        return params
+            block = block.superblock
+    except (gdb.error, RuntimeError):
+        pass
+    return params
+
 def emit(frame, sal):
     global previous
     variables = snapshot(frame, sal.line)
@@ -105,7 +125,8 @@ def emit(frame, sal):
     while f and len(stack) < 64:
         loc = user_location(f)
         if loc:
-            stack.append({'func': f.name() or '<anonymous>', 'line': loc.line})
+            stack.append({'func': f.name() or '<anonymous>', 'line': loc.line,
+                          'params': frame_parameters(f)})
         f = f.older()
     stack.reverse()
     try:

@@ -143,3 +143,22 @@ int main() {
     }
   }
 });
+
+test('recursive frames expose their own parameters, including waiting callers', {skip: !enabled}, async () => {
+  const result = await runner.run(`#include <iostream>
+int factorial(int n) {
+ if (n <= 1) return 1;
+ return n * factorial(n - 1);
+}
+int main() {
+ std::cout << factorial(5);
+ return 0;
+}`, '', {debugTrace:true});
+  assert.equal(result.exitCode,0,result.stderr);
+  assert.equal(result.stdout,'120');
+  const deepest = result.trace.find(e => e.callStack.filter(f=>f.func.includes('factorial')).length === 5);
+  assert.ok(deepest,'all recursive frames must be observed');
+  assert.deepEqual(deepest.callStack.filter(f=>f.func.includes('factorial')).map(f=>f.params?.n),[5,4,3,2,1]);
+  assert.equal(deepest.variables.n,1);
+  assert.ok(result.trace.some(e=>e.callStack.filter(f=>f.func.includes('factorial')).length === 1 && e.callStack.at(-1)?.params?.n === 5));
+});

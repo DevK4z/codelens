@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { TraceEvent, VariableRoleMap } from '../engine/types';
 import { ArrayViz } from './visualizations/ArrayViz';
+import { StepStatePanel } from './StepStatePanel';
 import { RecursionViz } from './visualizations/RecursionViz';
 
 interface VisualizationPanelProps {
@@ -10,8 +12,11 @@ interface VisualizationPanelProps {
 }
 
 export function VisualizationPanel({ event, variableRoles, isDemo, prevEvent }: VisualizationPanelProps) {
-  const hasArray = Object.values(variableRoles).includes('array');
-  const hasRecursion = event && event.callStack.length > 1;
+  const [selectedArray, setSelectedArray] = useState('');
+  const arrays = Object.keys(event?.variables ?? {}).filter(name => Array.isArray(event?.variables[name]));
+  const arrayName = arrays.includes(selectedArray) ? selectedArray : arrays[0];
+  const hasArray = arrays.length > 0;
+  const hasRecursion = event && event.callStack.length > 0;
 
   return (
     <div className="h-full w-full panel rounded-none border-none border-l border-b border-[var(--border)] flex flex-col relative bg-[var(--bg-panel)] overflow-hidden">
@@ -35,7 +40,14 @@ export function VisualizationPanel({ event, variableRoles, isDemo, prevEvent }: 
           </div>
         ) : (
           <div className="flex flex-col min-h-full">
-            {hasArray && <div className="border-b border-[var(--border)]"><ArrayViz prevEvent={prevEvent} event={event} variableRoles={variableRoles} /></div>}
+            <StepStatePanel event={event} previous={prevEvent} />
+            {hasArray && <div className="border-b border-[var(--border)]">
+              {arrays.length > 1 && <label className="flex gap-2 items-center px-4 pt-3 text-sm">Mảng đang xem
+                <select aria-label="Mảng đang xem" value={arrayName} onChange={e => setSelectedArray(e.target.value)} className="rounded p-1 border border-[var(--border)] bg-[var(--bg-panel)]">
+                  {arrays.map(name => <option key={name} value={name}>{name}</option>)}
+                </select>
+              </label>}
+              <ArrayViz arrayName={arrayName} prevEvent={prevEvent} event={event} variableRoles={variableRoles} /></div>}
             {hasRecursion && <div><RecursionViz event={event} /></div>}
             {!hasArray && !hasRecursion && (
               <div className="h-full flex flex-col items-center justify-center p-8 text-[var(--text-secondary)]">

@@ -5,13 +5,14 @@ interface ArrayVizProps {
   event: TraceEvent | null;
   variableRoles: VariableRoleMap;
   prevEvent?: TraceEvent | null;
+  arrayName?: string;
 }
 
-export function ArrayViz({ event, variableRoles, prevEvent }: ArrayVizProps) {
+export function ArrayViz({ event, variableRoles, prevEvent, arrayName }: ArrayVizProps) {
   if (!event) return null;
   
   // Find array variable
-  const arrayVar = Object.keys(variableRoles).find(k => variableRoles[k] === 'array');
+  const arrayVar = arrayName ?? Object.keys(variableRoles).find(k => variableRoles[k] === 'array');
   if (!arrayVar || event.variables[arrayVar] === undefined || !Array.isArray(event.variables[arrayVar])) {
     return (
       <div className="p-8 text-center text-[var(--text-secondary)]">

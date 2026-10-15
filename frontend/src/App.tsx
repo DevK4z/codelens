@@ -412,6 +412,7 @@ function App() {
             {currentStep === totalSteps - 1 && <p className="text-sm mt-1 text-[var(--accent)]">Đã đến cuối bản ghi{runtimeError ? ' — chương trình có lỗi, xem thông báo phía trên.' : '.'}</p>}
             <p className="text-xs text-[var(--text-secondary)] mt-1">Chỉ theo dõi các dòng thực sự được chạy; nhánh không được chọn và code sau break/return có thể được bỏ qua.</p>
             <p className="text-sm font-mono break-words mt-1">{currentEvent.event === 'stdout' && currentEvent.callStack.length === 0 ? '' : traceCode.split(/\r?\n/)[currentEvent.line - 1]?.trim()}</p>
+            <p className="text-sm mt-1 text-[var(--text-secondary)]">{generateExplanation(currentEvent, prevEvent || undefined, SAMPLES.find(s => s.code === traceCode)?.id, traceCode).split('\n').find(text => /^(Sắp |Ngăn xếp |Gọi hàm|Trả về|So sánh|Hoán đổi)/.test(text))}</p>
             <details className="text-sm mt-1">
               <summary className="cursor-pointer text-[var(--accent)]">Giải thích bước hiện tại</summary>
               <p className="whitespace-pre-wrap break-words mt-2">{generateExplanation(currentEvent, prevEvent || undefined, SAMPLES.find(s => s.code === traceCode)?.id, traceCode)}</p>

@@ -11,7 +11,7 @@ export interface TraceEvent {
   step: number;
   line: number;
   event: string;
-  callStack: { func: string; line: number }[];
+  callStack: { func: string; line: number; params?: Record<string, any> }[];
   variables: Record<string, any>;
   changed: string[];
   detail?: string;
