@@ -5,8 +5,8 @@ export function RecursionViz({ event }: {event: TraceEvent | null}) {
   if (!event?.callStack.length) return null;
   return <section className="p-4 w-full" aria-label="Chuỗi lời gọi đang hoạt động">
     <h3 className="font-semibold mb-2">Chuỗi lời gọi · {event.callStack.length} frame</h3>
-    <p className="text-xs text-[var(--text-secondary)] mb-3">Từ hàm gọi tới hàm hiện tại. Đây là ngăn xếp tại điểm dừng, không phải toàn bộ cây các lời gọi đã kết thúc.</p>
-    <ol className="flex flex-col gap-2">
+    <p className="text-xs text-[var(--text-secondary)] mb-3">Thứ tự #1 → #{event.callStack.length}: hàm gọi → hàm hiện tại. Chỉ hiển thị các lời gọi còn trong ngăn xếp.</p>
+    <ol className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2">
       {event.callStack.map((frame, index) => {
         const active = index === event.callStack.length - 1;
         return <li key={frame.id ?? index} className={`rounded-lg border p-3 min-w-0 ${active ? 'border-emerald-400 bg-emerald-500/10' : 'border-[var(--border)] bg-[var(--bg-panel)]'}`}>
