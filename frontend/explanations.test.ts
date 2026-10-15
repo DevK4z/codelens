@@ -58,3 +58,15 @@ test('array highlights do not compare different function frames', () => {
   after.callStack=[{func:'main',line:2},{func:'main',line:2}];
   assert.equal(changedArrayIndices(after,before,'arr').size,0);
 });
+
+import { observedScalars, formatObserved } from './src/engine/stepState.ts';
+test('learning state shows actual scalar deltas only in the same call context', () => {
+  const prev=step({variables:{n:5,arr:[1],result:null}});
+  const curr=step({variables:{n:4,arr:[2],result:0}});
+  assert.deepEqual(observedScalars(curr,prev).map(v=>[v.name,v.before,v.value,v.changed]),[['n',5,4,true],['result',null,0,true]]);
+  const recursive=step({variables:{n:4},callStack:[{func:'main',line:2},{func:'factorial',line:4}]});
+  assert.equal(observedScalars(recursive,prev)[0].changed,false);
+  assert.equal(formatObserved('9223372036854775807'),'9223372036854775807');
+  assert.match(formatObserved(null),/chưa xác định/);
+  assert.equal(formatObserved({x:1}),'{"x":1}');
+});

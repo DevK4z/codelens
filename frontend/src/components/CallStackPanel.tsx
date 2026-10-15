@@ -1,3 +1,4 @@
+import { formatObserved } from '../engine/stepState';
 import { TraceEvent } from '../engine/types';
 
 interface CallStackPanelProps {
@@ -25,13 +26,13 @@ export function CallStackPanel({ event }: CallStackPanelProps) {
           {reversedStack.map((frame, idx) => {
             const isTop = idx === 0;
             return (
-              <tr key={idx} className={`border-b border-[var(--border)] ${isTop ? 'bg-[var(--accent)] bg-opacity-10 border-l-4 border-l-[var(--accent)]' : ''}`}>
+              <tr key={idx} className={`border-b border-[var(--border)] ${isTop ? 'bg-indigo-500/10 border-l-4 border-l-[var(--accent)]' : ''}`}>
                 <td className="px-4 py-2 font-mono font-medium flex items-center gap-2">
                   {frame.func}
                   {isTop && <span className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--accent)] text-white">HIỆN TẠI</span>}
                 </td>
                 <td className="px-4 py-2 font-mono text-[var(--text-secondary)]">
-                  {frame.params ? Object.entries(frame.params).map(([k, v]) => `${k}=${v}`).join(', ') : '-'}
+                  {frame.params ? Object.entries(frame.params).map(([k, v]) => `${k}=${formatObserved(v)}`).join(', ') : '-'}
                 </td>
                 <td className="px-4 py-2 font-mono text-[var(--text-secondary)]">{frame.line}</td>
               </tr>
