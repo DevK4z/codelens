@@ -24,6 +24,7 @@ export function BottomTabs({
   event, prevEvent, variableRoles, onRoleChange,
   stdout, compilationError, runtimeError, sandboxWarning, code
 }: BottomTabsProps) {
+  const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('vars');
 
   const tabs = [
@@ -34,12 +35,12 @@ export function BottomTabs({
   ];
 
   return (
-    <div className="h-[250px] min-h-[150px] max-h-[500px] flex flex-col border-t border-[var(--border)] bg-[var(--bg-panel)] relative z-10">
+    <div className={`${expanded ? 'h-[250px] min-h-[150px]' : 'h-auto shrink-0'} flex flex-col border-t border-[var(--border)] bg-[var(--bg-panel)] relative z-10`}>
       <div className="flex bg-[var(--bg-secondary)] border-b border-[var(--border)]">
         {tabs.map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as TabType)}
+            onClick={() => { setActiveTab(tab.id as TabType); setExpanded(true); }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab.id 
                 ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--bg-panel)]' 
@@ -50,8 +51,9 @@ export function BottomTabs({
             {tab.label}
           </button>
         ))}
+        <button onClick={() => setExpanded(value => !value)} aria-expanded={expanded} className="ml-auto px-3 text-xs text-[var(--text-secondary)]">{expanded ? 'Thu gọn' : 'Mở rộng'}</button>
       </div>
-      <div className="flex-1 overflow-hidden">
+      {expanded && <div className="flex-1 overflow-hidden">
         {activeTab === 'vars' && <VariablePanel event={event} variableRoles={variableRoles} onRoleChange={onRoleChange} />}
         {activeTab === 'callstack' && <CallStackPanel event={event} />}
         {activeTab === 'explanation' && <ExplanationPanel event={event} prevEvent={prevEvent} code={code} stdout={stdout} />}
@@ -63,7 +65,7 @@ export function BottomTabs({
             sandboxWarning={sandboxWarning} 
           />
         )}
-      </div>
+      </div>}
     </div>
   );
 }
