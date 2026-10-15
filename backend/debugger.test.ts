@@ -94,3 +94,52 @@ test('debugger reports oversized output rather than silently claiming success', 
   assert.notEqual(result.exitCode, 0);
   assert.match(result.stderr, /output exceeded/);
 });
+
+test('binary search trace visits every input iteration and follows only executed branches', {skip: !enabled}, async () => {
+  const source = `#include <iostream>
+using namespace std;
+int main() {
+ int n = 0;
+ cin >> n;
+ int arr[10] = {0};
+ for (int i = 0; i < n; i++) {
+  cin >> arr[i];
+ }
+ int target = 0;
+ cin >> target;
+ int left = 0, right = n - 1;
+ int result = -1;
+ while (left <= right) {
+  int mid = left + (right - left) / 2;
+  if (arr[mid] == target) {
+   result = mid;
+   break;
+  } else if (arr[mid] < target) {
+   left = mid + 1;
+  } else {
+   right = mid - 1;
+  }
+ }
+ cout << result << endl;
+ return 0;
+}`;
+  for (const [target, expected] of [[7, 3], [11, 5], [2, -1]]) {
+    const result = await runner.run(source, `7\n1 3 5 7 9 11 13\n${target}`, {debugTrace:true});
+    assert.equal(result.exitCode, 0, result.stderr);
+    assert.equal(result.stepLimitExceeded, false);
+    assert.equal(result.stdout.trim(), String(expected));
+    const lines = result.trace.filter(e => e.event === 'line');
+    assert.equal(lines.filter(e => e.line === 8).length, 7, 'all seven input reads must be recorded');
+    assert.ok(lines.some(e => e.line === 25), 'must reach cout');
+    assert.ok(lines.some(e => e.line === 26), 'must reach return');
+    assert.equal(result.trace.at(-1)?.stdout?.trim(), String(expected));
+    if (target === 7) {
+      assert.ok(lines.some(e => e.line === 18), 'must reach break');
+      assert.ok(!lines.some(e => e.line === 20 || e.line === 22), 'unselected branches must not be invented');
+    } else if (target === 11) {
+      assert.ok(lines.some(e => e.line === 20), 'right half search must be recorded');
+    } else {
+      assert.ok(lines.some(e => e.line === 22), 'left half search must be recorded');
+    }
+  }
+});

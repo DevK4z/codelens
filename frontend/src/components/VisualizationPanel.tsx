@@ -27,6 +27,12 @@ export function VisualizationPanel({ event, variableRoles, isDemo, prevEvent }: 
               Viết mã C++ ở trình soạn thảo bên trái, nhập dữ liệu đầu vào và nhấn <strong>Chạy</strong> để xem quá trình thực thi từng bước.
             </p>
           </div>
+        ) : event.event === 'stdout' && event.callStack.length === 0 ? (
+          <div className="p-4">
+            <h3 className="font-semibold mb-2">Đầu ra chương trình (stdout)</h3>
+            <pre className="whitespace-pre-wrap break-words font-mono text-sm">{event.stdout || '(Không có đầu ra)'}</pre>
+            <p className="text-sm text-[var(--text-secondary)] mt-3">Bước này ghi nhận đầu ra cuối bản ghi, không phải một dòng code đang chạy. Nhấn “Bước trước” để xem trạng thái biến cuối cùng đã quan sát.</p>
+          </div>
         ) : (
           <div className="flex flex-col min-h-full">
             {hasArray && <div className="border-b border-[var(--border)]"><ArrayViz prevEvent={prevEvent} event={event} variableRoles={variableRoles} /></div>}
