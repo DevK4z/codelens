@@ -6,9 +6,10 @@ interface VisualizationPanelProps {
   event: TraceEvent | null;
   variableRoles: VariableRoleMap;
   isDemo?: boolean;
+  prevEvent?: TraceEvent | null;
 }
 
-export function VisualizationPanel({ event, variableRoles, isDemo }: VisualizationPanelProps) {
+export function VisualizationPanel({ event, variableRoles, isDemo, prevEvent }: VisualizationPanelProps) {
   const hasArray = Object.values(variableRoles).includes('array');
   const hasRecursion = event && event.callStack.length > 1;
 
@@ -18,7 +19,7 @@ export function VisualizationPanel({ event, variableRoles, isDemo }: Visualizati
         <h2 className="font-semibold text-sm">Trực quan hóa</h2>
         {isDemo && <span className="bg-amber-500 text-white text-[10px] px-2 py-1 rounded font-bold uppercase">Bản ghi bài mẫu</span>}
       </div>
-      <div className="flex-1 overflow-auto bg-[var(--bg-primary)]">
+      <div className="flex-1 min-h-0 overflow-auto bg-[var(--bg-primary)]">
         {!event ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-8 text-[var(--text-secondary)]">
             <h3 className="text-xl font-bold mb-2">Chào mừng đến với CodeLens</h3>
@@ -27,8 +28,8 @@ export function VisualizationPanel({ event, variableRoles, isDemo }: Visualizati
             </p>
           </div>
         ) : (
-          <div className="flex flex-col h-full">
-            {hasArray && <div className="border-b border-[var(--border)]"><ArrayViz event={event} variableRoles={variableRoles} /></div>}
+          <div className="flex flex-col min-h-full">
+            {hasArray && <div className="border-b border-[var(--border)]"><ArrayViz prevEvent={prevEvent} event={event} variableRoles={variableRoles} /></div>}
             {hasRecursion && <div><RecursionViz event={event} /></div>}
             {!hasArray && !hasRecursion && (
               <div className="h-full flex flex-col items-center justify-center p-8 text-[var(--text-secondary)]">

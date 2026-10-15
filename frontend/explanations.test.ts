@@ -41,3 +41,20 @@ test('legacy semantic events and final stdout keep their explanations', () => {
   assert.match(generateExplanation(step({event:'compare',compareInfo:{left:'x',right:'y',leftValue:1,rightValue:2,operator:'<',result:true}})),/đúng/);
   assert.match(generateExplanation(step({event:'stdout',detail:'',stdout:'done'}),step()),/done/);
 });
+
+import { changedArrayIndices } from './src/engine/arrayChanges.ts';
+test('array highlights compare exact values without inventing initialization', () => {
+  const before = step({variables:{arr:[0, '9223372036854775806', {x:1}, null]}});
+  const after = step({variables:{arr:[0, '9223372036854775807', {x:2}, 0, 9]}});
+  assert.deepEqual([...changedArrayIndices(after,before,'arr')],[1,2,3]);
+  assert.equal(changedArrayIndices(after,undefined,'arr').size,0);
+  assert.equal(changedArrayIndices(after,step({variables:{arr:null}}),'arr').size,0);
+  assert.equal(changedArrayIndices(after,after,'arr').size,0);
+});
+test('array highlights do not compare different function frames', () => {
+  const before=step({variables:{arr:[1]}});
+  const after=step({variables:{arr:[2]},callStack:[{func:'other',line:2}]});
+  assert.equal(changedArrayIndices(after,before,'arr').size,0);
+  after.callStack=[{func:'main',line:2},{func:'main',line:2}];
+  assert.equal(changedArrayIndices(after,before,'arr').size,0);
+});
