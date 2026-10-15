@@ -406,12 +406,17 @@ function App() {
         </div>
 
         <div className="w-full md:w-[60%] flex flex-col h-full relative z-0">
-          {currentEvent && !isStale && <div className="p-3 max-h-[35%] shrink-0 overflow-auto border-b border-[var(--border)] bg-[var(--bg-panel)]" aria-live="polite">
+          {currentEvent && !isStale && <div className="p-3 max-h-[35%] min-h-0 shrink-0 overflow-auto border-b border-[var(--border)] bg-[var(--bg-panel)]" aria-live="polite">
             <strong>Dòng {currentEvent.line} · Bước {currentStep + 1}/{totalSteps}</strong>
-            <p className="whitespace-pre-wrap break-words">{generateExplanation(currentEvent, prevEvent || undefined, SAMPLES.find(s => s.code === traceCode)?.id, traceCode)}</p>
+            <p className="text-sm font-mono break-words mt-1">{traceCode.split(/\r?\n/)[currentEvent.line - 1]?.trim()}</p>
+            <details className="text-sm mt-1">
+              <summary className="cursor-pointer text-[var(--accent)]">Giải thích bước hiện tại</summary>
+              <p className="whitespace-pre-wrap break-words mt-2">{generateExplanation(currentEvent, prevEvent || undefined, SAMPLES.find(s => s.code === traceCode)?.id, traceCode)}</p>
+            </details>
           </div>}
           <div className="flex-1 min-h-0">
             <VisualizationPanel
+              prevEvent={isStale ? null : prevEvent}
               event={isStale ? null : currentEvent}
               variableRoles={variableRoles}
               isDemo={isDemo}

@@ -1,11 +1,13 @@
+import { changedArrayIndices } from '../../engine/arrayChanges';
 import { TraceEvent, VariableRoleMap } from '../../engine/types';
 
 interface ArrayVizProps {
   event: TraceEvent | null;
   variableRoles: VariableRoleMap;
+  prevEvent?: TraceEvent | null;
 }
 
-export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
+export function ArrayViz({ event, variableRoles, prevEvent }: ArrayVizProps) {
   if (!event) return null;
   
   // Find array variable
@@ -23,6 +25,7 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
   // The trace array length is authoritative; n may refer to unrelated data.
   const displayLength = Math.min(rawArr.length, 100);
   const arr = rawArr.slice(0, displayLength);
+  const changedIndices = changedArrayIndices(event, prevEvent, arrayVar);
   
   // Find pointers
   const pointers = Object.keys(variableRoles).filter(k => 
@@ -32,10 +35,11 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
   const isCompared = (idx: number) => event.compareAccesses?.some(access => access.array === arrayVar && access.index === idx) ?? false;
 
   return (
-    <div className="p-6 flex flex-col items-start min-h-[260px] overflow-x-auto w-full">
-      {event.detail?.startsWith('GCC/GDB:') && <p className="mb-3 text-xs text-[var(--text-secondary)] max-w-full">
-        Giá trị đọc từ bộ nhớ tại điểm dừng. Với mảng cục bộ chưa khởi tạo, các ô chưa được ghi có thể chứa số rác; GDB không xác nhận được ô nào đã khởi tạo. Dùng khai báo như int arr[10] = {'{0}'}; nếu bạn muốn các ô ban đầu bằng 0.
-      </p>}
+    <div className="p-4 flex flex-col items-start w-full min-w-0">
+      {event.detail?.startsWith('GCC/GDB:') && <details className="mb-3 text-xs text-[var(--text-secondary)] w-full">
+        <summary className="cursor-pointer">Giá trị trước dòng tô sáng · Lưu ý về bộ nhớ chưa khởi tạo</summary>
+        <p className="mt-2">Mảng cục bộ chưa khởi tạo có thể chứa số rác. GDB không xác nhận được ô nào đã khởi tạo. Khai báo int arr[10] = {'{0}'}; nếu muốn các ô ban đầu bằng 0. Màu cam chỉ biểu thị giá trị khác bước trước, không suy đoán thao tác ghi.</p>
+      </details>}
       {/* Compare Info Banner */}
       {event.compareInfo && (
         <div className="mb-6 px-4 py-2 rounded-full text-xs font-mono font-medium border border-yellow-500/30 bg-yellow-500/10 text-yellow-500 flex items-center gap-2 shadow-sm animate-pulse">
@@ -51,15 +55,21 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
       )}
 
       {/* Array Name and Size */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-3">
         <h3 className="text-base font-semibold text-[var(--text-primary)]">Mảng: <span className="font-mono text-[var(--accent)]">{arrayVar}</span></h3>
         <span className="text-xs text-[var(--text-secondary)] px-2 py-0.5 rounded bg-[var(--bg-secondary)] border border-[var(--border)] font-mono">
           {displayLength}/{rawArr.length} phần tử (theo trace)
         </span>
       </div>
 
+      <p className="text-xs text-[var(--text-secondary)] mb-3">Cam: thay đổi so với bước trước · ↑: vị trí biến chỉ số</p>
+      {pointers.length > 0 && <div className="flex flex-wrap gap-2 mb-3" aria-label="Vị trí các biến chỉ số">
+        {pointers.map(ptr => <span key={ptr} className="text-xs font-mono px-2 py-1 rounded border border-[var(--border)]">
+          {ptr} = {event.variables[ptr]}{!Number.isInteger(event.variables[ptr]) || event.variables[ptr] < 0 || event.variables[ptr] >= rawArr.length ? ' (ngoài mảng)' : event.variables[ptr] >= displayLength ? ' (ngoài phần hiển thị)' : ''}
+        </span>)}
+      </div>}
       {/* Array Elements Grid */}
-      <div className="flex gap-2.5 relative px-1 pb-4 pt-2 w-max min-w-full">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(104px,1fr))] gap-3 relative pb-2 pt-2 w-full">
         {arr.map((val, idx) => {
           let bgColor = 'bg-[var(--bg-panel)]';
           let borderColor = 'border-[var(--border)]';
@@ -98,16 +108,21 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
             textColor = 'text-purple-400 font-extrabold';
             label = 'HOÁN ĐỔI';
             badgeColor = 'text-purple-400';
+          } else if (changedIndices.has(idx)) {
+            bgColor = 'bg-orange-500/10';
+            borderColor = 'border-orange-400';
+            label = 'THAY ĐỔI';
+            badgeColor = 'text-orange-400';
           }
           
           return (
-            <div key={idx} className="flex flex-col items-center w-24 shrink-0">
+            <div key={idx} className="flex flex-col items-center min-w-0">
               {/* Index number on top */}
               <span className="text-[11px] font-mono text-[var(--text-secondary)] mb-1">[{idx}]</span>
               
               {/* Array Box */}
               <div 
-                className={`w-24 min-h-16 px-2 py-3 flex items-center justify-center border-2 rounded-xl text-sm font-mono break-all whitespace-pre-wrap transition-all duration-300 transform select-none ${bgColor} ${borderColor} ${textColor} ${isNull ? 'opacity-50' : ''}`}
+                className={`w-full min-h-16 px-2 py-3 flex items-center justify-center border-2 rounded-xl text-sm font-mono break-all whitespace-pre-wrap transition-all duration-300 transform select-none ${bgColor} ${borderColor} ${textColor} ${isNull ? 'opacity-50' : ''}`}
                 title={isNull ? 'Chưa có giá trị xác định' : JSON.stringify(val)}
               >
                 {isNull ? '?' : typeof val === 'object' ? JSON.stringify(val) : String(val)}
@@ -119,7 +134,7 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
               </span>
               
               {/* Pointer arrows & labels */}
-              <div className="flex flex-col items-center h-14 w-full mt-1">
+              <div className="flex flex-col items-center min-h-6 w-full mt-1">
                 {pointers.map(ptr => {
                   if (event.variables[ptr] === idx) {
                     const role = variableRoles[ptr];
@@ -129,7 +144,7 @@ export function ArrayViz({ event, variableRoles }: ArrayVizProps) {
                     else if (role === 'mid-pointer') ptrColor = 'text-sky-400';
 
                     return (
-                      <div key={ptr} className={`text-xs font-mono font-bold flex flex-col items-center leading-tight animate-bounce ${ptrColor}`}>
+                      <div key={ptr} className={`text-xs font-mono font-bold flex flex-col items-center leading-tight ${ptrColor}`}>
                         <span>↑</span>
                         <span className="text-[10px] uppercase">{ptr}</span>
                       </div>
