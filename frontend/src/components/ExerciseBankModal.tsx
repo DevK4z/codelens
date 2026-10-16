@@ -1,14 +1,18 @@
 import { X, BookOpen, CheckCircle, Circle } from 'lucide-react';
 import { ExerciseItem, EXERCISES } from '../data/exercises';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { EXERCISE_SOLUTIONS } from '../data/exerciseSolutions';
 
 interface ExerciseBankModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (exercise: ExerciseItem) => void;
+  onPreview: (exercise: ExerciseItem) => void;
 }
 
-export function ExerciseBankModal({ isOpen, onClose, onSelect }: ExerciseBankModalProps) {
+export function ExerciseBankModal({ isOpen, onClose, onSelect, onPreview }: ExerciseBankModalProps) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => { if (isOpen) dialog.current?.showModal(); else dialog.current?.close(); }, [isOpen]);
   const [selectedChapter, setSelectedChapter] = useState<string>('All');
   const [selectedType, setSelectedType] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,13 +21,10 @@ export function ExerciseBankModal({ isOpen, onClose, onSelect }: ExerciseBankMod
   const [progress, setProgress] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const saved = localStorage.getItem('codelens_progress');
-    if (saved) {
-      try { setProgress(JSON.parse(saved)); } catch (e) {}
-    }
+    try { const saved = localStorage.getItem('codelens_progress'); if (saved) setProgress(JSON.parse(saved)); } catch { /* Optional progress. */ }
   }, []);
 
-  if (!isOpen) return null;
+
 
   const chapters = ['All', ...Array.from(new Set(EXERCISES.map(e => e.chapter)))];
   
@@ -35,22 +36,22 @@ export function ExerciseBankModal({ isOpen, onClose, onSelect }: ExerciseBankMod
   });
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-[var(--bg-primary)] w-full max-w-6xl h-[85vh] rounded-xl flex flex-col border border-[var(--border)] shadow-2xl overflow-hidden">
+    <dialog ref={dialog} onCancel={onClose} onClose={onClose} aria-label="Ngân hàng bài tập DSA" className="m-auto p-0 rounded-xl w-[96vw] max-w-6xl bg-[var(--bg-primary)] text-[var(--text-primary)] backdrop:bg-black/60">
+      <div className="bg-[var(--bg-primary)] w-full max-w-6xl h-[85dvh] rounded-xl flex flex-col border border-[var(--border)] shadow-2xl overflow-hidden">
         
         <div className="flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
           <div className="flex items-center gap-2">
             <BookOpen className="text-[var(--accent)]" />
             <h2 className="text-xl font-bold">Ngân hàng bài tập DSA</h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-[var(--bg-panel)] rounded-md">
+          <button aria-label="Đóng ngân hàng bài tập" onClick={onClose} className="p-2 hover:bg-[var(--bg-panel)] rounded-md">
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
           {/* Sidebar */}
-          <div className="w-64 border-r border-[var(--border)] bg-[var(--bg-panel)] flex flex-col p-4 gap-4 overflow-y-auto">
+          <div className="w-full md:w-64 shrink-0 max-h-[30vh] md:max-h-none border-r border-[var(--border)] bg-[var(--bg-panel)] flex flex-col p-4 gap-4 overflow-y-auto">
             <div>
               <label className="text-sm font-semibold mb-2 block">Tìm kiếm</label>
               <input 
@@ -101,7 +102,8 @@ export function ExerciseBankModal({ isOpen, onClose, onSelect }: ExerciseBankMod
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 overflow-y-auto bg-[var(--bg-primary)]">
+          <div className="flex-1 min-h-0 p-4 overflow-y-auto bg-[var(--bg-primary)]">
+            <p className="text-sm text-[var(--text-secondary)] mb-4">{filtered.length} bài · Xem đề hoặc code mẫu không thay đổi code chính.</p>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {filtered.map(ex => (
                 <div key={ex.id} className="border border-[var(--border)] rounded-lg p-4 bg-[var(--bg-secondary)] flex flex-col gap-3 hover:border-[var(--accent)] transition-colors">
@@ -128,7 +130,8 @@ export function ExerciseBankModal({ isOpen, onClose, onSelect }: ExerciseBankMod
                     </div>
                   )}
 
-                  <div className="mt-auto pt-3 flex gap-2">
+                  <div className="mt-auto pt-3 flex flex-wrap gap-2">
+                    {EXERCISE_SOLUTIONS[ex.id] && <button onClick={() => { onClose(); onPreview(ex); }} className="px-3 py-2 border border-[var(--accent)] text-[var(--accent)] rounded text-sm">Xem code mẫu</button>}
                     <button 
                       onClick={() => {
                         onSelect(ex);
@@ -136,7 +139,7 @@ export function ExerciseBankModal({ isOpen, onClose, onSelect }: ExerciseBankMod
                       }}
                       className="px-4 py-2 bg-[var(--accent)] text-white rounded hover:bg-[var(--accent-hover)] font-medium text-sm flex-1"
                     >
-                      {ex.kind === 'R' ? 'Xem tài liệu' : 'Mở bài này'}
+                      Xem đề
                     </button>
                     <button
                       onClick={() => {
@@ -144,7 +147,7 @@ export function ExerciseBankModal({ isOpen, onClose, onSelect }: ExerciseBankMod
                         if (newP[ex.id]) delete newP[ex.id];
                         else newP[ex.id] = true;
                         setProgress(newP);
-                        localStorage.setItem('codelens_progress', JSON.stringify(newP));
+                        try { localStorage.setItem('codelens_progress', JSON.stringify(newP)); } catch { /* Keep progress in memory. */ }
                       }}
                       className="px-3 py-2 border border-[var(--border)] bg-[var(--bg-panel)] rounded hover:bg-[var(--bg-primary)]"
                       title="Đánh dấu hoàn thành"
@@ -164,6 +167,6 @@ export function ExerciseBankModal({ isOpen, onClose, onSelect }: ExerciseBankMod
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

@@ -376,3 +376,13 @@ Code chỉ đọc/ghi file tạm bên trong container; nhập/xuất bài thi n�
 
 Kiểm thử: `npm --prefix backend run test:native` dùng GCC local với fixtures tin cậy;
 CI đặt `TEST_DOCKER=1` để kiểm tra cùng bộ fixtures qua DockerRunner và HTTP API.
+
+### Xem code mẫu mà không mất code chính
+
+- Ngân hàng có code C++ tham khảo cho đủ 104 mục, kèm input, output đã kiểm tra và ghi chú giả định/giới hạn. Các mục chỉ nêu tên hoặc thiếu hình được ghi rõ là minh họa bổ sung, không phải bản chép slide.
+- **Xem đề**, **Xem code mẫu** và chọn mẫu nhanh chỉ mở nội dung xem trước; không thay code/input hoặc kết quả hiện tại.
+- **Thử mẫu riêng** lưu code/input chính (kể cả sửa dở chưa chạy), rồi mở vùng thử. Chạy mẫu không ghi đè bản lưu chính. **Quay về code chính** khôi phục bản đang làm; tải lại trang cũng mở bản chính.
+- Chỉnh sửa trong vùng mẫu chỉ giữ trong phiên; hãy sao chép trước khi rời vùng mẫu nếu muốn giữ. Nếu trình duyệt không lưu được bản chính, ứng dụng chặn mở vùng thử để tránh mất dữ liệu.
+- Mẫu dùng GNU++17. Code/input hợp lệ trong ghi chú; mẫu quay lui có thể chạm giới hạn trace. Biên dịch được không có nghĩa mọi cấu trúc dữ liệu đều có hình trực quan chuyên biệt.
+
+Kiểm tra thư viện: `python3 scripts/check-exercise-samples.py` (cần g++). Script biên dịch toàn bộ mẫu, so output và kiểm tra thêm biên/biến thể quan trọng. `npm --prefix frontend test` kiểm tra cả luồng xem/thử/khôi phục code và trường hợp bộ nhớ trình duyệt đầy.

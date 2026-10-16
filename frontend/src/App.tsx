@@ -12,12 +12,17 @@ import { executeCode, healthCheck, API_BASE } from './engine/api';
 import { useTracePlayer } from './engine/tracePlayer';
 import { TraceEvent, VariableRoleMap, ThemeMode } from './engine/types';
 import { SAMPLES } from './data/samples';
+import { EXERCISE_SOLUTIONS } from './data/exerciseSolutions';
+import { SamplePreview, PreviewSample } from './components/SamplePreview';
 import { getFallbackDemoTrace } from './data/demoTraces';
 import { readSavedRun, saveRun } from './utils/savedRun';
 
 function App() {
   const [savedRun, setSavedRun] = useState(readSavedRun);
   const [saveFailed, setSaveFailed] = useState(false);
+  const [previewSample, setPreviewSample] = useState<PreviewSample | null>(null);
+  const [sampleWorkspace, setSampleWorkspace] = useState<string | null>(null);
+  const mainDraft = useRef<{ code: string; stdin: string; mode: 'run' | 'visualize'; standard: 'gnu++17' | 'gnu++20'; roles: VariableRoleMap; exercise: ExerciseItem | null } | null>(null);
   const [executionMode, setExecutionMode] = useState<'run' | 'visualize'>(savedRun?.mode ?? 'run');
   const [standard, setStandard] = useState<'gnu++17' | 'gnu++20'>(savedRun?.standard ?? 'gnu++17');
   const [nativeResult, setNativeResult] = useState<{ stdout: string; stderr: string; success: boolean } | null>(null);
@@ -122,38 +127,37 @@ function App() {
   const handleSelectExercise = (ex: ExerciseItem) => {
     setSelectedExercise(ex);
     setShowHints(false);
-    
-    let generatedCode = `#include <iostream>\nusing namespace std;\n\nint main() {\n    // [${ex.id}] ${ex.title}\n    // Viết code C++ của bạn ở đây\n    \n    return 0;\n}`;
-    
-    if (ex.kind === 'V' && ex.solution_code) {
-        generatedCode = ex.solution_code;
-    }
-
-    const simulatedSample = {
-      id: ex.id,
-      name: ex.title,
-      description: ex.statement,
-      code: generatedCode,
-      stdin: (ex.kind === 'V' && ex.solution_stdin) ? ex.solution_stdin : (ex.proposed_input || ''),
-      suggestedRoles: ex.suggestedRoles || {}
-    };
-    handleSelectSample(simulatedSample);
   };
 
-  const loadSolutionCode = () => {
-    if (!selectedExercise || !selectedExercise.solution_code) return;
-    if (window.confirm('Bạn có chắc chắn muốn xem code mẫu? Code hiện tại của bạn sẽ bị ghi đè.')) {
-      setCode(selectedExercise.solution_code);
-      if (selectedExercise.solution_stdin) setStdin(selectedExercise.solution_stdin);
-      invalidateRun();
-      setTrace([]);
-      setStdout('');
-      setCompilationError(undefined);
-      setRuntimeError(undefined);
-    }
+  const previewExercise = (ex: ExerciseItem) => {
+    const solution = EXERCISE_SOLUTIONS[ex.id];
+    if (!solution) return;
+    setPreviewSample({ id: ex.id, name: `[${ex.id}] ${ex.title}`, description: ex.statement,
+      code: solution.code, stdin: solution.stdin, suggestedRoles: ex.suggestedRoles as VariableRoleMap || {},
+      note: solution.note, expectedOutput: solution.output });
   };
 
-  const handleSelectSample = (sample: any) => {
+  const returnToMain = () => {
+    const draft = mainDraft.current;
+    if (!draft) return;
+    invalidateRun();
+    setCode(draft.code); setStdin(draft.stdin); setExecutionMode(draft.mode); setStandard(draft.standard);
+    setVariableRoles(draft.roles); setSelectedExercise(draft.exercise);
+    setTrace([]); setStdout(''); setIsDemo(false); setError(null);
+    setCompilationError(undefined); setRuntimeError(undefined); setSandboxWarning(undefined);
+    setSampleWorkspace(null); mainDraft.current = null; reset();
+  };
+
+  const handleSelectSample = (sample: PreviewSample): string | null => {
+    if (!mainDraft.current) {
+      const draft = { code, stdin, mode: executionMode, standard, roles: variableRoles, exercise: selectedExercise };
+      const saved = saveRun(draft);
+      if (!saved) return 'Không lưu được code chính trong trình duyệt nên chưa mở mẫu. Hãy sao chép mẫu hoặc sao lưu code chính trước.';
+      mainDraft.current = draft;
+      setSavedRun(saved); setSaveFailed(false);
+    }
+    setSampleWorkspace(sample.name);
+    setSelectedExercise(null);
     invalidateRun();
     setExecutionMode('visualize');
     setSandboxWarning(undefined);
@@ -174,13 +178,14 @@ function App() {
         setIsDemo(true);
         setSandboxWarning('Bản ghi bài mẫu: đúng với code và input gốc. Nhấn Chạy để thực thi trên backend.');
         reset();
-        return;
+        return null;
       }
     }
     setTrace([]);
     setTraceCode(sample.code);
     setTraceStdin(sample.stdin);
     reset();
+    return null;
   };
 
   const handleRoleChange = (varName: string, role: string) => {
@@ -189,9 +194,11 @@ function App() {
 
   const handleRun = async () => {
     // Save synchronously before any backend request; failed runs are preserved too.
-    const saved = saveRun({ code, stdin, mode: executionMode, standard });
-    if (saved) setSavedRun(saved);
-    setSaveFailed(!saved);
+    if (!sampleWorkspace) {
+      const saved = saveRun({ code, stdin, mode: executionMode, standard });
+      if (saved) setSavedRun(saved);
+      setSaveFailed(!saved);
+    }
     setNativeResult(null);
     setIsLoading(true);
     setIsDemo(false);
@@ -282,15 +289,17 @@ function App() {
 
   return (
     <div className="h-screen w-full flex flex-col bg-[var(--bg-primary)] overflow-hidden text-[var(--text-primary)]">
+      <SamplePreview sample={previewSample} onClose={() => setPreviewSample(null)} onTry={handleSelectSample} />
       <ExerciseBankModal 
         isOpen={isExerciseBankOpen} 
         onClose={() => setIsExerciseBankOpen(false)} 
         onSelect={handleSelectExercise}
+        onPreview={previewExercise}
       />
       <Header
         theme={theme}
         toggleTheme={toggleTheme}
-        onSelectSample={handleSelectSample}
+        onSelectSample={setPreviewSample}
         onOpenExerciseBank={() => setIsExerciseBankOpen(true)}
         isBackendAvailable={backendAvailable}
         onCheckConnection={checkConnection}
@@ -321,7 +330,9 @@ function App() {
         </span>
       </div>
       <div role="status" aria-live="polite" className="px-3 py-1 border-b border-[var(--border)] text-xs text-[var(--text-secondary)]">
-        {saveFailed
+        {sampleWorkspace
+          ? 'Bạn đang thử mẫu riêng. Code chính được giữ và lưu trên trình duyệt; chạy mẫu không ghi đè bản lưu chính.'
+          : saveFailed
           ? 'Không lưu được trong trình duyệt. Hãy sao chép code để giữ lại.'
           : matchesSavedRun
             ? `Đã lưu code và input trên trình duyệt lúc ${new Date(savedRun.savedAt).toLocaleTimeString('vi-VN')}. Mở lại web sẽ khôi phục bản này.`
@@ -329,6 +340,10 @@ function App() {
               ? 'Thay đổi chưa lưu — nhấn Chạy để lưu bản mới.'
               : 'Code và input sẽ tự động lưu trên trình duyệt khi bạn nhấn Chạy.'}
       </div>
+      {sampleWorkspace && <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-blue-500/10 border-b border-blue-500/30 text-sm">
+        <span><strong>Vùng thử mẫu:</strong> {sampleWorkspace} · Chỉnh sửa mẫu chỉ giữ trong phiên này.</span>
+        <button onClick={returnToMain} className="px-3 py-2 rounded bg-[var(--accent)] text-white">Quay về code chính</button>
+      </div>}
       {nativeResult && (
         <section aria-label="Kết quả chạy C++" className="p-3 border-b border-[var(--border)] text-sm max-h-64 overflow-auto">
           <strong>{nativeResult.success ? 'Chạy xong' : 'Chạy thất bại'} — STDOUT</strong>
@@ -338,7 +353,7 @@ function App() {
       )}
 
       {selectedExercise && (
-        <div className="p-3 bg-blue-500/10 border-l-4 border-blue-500 text-sm flex flex-col gap-2">
+        <div className="p-3 max-h-[25vh] overflow-auto shrink-0 bg-blue-500/10 border-l-4 border-blue-500 text-sm flex flex-col gap-2">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <strong className="text-blue-400">[{selectedExercise.id}] {selectedExercise.title}</strong>
@@ -354,8 +369,8 @@ function App() {
                 💡 {showHints ? 'Ẩn gợi ý' : `Xem gợi ý (${selectedExercise.hints.length})`}
               </button>
             )}
-            {selectedExercise.solution_code && selectedExercise.kind !== 'V' && (
-              <button onClick={loadSolutionCode} className="text-green-500 hover:underline flex items-center gap-1">
+            {EXERCISE_SOLUTIONS[selectedExercise.id] && (
+              <button onClick={() => previewExercise(selectedExercise)} className="text-green-500 hover:underline flex items-center gap-1">
                 📜 Xem code mẫu
               </button>
             )}
