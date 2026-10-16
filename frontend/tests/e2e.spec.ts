@@ -1,4 +1,4 @@
-﻿import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test.describe('CodeLens E2E', () => {
   test.beforeEach(async ({ page }) => {
@@ -33,7 +33,8 @@ test.describe('CodeLens E2E', () => {
 
   test('should load the editor and run code', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('CodeLens');
-    await page.getByRole('combobox').selectOption('factorial');
+    await page.getByRole('combobox', { name: 'Chọn bài mẫu' }).selectOption('factorial');
+    await page.getByRole('button', { name: 'Thử mẫu riêng' }).click();
     await expect(page.locator('.monaco-editor')).toBeVisible();
 
     await page.getByRole('button', { name: 'Chạy' }).click();
@@ -45,12 +46,13 @@ test.describe('CodeLens E2E', () => {
   });
 
   test('should show stale warning when editing code', async ({ page }) => {
-    await page.getByRole('combobox').selectOption('binary-search');
+    await page.getByRole('combobox', { name: 'Chọn bài mẫu' }).selectOption('binary-search');
     
+    await page.getByRole('button', { name: 'Thử mẫu riêng' }).click();
     // Wait for demo trace to load
-    await expect(page.getByText('Demo Mode')).toBeVisible();
+    await expect(page.getByText(/Bản ghi bài mẫu:/)).toBeVisible();
 
-    const stdinInput = page.locator('textarea[placeholder*="Nhập stdin"]');
+    const stdinInput = page.locator('textarea[placeholder*="Nhập dữ liệu"]');
     await stdinInput.fill('7 1 3 5 7 9 11 13 99');
 
     await expect(page.getByText('Code hoặc input đã thay đổi')).toBeVisible();
