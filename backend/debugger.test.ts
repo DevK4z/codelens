@@ -162,3 +162,39 @@ int main() {
   assert.equal(deepest.variables.n,1);
   assert.ok(result.trace.some(e=>e.callStack.filter(f=>f.func.includes('factorial')).length === 1 && e.callStack.at(-1)?.params?.n === 5));
 });
+
+test('tiny programs exclude compiler scaffolding and comments do not create steps', {skip: !enabled}, async () => {
+  const source = `#include <iostream>
+int main() {
+ int n = 0;
+ std::cin >> n;
+ std::cout << n + 1;
+ return 0;
+}`;
+  for (const prefix of ['', '// comment without executable code\n'.repeat(800)]) {
+    const result = await runner.run(prefix + source, '2', {debugTrace:true});
+    assert.equal(result.exitCode, 0, result.stderr);
+    assert.equal(result.stdout, '3');
+    assert.equal(result.timeLimitExceeded, false);
+    assert.equal(result.stepLimitExceeded, false);
+    const lines = result.trace.filter(e => e.event === 'line');
+    assert.ok(lines.length > 0 && lines.length <= 10, `tiny program: ${lines.length} stops`);
+    assert.ok(lines.every(e => e.callStack.length === 1 && e.callStack[0].func === 'main'), JSON.stringify(lines));
+    console.log(`Tiny program (${prefix ? 800 : 0} comment lines): ${lines.length} source stops + final output`);
+  }
+});
+
+test('repeated loop visits remain visible even with unchanged observed variables', {skip: !enabled}, async () => {
+  const result = await runner.run(`#include <iostream>
+int main() {
+ int n = 0;
+ std::cin >> n;
+ for (int i = 0; i < n; ++i) {
+  std::cout << "x";
+ }
+ return 0;
+}`, '3', {debugTrace:true});
+  assert.equal(result.exitCode, 0, result.stderr);
+  assert.equal(result.stdout, 'xxx');
+  assert.equal(result.trace.filter(e => e.event === 'line' && e.line === 6).length, 3);
+});

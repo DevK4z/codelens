@@ -74,6 +74,11 @@ def encode(v, depth=0):
         return '<unavailable>'
 
 def user_location(frame):
+    # GCC attributes generated iostream initialization to code.cpp too. These
+    # frames are compiler scaffolding, not source statements written by the user.
+    name = frame.name() or ''
+    if name.startswith(('_GLOBAL__sub_I_', '__static_initialization_and_destruction_0')):
+        return None
     sal = frame.find_sal()
     return sal if sal.symtab and os.path.realpath(sal.symtab.fullname()) == SOURCE and sal.line > 0 else None
 
@@ -159,9 +164,14 @@ try:
                     'set auto-load safe-path /usr/share/gdb:/usr/lib', 'set startup-with-shell on'):
         gdb.execute(command, to_string=True)
     gdb.execute('file code', to_string=True)
-    # Only stop on executable lines in user source; do not step through STL internals.
-    # Breakpoint resolves multiple locations (templates/lambdas) where supported by GDB.
-    for line in range(1, len(open('code.cpp').readlines()) + 1):
+    # Use debug line information instead of asking GDB to resolve every blank,
+    # comment and declaration line to the next executable line. This avoids
+    # thousands of redundant breakpoints for a short program with many comments.
+    main = gdb.lookup_global_symbol('main')
+    if main is None or main.symtab is None:
+        raise gdb.GdbError('Cannot locate main debug information')
+    executable_lines = sorted({entry.line for entry in main.symtab.linetable() if entry.line > 0})
+    for line in executable_lines:
         try:
             bp = gdb.Breakpoint('code.cpp:%d' % line, internal=True)
             bp.silent = True
