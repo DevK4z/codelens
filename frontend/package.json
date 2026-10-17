@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node --experimental-strip-types --test storage.test.ts explanations.test.ts samples.test.ts && node --experimental-test-module-mocks --import tsx --test sampleWorkspace.test.tsx",
+    "test": "node --experimental-strip-types --test storage.test.ts explanations.test.ts samples.test.ts traceSummary.test.ts && node --experimental-test-module-mocks --import tsx --test sampleWorkspace.test.tsx",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
   },

@@ -4,6 +4,7 @@ import { ExerciseBankModal } from './components/ExerciseBankModal';
 import { ExerciseItem } from './data/exercises';
 import { CodeEditor } from './components/CodeEditor';
 import { StdinInput } from './components/StdinInput';
+import { TraceSummary } from './components/TraceSummary';
 import { ControlBar } from './components/ControlBar';
 import { VisualizationPanel } from './components/VisualizationPanel';
 import { BottomTabs } from './components/BottomTabs';
@@ -443,6 +444,8 @@ function App() {
           </div>
         </div>
       </div>
+
+      {!isStale && <TraceSummary trace={trace} />}
 
       <ControlBar
         onRun={handleRun}
