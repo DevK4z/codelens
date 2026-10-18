@@ -82,3 +82,19 @@ test('storage failure blocks sample workspace instead of risking the main draft'
     assert.equal((screen.getByPlaceholderText(/Nhập dữ liệu/) as HTMLTextAreaElement).value, original.stdin);
   } finally { dom.window.Storage.prototype.setItem = savedSet; cleanup(); }
 });
+
+test('run mode shows output workspace; visualization controls only appear in visualization mode', async () => {
+  seed(); render(<App />);
+  assert.ok(screen.getByRole('region', { name: 'Kết quả chạy C++' }));
+  assert.equal(screen.queryByRole('slider', { name: 'Bước thực thi' }), null);
+  fireEvent.click(screen.getByRole('button', { name: 'Trực quan hóa', exact: true }));
+  assert.equal(screen.queryByRole('region', { name: 'Kết quả chạy C++' }), null);
+  assert.ok(screen.getByRole('slider', { name: 'Bước thực thi' }));
+  assert.equal((screen.getByLabelText('Test code editor') as HTMLTextAreaElement).value, original.code);
+  fireEvent.click(screen.getByRole('button', { name: 'Chạy C++', exact: true }));
+  fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
+  await waitFor(() => assert.equal(requests.length, 1));
+  assert.equal(requests[0].code, original.code);
+  assert.equal(requests[0].executionMode ?? requests[0].mode, 'run');
+  cleanup();
+});

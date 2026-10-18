@@ -1,3 +1,5 @@
+import { Play, Loader2, Terminal, Sparkles, Code2 } from 'lucide-react';
+import { SampleSelector } from './components/SampleSelector';
 import { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { ExerciseBankModal } from './components/ExerciseBankModal';
@@ -284,12 +286,28 @@ function App() {
     }
   };
 
+  const runAction = useRef(handleRun);
+  runAction.current = handleRun;
+  useEffect(() => {
+    const shortcut = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (!e.repeat && !isLoading) void runAction.current();
+      }
+    };
+    window.addEventListener('keydown', shortcut);
+    return () => window.removeEventListener('keydown', shortcut);
+  }, [isLoading]);
+  const changeMode = (mode: 'run' | 'visualize') => {
+    invalidateRun(); setExecutionMode(mode); setTrace([]); setStdout(''); setIsDemo(false);
+  };
+
   const prevEvent = currentStep > 0 ? trace[currentStep - 1] : null;
   const matchesSavedRun = savedRun && code === savedRun.code && stdin === savedRun.stdin &&
     executionMode === savedRun.mode && standard === savedRun.standard;
 
   return (
-    <div className="h-screen w-full flex flex-col bg-[var(--bg-primary)] overflow-hidden text-[var(--text-primary)]">
+    <div className="app-shell text-[var(--text-primary)]">
       <SamplePreview sample={previewSample} onClose={() => setPreviewSample(null)} onTry={handleSelectSample} />
       <ExerciseBankModal 
         isOpen={isExerciseBankOpen} 
@@ -307,30 +325,15 @@ function App() {
         currentCode={code}
       />
 
-      <div className="flex flex-wrap items-center gap-3 p-3 border-b border-[var(--border)] text-sm">
-        <label>Chế độ{' '}
-          <select aria-label="Chế độ chạy" value={executionMode} disabled={isLoading}
-            className="bg-[var(--bg-panel)] border border-[var(--border)] rounded p-2"
-            onChange={e => { invalidateRun(); setExecutionMode(e.target.value as 'run' | 'visualize'); setTrace([]); setStdout(''); setIsDemo(false); }}>
-            <option value="run">Chạy C++ / thi đấu</option>
-            <option value="visualize">Trực quan hóa từng bước</option>
-          </select>
-        </label>
-        <label>Chuẩn C++{' '}
-          <select aria-label="Chuẩn C++" value={standard} disabled={isLoading}
-            className="bg-[var(--bg-panel)] border border-[var(--border)] rounded p-2"
-            onChange={e => { invalidateRun(); setStandard(e.target.value as 'gnu++17' | 'gnu++20'); setTrace([]); setStdout(''); }}>
-            <option value="gnu++17">GNU++17</option>
-            <option value="gnu++20">GNU++20</option>
-          </select>
-        </label>
-        <span className="text-[var(--text-secondary)]">
-          {executionMode === 'run'
-            ? 'Chạy code gốc: macro, template, lambda, STL, PBDS. Xem kết quả STDOUT; không có bước trực quan hóa.'
-            : 'Docker: GCC/GDB theo dõi code gốc theo dòng. Giá trị hiển thị ở trước dòng tô sáng; bản chạy local hỗ trợ tập cú pháp giới hạn.'}
-        </span>
+      <div className="workspace-toolbar">
+        <div className="mode-switch" role="group" aria-label="Chế độ chạy">
+          <button aria-pressed={executionMode === 'visualize'} disabled={isLoading} onClick={() => changeMode('visualize')}><Sparkles size={16} />Trực quan hóa</button>
+          <button aria-pressed={executionMode === 'run'} disabled={isLoading} onClick={() => changeMode('run')}><Terminal size={16} />Chạy C++</button>
+        </div>
+        <span className="workspace-caption">{executionMode === 'run' ? 'Biên dịch code gốc. Kiểm tra kết quả.' : 'Quan sát từng bước. Hiểu cách thuật toán hoạt động.'}</span>
+        <SampleSelector onSelect={setPreviewSample} currentCode={code} />
       </div>
-      <div role="status" aria-live="polite" className="px-3 py-1 border-b border-[var(--border)] text-xs text-[var(--text-secondary)]">
+      <div role="status" aria-live="polite" className="save-status">
         {sampleWorkspace
           ? 'Bạn đang thử mẫu riêng. Code chính được giữ và lưu trên trình duyệt; chạy mẫu không ghi đè bản lưu chính.'
           : saveFailed
@@ -345,14 +348,6 @@ function App() {
         <span><strong>Vùng thử mẫu:</strong> {sampleWorkspace} · Chỉnh sửa mẫu chỉ giữ trong phiên này.</span>
         <button onClick={returnToMain} className="px-3 py-2 rounded bg-[var(--accent)] text-white">Quay về code chính</button>
       </div>}
-      {nativeResult && (
-        <section aria-label="Kết quả chạy C++" className="p-3 border-b border-[var(--border)] text-sm max-h-64 overflow-auto">
-          <strong>{nativeResult.success ? 'Chạy xong' : 'Chạy thất bại'} — STDOUT</strong>
-          <pre className="whitespace-pre-wrap break-words">{nativeResult.stdout || '(Không có đầu ra)'}</pre>
-          {nativeResult.stderr && <><strong>STDERR</strong><pre className="whitespace-pre-wrap break-words">{nativeResult.stderr}</pre></>}
-        </section>
-      )}
-
       {selectedExercise && (
         <div className="p-3 max-h-[25vh] overflow-auto shrink-0 bg-blue-500/10 border-l-4 border-blue-500 text-sm flex flex-col gap-2">
           <div className="flex items-start justify-between gap-4">
@@ -388,8 +383,10 @@ function App() {
       )}
 
       {(connectionError || error) && (
-        <div role="alert" className="p-3 bg-red-500/15 border-l-4 border-red-500 text-red-100 flex items-center justify-between text-sm">
-          <span><strong>Lỗi:</strong> {connectionError || error}</span>
+        <div role="alert" className="p-3 bg-red-500/15 border-l-4 border-red-500 text-[var(--text-primary)] flex items-center justify-between text-sm">
+          <div><strong>{connectionError ? 'Chưa kết nối máy chủ chạy code' : 'Không thể hoàn tất lần chạy'}</strong>
+            <details className="text-xs mt-1"><summary>Chi tiết kỹ thuật</summary><p className="mt-2 break-words">{connectionError || error}</p></details>
+          </div>
           <button onClick={checkConnection} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs transition-colors ml-4 whitespace-nowrap">
             Kiểm tra lại kết nối
           </button>
@@ -405,9 +402,19 @@ function App() {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-        <div className="w-full md:w-[40%] flex flex-col h-full border-r border-[var(--border)] relative z-10 shadow-[2px_0_10px_rgba(0,0,0,0.05)]">
-          <div className="flex-1 min-h-[50%]">
+      <div className="workspace-grid">
+        <div className="editor-pane workspace-pane">
+          <div className="editor-toolbar">
+            <span className="file-label"><Code2 size={16} />{sampleWorkspace ? 'Mẫu đang thử.cpp' : 'Code của tôi.cpp'}</span>
+            <select aria-label="Chuẩn C++" value={standard} disabled={isLoading} onChange={e => { invalidateRun(); setStandard(e.target.value as 'gnu++17' | 'gnu++20'); setTrace([]); setStdout(''); }}>
+              <option value="gnu++17">GNU++17</option><option value="gnu++20">GNU++20</option>
+            </select>
+            <button className="run-button" onClick={handleRun} disabled={isLoading} title="Chạy (Ctrl + Enter)" aria-label="Chạy">
+              {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+              {isLoading ? 'Đang chạy…' : 'Chạy'}
+            </button>
+          </div>
+          <div className="editor-content">
             <CodeEditor
               code={code}
               onChange={editCode}
@@ -417,19 +424,25 @@ function App() {
               error={compilationError}
             />
           </div>
-          <div className="h-[150px] border-t border-[var(--border)] shrink-0 bg-[var(--bg-panel)]">
+          <div className="stdin-pane">
             <StdinInput value={stdin} onChange={editInput} />
           </div>
         </div>
 
-        <div className="w-full md:w-[60%] flex flex-col h-full relative z-0">
-          {currentEvent && !isStale && <div className="p-3 max-h-[35%] min-h-0 shrink-0 overflow-auto border-b border-[var(--border)] bg-[var(--bg-panel)]" aria-live="polite">
+        <div className="result-pane workspace-pane">
+          {executionMode === 'run' ? <section className="native-output" aria-label="Kết quả chạy C++">
+            <div className="panel-heading"><Terminal size={17} /><h2>Kết quả chương trình</h2><span>{nativeResult ? (nativeResult.success ? 'Hoàn tất' : 'Có lỗi') : 'Sẵn sàng'}</span></div>
+            {nativeResult ? <div className="output-body"><p className="eyebrow">STDOUT</p><pre>{nativeResult.stdout || '(Không có đầu ra)'}</pre>{nativeResult.stderr && <><p className="eyebrow mt-6">STDERR</p><pre>{nativeResult.stderr}</pre></>}</div> : <div className="empty-workspace">
+              <div className="empty-icon"><Terminal size={30} /></div><p className="eyebrow">TỪ Ý TƯỞNG ĐẾN KẾT QUẢ</p><h2>Thử nghiệm ý tưởng của bạn</h2><p>Viết code, nhập dữ liệu và nhấn Chạy.<br />Kết quả sẽ xuất hiện tại đây.</p><kbd>Ctrl + Enter</kbd>
+            </div>}
+          </section> : <>
+          {currentEvent && !isStale && <div className="step-explanation" aria-live="polite">
             <strong>{currentEvent.event === 'stdout' && currentEvent.callStack.length === 0 ? 'Đầu ra cuối bản ghi' : `Dòng ${currentEvent.line}`} · Bước {currentStep + 1}/{totalSteps}</strong>
             {currentStep === totalSteps - 1 && <p className="text-sm mt-1 text-[var(--accent)]">Đã đến cuối bản ghi{runtimeError ? ' — chương trình có lỗi, xem thông báo phía trên.' : '.'}</p>}
             <p className="text-xs text-[var(--text-secondary)] mt-1">Chỉ theo dõi các dòng thực sự được chạy; nhánh không được chọn và code sau break/return có thể được bỏ qua.</p>
             <p className="text-sm font-mono break-words mt-1">{currentEvent.event === 'stdout' && currentEvent.callStack.length === 0 ? '' : traceCode.split(/\r?\n/)[currentEvent.line - 1]?.trim()}</p>
             <p className="text-sm mt-1 text-[var(--text-secondary)]">{generateExplanation(currentEvent, prevEvent || undefined, SAMPLES.find(s => s.code === traceCode)?.id, traceCode).split('\n').find(text => /^(Sắp |Ngăn xếp |Gọi hàm|Trả về|So sánh|Hoán đổi)/.test(text))}</p>
-            <details className="text-sm mt-1">
+            <details open className="text-sm mt-1">
               <summary className="cursor-pointer text-[var(--accent)]">Giải thích bước hiện tại</summary>
               <p className="whitespace-pre-wrap break-words mt-2">{generateExplanation(currentEvent, prevEvent || undefined, SAMPLES.find(s => s.code === traceCode)?.id, traceCode)}</p>
             </details>
@@ -442,12 +455,15 @@ function App() {
               isDemo={isDemo}
             />
           </div>
+          </>}
         </div>
       </div>
 
+      {executionMode === 'visualize' && <>
       {!isStale && <TraceSummary trace={trace} />}
 
       <ControlBar
+        hideRun
         onRun={handleRun}
         isLoading={isLoading}
         isPlaying={isPlaying}
@@ -474,6 +490,7 @@ function App() {
         sandboxWarning={sandboxWarning}
         code={code}
       />
+      </>}
     </div>
   );
 }

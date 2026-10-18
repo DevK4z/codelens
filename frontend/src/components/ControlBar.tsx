@@ -1,6 +1,7 @@
 import { Play, Pause, SkipBack, SkipForward, RotateCcw, Loader2 } from 'lucide-react';
 
 interface ControlBarProps {
+  hideRun?: boolean;
   onRun: () => void;
   isLoading: boolean;
   isPlaying: boolean;
@@ -17,21 +18,21 @@ interface ControlBarProps {
 }
 
 export function ControlBar({ 
-  onRun, isLoading, isPlaying, togglePlay, onNext, onPrev, onReset,
+  hideRun, onRun, isLoading, isPlaying, togglePlay, onNext, onPrev, onReset,
   currentStep, totalSteps, onSeek, speed, onSpeedChange, hasTrace
 }: ControlBarProps) {
   const speeds = [0.25, 0.5, 1, 2, 4];
   
   return (
     <div className="flex flex-wrap items-center gap-4 p-3 bg-[var(--bg-panel)] border-b border-[var(--border)] relative z-10">
-      <button
+      {!hideRun && <button
         onClick={onRun}
         disabled={isLoading}
         className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-md font-medium hover:bg-opacity-90 disabled:opacity-50"
       >
         {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
         Chạy
-      </button>
+      </button>}
       
       <div className="h-8 w-px bg-[var(--border)]"></div>
       

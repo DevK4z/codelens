@@ -26,8 +26,10 @@ export function VisualizationPanel({ event, variableRoles, isDemo, prevEvent }: 
       </div>
       <div className="flex-1 min-h-0 overflow-auto bg-[var(--bg-primary)]">
         {!event ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-8 text-[var(--text-secondary)]">
-            <h3 className="text-xl font-bold mb-2">Chào mừng đến với CodeLens</h3>
+          <div className="empty-workspace visualization-empty">
+            <div className="array-preview" aria-hidden="true">{[4, 1, 7, 3, 5].map((n, i) => <span key={i} style={{height: `${28+n*8}px`}}>{n}</span>)}</div>
+            <p className="eyebrow">KHÁM PHÁ TỪNG BƯỚC</p>
+            <h3 className="text-xl font-bold mb-2">Nhìn thấy cách code hoạt động</h3>
             <p className="max-w-md">
               Viết mã C++ ở trình soạn thảo bên trái, nhập dữ liệu đầu vào và nhấn <strong>Chạy</strong> để xem quá trình thực thi từng bước.
             </p>
