@@ -1,5 +1,4 @@
 import { Code, RefreshCw, BookOpen } from 'lucide-react';
-import { SampleSelector } from './SampleSelector';
 import { ThemeToggle } from './ThemeToggle';
 import { Sample } from '../data/samples';
 import { useState } from 'react';
@@ -14,7 +13,7 @@ interface HeaderProps {
   currentCode: string;
 }
 
-export function Header({ theme, toggleTheme, onSelectSample, onOpenExerciseBank, isBackendAvailable, onCheckConnection, currentCode }: HeaderProps) {
+export function Header({ theme, toggleTheme, onOpenExerciseBank, isBackendAvailable, onCheckConnection }: HeaderProps) {
   const [checking, setChecking] = useState(false);
 
   const handleCheck = async () => {
@@ -24,14 +23,14 @@ export function Header({ theme, toggleTheme, onSelectSample, onOpenExerciseBank,
   };
 
   return (
-    <header className="flex flex-wrap gap-3 items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--bg-panel)]">
+    <header className="app-header">
       <div className="flex items-center gap-3">
         <div className="p-2 bg-[var(--accent)] rounded-lg text-white">
           <Code size={24} />
         </div>
         <div>
           <h1 className="text-xl font-bold">CodeLens</h1>
-          <p className="text-sm text-[var(--text-secondary)]">Trực quan hóa thuật toán</p>
+          <p className="text-sm text-[var(--text-secondary)]">Không gian học thuật toán</p>
         </div>
       </div>
       
@@ -60,7 +59,7 @@ export function Header({ theme, toggleTheme, onSelectSample, onOpenExerciseBank,
             </button>
           )}
         </div>
-        <SampleSelector onSelect={onSelectSample} currentCode={currentCode} />
+
         <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
       </div>
     </header>
