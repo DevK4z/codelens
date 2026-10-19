@@ -10,7 +10,7 @@ import { TraceSummary } from './components/TraceSummary';
 import { ControlBar } from './components/ControlBar';
 import { VisualizationPanel } from './components/VisualizationPanel';
 import { BottomTabs } from './components/BottomTabs';
-import { generateExplanation } from './engine/explanations';
+import { SimpleStepExplanation } from './components/SimpleStepExplanation';
 import { executeCode, healthCheck, API_BASE } from './engine/api';
 import { useTracePlayer } from './engine/tracePlayer';
 import { TraceEvent, VariableRoleMap, ThemeMode } from './engine/types';
@@ -439,13 +439,7 @@ function App() {
           {currentEvent && !isStale && <div className="step-explanation" aria-live="polite">
             <strong>{currentEvent.event === 'stdout' && currentEvent.callStack.length === 0 ? 'Đầu ra cuối bản ghi' : `Dòng ${currentEvent.line}`} · Bước {currentStep + 1}/{totalSteps}</strong>
             {currentStep === totalSteps - 1 && <p className="text-sm mt-1 text-[var(--accent)]">Đã đến cuối bản ghi{runtimeError ? ' — chương trình có lỗi, xem thông báo phía trên.' : '.'}</p>}
-            <p className="text-xs text-[var(--text-secondary)] mt-1">Chỉ theo dõi các dòng thực sự được chạy; nhánh không được chọn và code sau break/return có thể được bỏ qua.</p>
-            <p className="text-sm font-mono break-words mt-1">{currentEvent.event === 'stdout' && currentEvent.callStack.length === 0 ? '' : traceCode.split(/\r?\n/)[currentEvent.line - 1]?.trim()}</p>
-            <p className="text-sm mt-1 text-[var(--text-secondary)]">{generateExplanation(currentEvent, prevEvent || undefined, SAMPLES.find(s => s.code === traceCode)?.id, traceCode).split('\n').find(text => /^(Sắp |Ngăn xếp |Gọi hàm|Trả về|So sánh|Hoán đổi)/.test(text))}</p>
-            <details open className="text-sm mt-1">
-              <summary className="cursor-pointer text-[var(--accent)]">Giải thích bước hiện tại</summary>
-              <p className="whitespace-pre-wrap break-words mt-2">{generateExplanation(currentEvent, prevEvent || undefined, SAMPLES.find(s => s.code === traceCode)?.id, traceCode)}</p>
-            </details>
+            <SimpleStepExplanation event={currentEvent} previous={prevEvent} nextEvent={trace[currentStep + 1]} code={traceCode} />
           </div>}
           <div className="flex-1 min-h-0">
             <VisualizationPanel
@@ -482,6 +476,7 @@ function App() {
       <BottomTabs
         event={isStale ? null : currentEvent}
         prevEvent={prevEvent}
+        nextEvent={trace[currentStep + 1]}
         variableRoles={variableRoles}
         onRoleChange={handleRoleChange}
         stdout={isStale ? "" : stdout}
