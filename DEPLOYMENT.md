@@ -41,7 +41,13 @@ NODE_ENV=production
 RUNNER=docker
 # Đổi thành URL frontend của bạn (VD: https://devk4z.github.io)
 CORS_ORIGINS=https://devk4z.github.io
+# Giới hạn chống lạm dụng cho POST /api/execute
+RATE_LIMIT_PER_MIN=20
+MAX_CONCURRENT_RUNS=2
+MAX_QUEUED_RUNS=8
 ```
+
+> **Bắt buộc `RUNNER=docker` khi public backend** (VPS, Cloudflare Tunnel, reverse proxy). `LocalRunner` chạy code thẳng trên máy chủ, không cách ly, nên nó từ chối mọi request đi qua proxy và `/api/health` trả 503. Deploy Pages sẽ dừng ở bước kiểm tra backend thay vì public một runner không sandbox.
 
 ## Bước 4: Khởi động Backend (Sử dụng PM2)
 

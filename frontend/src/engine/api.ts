@@ -21,7 +21,11 @@ export async function executeCode(code: string, stdin: string, mode: 'run' | 'vi
 
   if (res.status === 404) throw new Error('Sai đường dẫn API (404 Not Found).');
   if (res.status === 405) throw new Error('Endpoint không chấp nhận phương thức POST (405 Method Not Allowed). Có thể URL đang trỏ tới trang tĩnh.');
-  if (res.status === 503) throw new Error('Backend chưa sẵn sàng hoặc runner chưa khả dụng (503 Service Unavailable).');
+  if (res.status === 429 || res.status === 503) {
+    const body = await res.json().catch(() => null);
+    throw new Error(typeof body?.error === 'string' ? body.error
+      : res.status === 429 ? 'Bạn gửi quá nhiều yêu cầu. Thử lại sau ít phút.' : 'Backend chưa sẵn sàng hoặc runner chưa khả dụng (503 Service Unavailable).');
+  }
 
   if (!res.headers.get('content-type')?.includes('application/json')) {
     throw new Error('Backend trả về dữ liệu HTML thay vì JSON. Kiểm tra lại cấu hình VITE_API_BASE_URL.');
