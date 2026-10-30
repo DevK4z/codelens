@@ -9,7 +9,7 @@ const port = Number(process.env.PORT || 3001);
 const host = process.env.HOST || '127.0.0.1';
 
 // Origins contain scheme and host, but no path such as /codelens/.
-const origins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
+const origins = (process.env.CORS_ORIGINS || 'http://localhost:5173,https://devk4z.github.io')
   .split(',').map(origin => origin.trim().replace(/\/+$/, '')).filter(Boolean);
 app.use(cors({ origin: origins }));
 

@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-source = (ROOT / 'frontend/src/data/exerciseSolutions.ts').read_text()
+source = (ROOT / 'frontend/src/data/exerciseSolutions.ts').read_text(encoding='utf-8')
 samples = json.loads(source.split(' = ', 1)[1].rstrip().removesuffix(';'))
 # Independent expected answers, including different input and convention-sensitive cases.
 EDGE_CASES = {
@@ -37,7 +37,7 @@ def check(item):
     key, sample = item
     with tempfile.TemporaryDirectory(prefix='codelens-sample-') as folder:
         cpp, binary = Path(folder) / 'main.cpp', Path(folder) / 'main'
-        cpp.write_text(sample['code'])
+        cpp.write_text(sample['code'], encoding='utf-8')
         compiled = subprocess.run(['g++', '-std=gnu++17', '-O0', str(cpp), '-o', str(binary)], capture_output=True, text=True, timeout=30)
         assert compiled.returncode == 0, f'{key}: {compiled.stderr}'
         cases = [(sample['stdin'], sample['output'])] + EDGE_CASES.get(key, [])
