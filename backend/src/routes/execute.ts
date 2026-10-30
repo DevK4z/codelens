@@ -4,6 +4,7 @@ import { parse } from '../engine/parser.js';
 import { instrument } from '../engine/instrumenter.js';
 import { LocalRunner } from '../runner/local.js';
 import { DockerRunner } from '../runner/dockerRunner.js';
+import { BusyError, createGate, isDirectLocal, LOCAL_RUNNER_PUBLIC_ERROR } from '../guard.js';
 
 const router = Router();
 
@@ -37,14 +38,17 @@ export interface ExecuteResponse {
   stderr?: string;
 }
 
-const FORBIDDEN_TOKENS = ['system(', 'exec(', 'popen(', 'fork(', '__attribute__'];
+const gate = createGate(Number(process.env.MAX_CONCURRENT_RUNS || 2), Number(process.env.MAX_QUEUED_RUNS || 8));
 
 router.post('/', async (req, res) => {
   try {
     const isProd = process.env.NODE_ENV === 'production';
     const useDocker = process.env.RUNNER === 'docker' || isProd;
     
-    // Check docker availability early in production
+    // LocalRunner has no isolation; a blocklist cannot make arbitrary C++ safe, so never serve it through a proxy.
+    if (!useDocker && !isDirectLocal(req)) {
+      return res.status(503).json({ success: false, error: LOCAL_RUNNER_PUBLIC_ERROR });
+    }
     const runner = useDocker ? new DockerRunner() : new LocalRunner();
 
     const { code, stdin, language, mode = 'visualize', standard = 'gnu++17' } = req.body || {};
@@ -68,12 +72,6 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, compilationError: 'Language must be cpp' });
     }
 
-    for (const token of (mode === 'visualize' && !useDocker ? FORBIDDEN_TOKENS : [])) {
-      if (code.includes(token)) {
-        return res.status(400).json({ success: false, compilationError: `Forbidden keyword/token found: ${token}` });
-      }
-    }
-
     // Native mode sends the original source to GCC; the teaching parser is not a C++ validator.
     let instrumentedCode = code;
     if (mode === 'visualize' && !useDocker) {
@@ -86,9 +84,9 @@ router.post('/', async (req, res) => {
     }
     let runResult;
     try {
-      runResult = await runner.run(instrumentedCode, stdin || '', {
+      runResult = await gate(() => runner.run(instrumentedCode, stdin || '', {
         standard, captureTrace: mode === 'visualize', debugTrace: mode === 'visualize' && useDocker
-      });
+      }));
     } catch (error: any) {
       if (mode === 'visualize' && !useDocker && error.name === 'CompilationError') {
         error.message += '\nLỗi trên code đã gắn theo dõi; hãy thử “Chạy C++ / thi đấu” để kiểm tra code gốc.';
@@ -122,6 +120,9 @@ router.post('/', async (req, res) => {
     return res.json(response);
 
   } catch (error: any) {
+    if (error instanceof BusyError) {
+      return res.status(503).json({ success: false, error: error.message });
+    }
     if (error.name === 'ParseError' || error.name === 'CompilationError') {
       return res.json({ success: false, compilationError: error.message });
     }
