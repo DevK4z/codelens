@@ -32,8 +32,13 @@ export function simpleExplanation(event: TraceEvent, previous: TraceEvent | null
       if (JSON.stringify(old) === JSON.stringify(value)) continue;
       if (Array.isArray(old) && Array.isArray(value)) {
         if (old.length !== value.length) changes.push(`${name}: ${old.length} → ${value.length} phần tử`);
-        for (let i = 0; i < Math.min(old.length, value.length) && changes.length < 3; i++)
-          if (JSON.stringify(old[i]) !== JSON.stringify(value[i])) changes.push(`${name}[${i}]: ${short(old[i])} → ${short(value[i])}`);
+        for (let i = 0; i < Math.min(old.length, value.length) && changes.length < 3; i++) {
+          if (JSON.stringify(old[i]) === JSON.stringify(value[i])) continue;
+          // In a 2D table name the cell, not the whole row.
+          if (Array.isArray(old[i]) && Array.isArray(value[i]) && old[i].length === value[i].length)
+            old[i].forEach((cell: unknown, j: number) => { if (JSON.stringify(cell) !== JSON.stringify(value[i][j])) changes.push(`${name}[${i}][${j}]: ${short(cell)} → ${short(value[i][j])}`); });
+          else changes.push(`${name}[${i}]: ${short(old[i])} → ${short(value[i])}`);
+        }
       } else changes.push(`${name}: ${short(old)} → ${short(value)}`);
       if (changes.length >= 3) break;
     }

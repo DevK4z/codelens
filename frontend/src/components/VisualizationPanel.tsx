@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { TraceEvent, VariableRoleMap } from '../engine/types';
+import { indexable, lineFocus } from '../engine/lineFocus';
 import { ArrayViz } from './visualizations/ArrayViz';
+import { MatrixViz } from './visualizations/MatrixViz';
 import { StepStatePanel } from './StepStatePanel';
 import { RecursionViz } from './visualizations/RecursionViz';
 
@@ -9,14 +11,24 @@ interface VisualizationPanelProps {
   variableRoles: VariableRoleMap;
   isDemo?: boolean;
   prevEvent?: TraceEvent | null;
+  nextEvent?: TraceEvent | null;
+  code?: string;
 }
 
-export function VisualizationPanel({ event, variableRoles, isDemo, prevEvent }: VisualizationPanelProps) {
+const isMatrix = (value: unknown) => Array.isArray(value) && value.length > 0 && value.every(Array.isArray);
+
+export function VisualizationPanel({ event, variableRoles, isDemo, prevEvent, nextEvent, code = '' }: VisualizationPanelProps) {
   const [selectedArray, setSelectedArray] = useState('');
-  const arrays = Object.keys(event?.variables ?? {}).filter(name => Array.isArray(event?.variables[name]));
-  const arrayName = arrays.includes(selectedArray) ? selectedArray : arrays[0];
+  const focus = event ? lineFocus(event, nextEvent, code) : undefined;
+  // Strings count as arrays only when the code indexes them, e.g. s[i].
+  const arrays = Object.keys(event?.variables ?? {}).filter(name => Array.isArray(event?.variables[name])
+    || (indexable(event?.variables[name]) && new RegExp(`\\b${name}\\s*\\[`).test(code)));
+  // Show the array the current line works on unless the learner picked one.
+  const lineArray = focus?.refs.find(r => arrays.includes(r.array))?.array;
+  const arrayName = arrays.includes(selectedArray) ? selectedArray : lineArray ?? arrays[0];
   const hasArray = arrays.length > 0;
-  const hasRecursion = event && event.callStack.length > 0;
+  // A lone main frame says nothing; the call chain matters once a function is called.
+  const hasRecursion = event && event.callStack.length > 1;
 
   return (
     <div className="h-full w-full panel rounded-none border-none border-l border-b border-[var(--border)] flex flex-col relative bg-[var(--bg-panel)] overflow-hidden">
@@ -49,7 +61,9 @@ export function VisualizationPanel({ event, variableRoles, isDemo, prevEvent }: 
                   {arrays.map(name => <option key={name} value={name}>{name}</option>)}
                 </select>
               </label>}
-              <ArrayViz arrayName={arrayName} prevEvent={prevEvent} event={event} variableRoles={variableRoles} /></div>}
+              {isMatrix(event.variables[arrayName])
+                ? <MatrixViz name={arrayName} event={event} prevEvent={prevEvent} code={code} focus={focus} />
+                : <ArrayViz arrayName={arrayName} prevEvent={prevEvent} event={event} variableRoles={variableRoles} code={code} focus={focus} />}</div>}
             {hasRecursion && <div><RecursionViz event={event} /></div>}
             {!hasArray && !hasRecursion && (
               <div className="h-full flex flex-col items-center justify-center p-8 text-[var(--text-secondary)]">

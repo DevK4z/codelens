@@ -49,6 +49,14 @@ export const SAMPLES: Sample[] = [
     code: `#include <iostream>\nusing namespace std;\n\nint factorial(int n) {\n    if (n <= 1) {\n        return 1;\n    }\n    return n * factorial(n - 1);\n}\n\nint main() {\n    int n = 0;\n    cin >> n;\n    int result = factorial(n);\n    cout << result << endl;\n    return 0;\n}`,
     stdin: '5',
     suggestedRoles: { n: 'counter', result: 'result' }
+  },
+  {
+    id: 'two-pointers-palindrome',
+    name: 'Hai con trỏ: chuỗi đối xứng',
+    description: 'Hai con trỏ đi từ hai đầu vào giữa để kiểm tra palindrome',
+    code: `#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    string s;\n    cin >> s;\n    int left = 0, right = s.size() - 1;\n    bool ok = true;\n    while (left < right) {\n        if (s[left] != s[right]) {\n            ok = false;\n            break;\n        }\n        left++;\n        right--;\n    }\n    cout << (ok ? "YES" : "NO") << endl;\n    return 0;\n}`,
+    stdin: 'racecar',
+    suggestedRoles: { left: 'left-pointer', right: 'right-pointer', ok: 'result' }
   }
 ];
 

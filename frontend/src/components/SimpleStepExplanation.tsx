@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { TraceEvent } from '../engine/types';
 import { simpleExplanation } from '../engine/simpleExplanation';
 import { generateExplanation } from '../engine/explanations';
+import { lineFocus } from '../engine/lineFocus';
 import { explainStepWithAI, type AIExplanationResult } from '../engine/ai';
 
 export function SimpleStepExplanation({event, previous, nextEvent, code}: {event: TraceEvent; previous?: TraceEvent | null; nextEvent?: TraceEvent | null; code: string}) {
@@ -31,8 +32,24 @@ export function SimpleStepExplanation({event, previous, nextEvent, code}: {event
     <p><strong>Vừa thay đổi</strong><span>{text.change}</span></p>
     <p><strong>Tiếp theo</strong><span>{text.next}</span></p>
   </div>;
+  const focus = lineFocus(event, nextEvent, code);
+  const hasResult = focus && (focus.outcome || focus.after.length > 0);
   return <div>
-    {rows(brief)}
+    {focus ? <div className="simple-step-rows">
+      <p><strong>Dòng này làm gì?</strong><span>
+        {focus.summary}
+        {focus.steps.length > 1 && <span className="focus-chain" aria-label="Thay giá trị vào biểu thức">
+          {focus.steps.map((s, i) => <span key={i}>{i > 0 && <em aria-hidden="true">→</em>}<code>{s}</code></span>)}
+        </span>}
+      </span></p>
+      <p><strong>Kết quả</strong><span>
+        {focus.outcome && <b className={focus.outcome.taken ? 'focus-yes' : 'focus-no'}>{focus.outcome.text}</b>}
+        {focus.after.length > 0 && <span className="block">{focus.outcome ? 'Sau đó: ' : 'Sau dòng này: '}{focus.after.join(' · ')}</span>}
+        {!hasResult && brief.next}
+        {hasResult && nextEvent && <span className="block text-xs text-[var(--text-secondary)]">{brief.next}</span>}
+      </span></p>
+      <p><strong>Vừa thay đổi</strong><span>{brief.change}</span></p>
+    </div> : rows(brief)}
     <details className="text-xs mt-3 text-[var(--text-secondary)]"><summary>Code và chi tiết kỹ thuật</summary><p className="mt-2 whitespace-pre-wrap break-words">{generateExplanation(event, previous || undefined, undefined, code)}</p></details>
     <details className="text-sm mt-3"><summary className="text-[var(--accent)]">✨ Giải thích dễ hơn bằng AI</summary>
       <p className="text-xs text-[var(--text-secondary)] my-2">Khi nhấn Hỏi AI, đoạn code quanh dòng hiện tại và tóm tắt bước sẽ gửi đến Google Gemini. API key chỉ giữ trong bộ nhớ của mục này, không lưu trên máy. Có thể phát sinh phí theo tài khoản Google của bạn.</p>

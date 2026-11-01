@@ -30,3 +30,6 @@ test('AI uses header key, bounded structured reply and rejects malformed or over
   await assert.rejects(()=>explainStepWithAI('context','test-key',new AbortController().signal),/hạn mức/);
  } finally {globalThis.fetch=original;}
 });
+test('a 2D table change names the cell that changed',()=>{
+ assert.equal(simpleExplanation(step(1,{dp:[[1,1],[1,2]]}),step(0,{dp:[[1,1],[1,0]]}),'').change,'dp[1][1]: 0 → 2');
+});
