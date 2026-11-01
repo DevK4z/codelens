@@ -49,6 +49,22 @@ export const SAMPLES: Sample[] = [
     code: `#include <iostream>\nusing namespace std;\n\nint factorial(int n) {\n    if (n <= 1) {\n        return 1;\n    }\n    return n * factorial(n - 1);\n}\n\nint main() {\n    int n = 0;\n    cin >> n;\n    int result = factorial(n);\n    cout << result << endl;\n    return 0;\n}`,
     stdin: '5',
     suggestedRoles: { n: 'counter', result: 'result' }
+  },
+  {
+    id: 'two-pointers-palindrome',
+    name: 'Hai con trỏ: chuỗi đối xứng',
+    description: 'Hai con trỏ đi từ hai đầu vào giữa để kiểm tra palindrome',
+    code: `#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    string s;\n    cin >> s;\n    int left = 0, right = s.size() - 1;\n    bool ok = true;\n    while (left < right) {\n        if (s[left] != s[right]) {\n            ok = false;\n            break;\n        }\n        left++;\n        right--;\n    }\n    cout << (ok ? "YES" : "NO") << endl;\n    return 0;\n}`,
+    stdin: 'racecar',
+    suggestedRoles: { left: 'left-pointer', right: 'right-pointer', ok: 'result' }
+  },
+  {
+    id: 'grid-paths-dp',
+    name: 'Quy hoạch động: đường đi trên lưới',
+    description: 'Đếm số đường đi từ góc trên trái tới góc dưới phải bằng bảng dp 2 chiều',
+    code: `#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    int rows = 0, cols = 0;\n    cin >> rows >> cols;\n    vector<vector<int>> dp(rows, vector<int>(cols, 0));\n    for (int i = 0; i < rows; i++) {\n        for (int j = 0; j < cols; j++) {\n            if (i == 0 || j == 0) {\n                dp[i][j] = 1;\n            } else {\n                dp[i][j] = dp[i - 1][j] + dp[i][j - 1];\n            }\n        }\n    }\n    cout << dp[rows - 1][cols - 1] << endl;\n    return 0;\n}`,
+    stdin: '3 4',
+    suggestedRoles: { dp: 'dp-table', i: 'counter', j: 'counter' }
   }
 ];
 

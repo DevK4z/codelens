@@ -117,6 +117,6 @@ test('changing steps clears stale AI and cancels its request without sending any
     await act(async () => { resolve(new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({action:'OLD ANSWER',change:'Old',next:'Old'})}]}}]})));
     await new Promise(r=>setTimeout(r,0)); });
     assert.equal(screen.queryByText('OLD ANSWER'),null);
-    assert.ok(screen.getByText('Sắp lấy dữ liệu bạn đã nhập.'));
+    assert.ok(screen.getByText(/Đọc dữ liệu từ input vào n/));
   } finally { globalThis.fetch=originalFetch; cleanup(); }
 });

@@ -444,6 +444,8 @@ function App() {
           <div className="flex-1 min-h-0">
             <VisualizationPanel
               prevEvent={isStale ? null : prevEvent}
+              nextEvent={isStale ? null : trace[currentStep + 1]}
+              code={traceCode}
               event={isStale ? null : currentEvent}
               variableRoles={variableRoles}
               isDemo={isDemo}
