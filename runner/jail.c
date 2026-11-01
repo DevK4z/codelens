@@ -15,6 +15,7 @@
 #include <errno.h>
 #include <grp.h>
 #include <seccomp.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,9 +48,37 @@ static void limit(int resource, rlim_t value, const char *what) {
   if (setrlimit(resource, &lim)) die(what);
 }
 
+static void become(uid_t uid) {
+  if (setgroups(0, NULL)) die("setgroups");
+  if (setresgid(uid, uid, uid)) die("setresgid");
+  if (setresuid(uid, uid, uid)) die("setresuid");
+  if (setuid(0) == 0 || geteuid() == 0) {
+    fprintf(stderr, "codelens-jail: privileges were not dropped\n");
+    exit(125);
+  }
+}
+
+/*
+ * codelens-jail --kill <uid>: ends every process of a run, including ones that left its process
+ * group. Render's containers lack CAP_KILL, so root cannot signal another uid; a process may always
+ * signal its own uid, so this becomes the run's uid and sends SIGKILL to everything it can reach.
+ * kill(-1) skips the caller and PID 1. It repeats while anything answers, because a process can fork
+ * between rounds and zombies answer until tini reaps them.
+ */
+static int kill_uid(uid_t uid) {
+  become(uid);
+  for (int round = 0; round < 100; round++) {
+    if (kill(-1, SIGKILL) && errno == ESRCH) return 0;
+    usleep(10000);
+  }
+  return 0;
+}
+
 int main(int argc, char **argv) {
+  if (argc == 3 && !strcmp(argv[1], "--kill")) return kill_uid((uid_t)number(argv[2], UID_MIN, UID_MAX, "uid"));
   if (argc < 5) {
-    fprintf(stderr, "usage: codelens-jail <uid> <memory-mb> <workdir> <program> [args...]\n");
+    fprintf(stderr, "usage: codelens-jail <uid> <memory-mb> <workdir> <program> [args...]\n"
+                    "       codelens-jail --kill <uid>\n");
     return 125;
   }
   uid_t uid = (uid_t)number(argv[1], UID_MIN, UID_MAX, "uid");
@@ -63,13 +92,7 @@ int main(int argc, char **argv) {
   limit(RLIMIT_CPU, 60, "RLIMIT_CPU");
   limit(RLIMIT_CORE, 0, "RLIMIT_CORE");
 
-  if (setgroups(0, NULL)) die("setgroups");
-  if (setresgid(uid, uid, uid)) die("setresgid");
-  if (setresuid(uid, uid, uid)) die("setresuid");
-  if (setuid(0) == 0 || geteuid() == 0) {
-    fprintf(stderr, "codelens-jail: privileges were not dropped\n");
-    return 125;
-  }
+  become(uid);
 
   if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)) die("no_new_privs");
   scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_ALLOW);

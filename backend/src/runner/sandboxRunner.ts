@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { chmod, chown, mkdir, mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { chmod, chown, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Runner, RunResult, RunLimits } from './sandbox.js';
@@ -18,20 +18,14 @@ const RUNS_DIR = join(tmpdir(), 'codelens-runs');
 // One uid per concurrent run; the jail only accepts 20000-29999.
 const freeUids = Array.from({ length: 64 }, (_, i) => 20000 + i);
 
-// A run can leave its process group (setsid, double fork), so sweep by uid until nothing is left.
-async function killUid(uid: number) {
-  for (let round = 0; round < 5; round++) {
-    let found = false;
-    for (const pid of await readdir('/proc').catch(() => [] as string[])) {
-      if (!/^\d+$/.test(pid)) continue;
-      const status = await readFile(`/proc/${pid}/status`, 'utf8').catch(() => '');
-      // Zombies are already dead; tini (PID 1) reaps them.
-      if (Number(/^Uid:\s+(\d+)/m.exec(status)?.[1]) !== uid || /^State:\s+Z/m.test(status)) continue;
-      found = true;
-      try { process.kill(Number(pid), 'SIGKILL'); } catch { /* Already gone. */ }
-    }
-    if (!found) return;
-  }
+// A run can leave its process group (setsid, double fork), so end everything its uid owns. The jail
+// does the signalling as that uid: Render's containers lack CAP_KILL, so root's own kill() is refused.
+function killUid(uid: number): Promise<void> {
+  return new Promise(resolve => {
+    const killer = spawn(JAIL, ['--kill', String(uid)], { env: {}, stdio: 'ignore' });
+    killer.on('error', () => resolve());
+    killer.on('close', () => resolve());
+  });
 }
 
 interface Jailed { code: number; stdout: string; stderr: string; killed: boolean; overflow: boolean }
