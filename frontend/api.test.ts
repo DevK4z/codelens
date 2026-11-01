@@ -68,3 +68,33 @@ test('health uses GET /v1/health and reports problem details', async () => {
   respond(503, { status: 503, code: 'runner_unavailable', detail: 'Docker chưa sẵn sàng.' }, 'application/problem+json');
   await assert.rejects(healthCheck(), /Docker chưa sẵn sàng\./);
 });
+
+// Replays a sequence of responses; a thrown error stands for fetch rejecting (no CORS on Render's wake page).
+function sequence(...steps: (Error | [number, unknown, string?])[]) {
+  const calls: string[] = [];
+  globalThis.fetch = (async (url: string) => {
+    calls.push(url);
+    const next = steps.shift();
+    if (!next) throw new Error('unexpected request');
+    if (next instanceof Error) throw next;
+    const [status, body, type = 'application/json'] = next;
+    return new Response(typeof body === 'string' ? body : JSON.stringify(body), { status, headers: { 'Content-Type': type } });
+  }) as typeof fetch;
+  return calls;
+}
+
+test('health waits while a sleeping backend wakes up', async () => {
+  const calls = sequence(new TypeError('Failed to fetch'), [502, '<html>Bad Gateway</html>', 'text/html'], [200, '<html>Waking up</html>', 'text/html'], [200, { status: 'ok', runner: 'sandbox' }]);
+  await healthCheck({ deadlineMs: 1000, retryDelayMs: 1 });
+  assert.equal(calls.length, 4);
+
+  sequence(...Array.from({ length: 50 }, () => new TypeError('Failed to fetch')));
+  await assert.rejects(healthCheck({ deadlineMs: 50, retryDelayMs: 10 }), /chưa phản hồi/);
+});
+
+test('a run sent to a backend that fell asleep is sent again once it wakes', async () => {
+  const calls = sequence(new TypeError('Failed to fetch'), [200, { status: 'ok', runner: 'sandbox' }], [201, run]);
+  const result = await executeCode('int main(){}', '');
+  assert.equal(result.stdout, '42');
+  assert.deepEqual(calls.map(url => url.replace('http://localhost:3001/api', '')), ['/v1/runs', '/v1/health', '/v1/runs']);
+});
