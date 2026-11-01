@@ -21,11 +21,26 @@ function checkOrigin(response) {
     throw new Error(`CORS chưa cho phép ${ORIGIN}. Kiểm tra CORS_ORIGINS trên backend (không thêm /codelens/).`);
 }
 
-export async function checkBackend(value, request = fetch) {
+// A sleeping host (Render free instances stop after 15 idle minutes) answers slowly or with 5xx
+// while it starts, so the health request is retried; anything else fails on the first answer.
+async function fetchHealth(base, request, { attempts, delayMs }) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const health = await request(`${base}/v1/health`, {
+        headers: { Origin: ORIGIN }, signal: AbortSignal.timeout(60000), redirect: 'error'
+      });
+      if (health.status < 500 || attempt >= attempts) return health;
+    } catch (error) {
+      if (attempt >= attempts) throw error;
+    }
+    console.log(`Backend chưa sẵn sàng, thử lại sau ${delayMs / 1000}s (${attempt}/${attempts})...`);
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+}
+
+export async function checkBackend(value, request = fetch, retry = { attempts: 1, delayMs: 0 }) {
   const base = validateBase(value);
-  const health = await request(`${base}/v1/health`, {
-    headers: { Origin: ORIGIN }, signal: AbortSignal.timeout(15000), redirect: 'error'
-  });
+  const health = await fetchHealth(base, request, retry);
   // Failures arrive as application/problem+json, successes as application/json.
   if (!/[/+]json\b/.test(health.headers.get('content-type') || ''))
     throw new Error(`Health trả HTTP ${health.status}, không phải JSON. Kiểm tra URL API/reverse proxy.`);
@@ -48,7 +63,7 @@ export async function checkBackend(value, request = fetch) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    await checkBackend(process.env.VITE_API_BASE_URL);
+    await checkBackend(process.env.VITE_API_BASE_URL, fetch, { attempts: 12, delayMs: 15000 });
     console.log('Backend health và CORS/preflight hợp lệ.');
   } catch (error) {
     console.error(`Kiểm tra backend thất bại: ${error.message}`);

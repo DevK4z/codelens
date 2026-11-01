@@ -59,6 +59,18 @@ test('reject missing origin and incomplete preflight permissions', async () => {
   }
 });
 
+test('a waking backend is retried until it answers', async () => {
+  let call = 0;
+  await checkBackend(base, async () => {
+    call++;
+    if (call === 1) throw new Error('fetch failed');
+    if (call === 2) return health({}, 503, '{"status":503,"detail":"starting"}');
+    return call === 3 ? health() : options();
+  }, { attempts: 5, delayMs: 0 });
+  assert.equal(call, 4);
+  await assert.rejects(checkBackend(base, async () => { throw new Error('still asleep'); }, { attempts: 3, delayMs: 0 }), /still asleep/);
+});
+
 test('network failure is surfaced', async () => {
   await assert.rejects(checkBackend(base, async () => { throw new Error('network unavailable'); }), /network unavailable/);
 });

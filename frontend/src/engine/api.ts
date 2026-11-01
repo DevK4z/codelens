@@ -52,7 +52,8 @@ export async function executeCode(code: string, stdin: string, mode: 'run' | 'vi
     res = await fetch(`${API_BASE}/v1/runs`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ code, stdin, language: 'cpp', mode, standard }),
-      signal: AbortSignal.timeout(40000)
+      // Covers a cold start plus compiling on a small CPU share.
+      signal: AbortSignal.timeout(90000)
     });
   } catch (err: any) {
     if (err.name === 'TimeoutError') throw new Error('Hết thời gian chờ kết nối đến backend.');
@@ -84,10 +85,11 @@ export async function healthCheck(): Promise<void> {
   assertApiConfigured();
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}/v1/health`, { signal: AbortSignal.timeout(15000), cache: 'no-store' });
+    // A sleeping free-tier backend takes about a minute to start.
+    res = await fetch(`${API_BASE}/v1/health`, { signal: AbortSignal.timeout(75000), cache: 'no-store' });
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'TimeoutError')
-      throw new Error('Backend chưa phản hồi sau 15 giây. Nếu máy chủ đang khởi động, hãy thử kết nối lại.');
+      throw new Error('Backend chưa phản hồi sau 75 giây. Máy chủ có thể đang khởi động lại, hãy thử kết nối lại sau ít phút.');
     throw new Error('Không truy cập được backend. Kiểm tra URL, máy chủ và CORS_ORIGINS (cần chứa ' + window.location.origin + ').');
   }
   if (!res.ok) throw new Error(await problemMessage(res));

@@ -5,7 +5,7 @@ import { ApiError, sendProblem } from './problem.js';
 const FORWARD_HEADERS = ['cf-connecting-ip', 'x-forwarded-for', 'forwarded', 'x-real-ip'];
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 
-export const LOCAL_RUNNER_PUBLIC_ERROR = 'LocalRunner chạy code thẳng trên máy chủ nên chỉ phục vụ request local. Khởi động backend với RUNNER=docker trước khi public qua tunnel/proxy.';
+export const LOCAL_RUNNER_PUBLIC_ERROR = 'LocalRunner chạy code thẳng trên máy chủ nên chỉ phục vụ request local. Khởi động backend với RUNNER=docker (hoặc RUNNER=sandbox trên Render) trước khi public qua proxy.';
 
 export function isDirectLocal(req: Request): boolean {
   return LOOPBACK.has(req.socket.remoteAddress || '') && !FORWARD_HEADERS.some(h => req.headers[h]);

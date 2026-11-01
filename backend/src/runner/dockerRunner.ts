@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { execFile } from 'child_process';
 import { Runner, RunResult, RunLimits } from './sandbox.js';
-import { TraceEvent } from '../types.js';
+import { readRunOutput } from './output.js';
 
 export class DockerRunner implements Runner {
   async run(instrumentedCode: string, stdin: string, limits?: Partial<RunLimits>): Promise<RunResult> {
@@ -48,8 +48,6 @@ export class DockerRunner implements Runner {
           execFile('docker', ['rm', '-f', containerName], { timeout: 5000 }, () => {});
           timeLimitExceeded = !!error.killed;
         }
-        if (exitCode === 124) timeLimitExceeded = true;
-
         // If the container failed to start (e.g. image not found)
         if (stderr && stderr.includes('Cannot connect to the Docker daemon')) {
            reject(new Error('Docker daemon is not running on the host.'));
@@ -60,66 +58,15 @@ export class DockerRunner implements Runner {
            return;
         }
 
-        if (currentLimits.debugTrace) {
-          try {
-            const result = JSON.parse(stdout);
-            if (result.codelensDebugger === 1 && Array.isArray(result.trace)) {
-              resolve({ ...result, executionTimeMs });
-              return;
-            }
-          } catch { /* Compilation/container errors use the existing diagnostics below. */ }
-        }
-
-        // The bash script inside Docker outputs a JSON object if there is a compilation error
         try {
-           const parsedStdout = JSON.parse(stdout);
-           if (exitCode === 65 && typeof parsedStdout.compilationError === 'string') {
-             const compErr: any = new Error(`Compilation failed:\n${parsedStdout.compilationError || 'Compiler stopped before producing diagnostics (check time/memory limits).'}`);
-             compErr.name = 'CompilationError';
-             reject(compErr);
-             return;
-           }
-        } catch (e) {
-           // Not a JSON object on stdout, means it successfully compiled and stdout is actual program stdout
+          resolve(readRunOutput({
+            exitCode, stdout, stderr, timeLimitExceeded, executionTimeMs,
+            debugTrace: !!currentLimits.debugTrace, captureTrace: currentLimits.captureTrace !== false,
+            missingDebuggerMessage: 'Image Docker chưa hỗ trợ GCC/GDB. Build lại codelens-sandbox theo tài liệu rồi khởi động lại backend.',
+          }));
+        } catch (error) {
+          reject(error);
         }
-
-        if (currentLimits.debugTrace) {
-          resolve({ trace: [], stdout: '', stderr: stderr || 'Image Docker chưa hỗ trợ GCC/GDB. Build lại codelens-sandbox theo tài liệu rồi khởi động lại backend.',
-            exitCode: 1, executionTimeMs, timeLimitExceeded, stepLimitExceeded: false });
-          return;
-        }
-
-        // Parse stderr for trace events exactly like LocalRunner
-        const lines = currentLimits.captureTrace === false ? [] : stderr.split('\n');
-        const trace: TraceEvent[] = [];
-        let actualStderr = currentLimits.captureTrace === false ? stderr : '';
-        let stepLimitExceeded = false;
-
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const event = JSON.parse(line);
-            if (event.error === 'STEP_LIMIT') {
-              stepLimitExceeded = true;
-            } else if (event.step !== undefined) {
-              trace.push(event);
-            } else {
-              actualStderr += line + '\n';
-            }
-          } catch (e) {
-            actualStderr += line + '\n';
-          }
-        }
-
-        resolve({
-          trace,
-          stdout,
-          stderr: actualStderr,
-          exitCode,
-          executionTimeMs,
-          timeLimitExceeded,
-          stepLimitExceeded
-        });
       });
 
       if (child.stdin) {
