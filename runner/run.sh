@@ -15,7 +15,8 @@ else
   jq -n --rawfile err compile_err.txt '{compilationError: $err}'
   exit 65
 fi
-seconds=$(jq -r '((.timeoutMs // 5000) / 1000 | ceil) | if . < 1 then 1 elif . > 5 then 5 else . end' payload.json)
+# Callers send 5s by default; hosts with a small CPU share may ask for up to 20s.
+seconds=$(jq -r '((.timeoutMs // 5000) / 1000 | ceil) | if . < 1 then 1 elif . > 20 then 20 else . end' payload.json)
 if [ "$(jq -r '.debugTrace // false' payload.json)" = "true" ]; then
   status=0
   timeout -k 1 "$seconds" gdb -q -nx -batch -x /usr/local/lib/codelens/gdb_trace.py > gdb.log 2>&1 || status=$?

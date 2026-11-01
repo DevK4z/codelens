@@ -6,12 +6,18 @@ import { createRunsRouter } from './routes/runs.js';
 import { legacyExecute } from './routes/execute.js';
 import { ApiError, methodNotAllowed, notFound, problemHandler } from './problem.js';
 import { isDirectLocal, LOCAL_RUNNER_PUBLIC_ERROR, rateLimit } from './guard.js';
+import { runnerKind } from './runner/select.js';
+import { verifySandbox } from './runner/sandboxRunner.js';
 
 const execFileAsync = promisify(execFile);
 
 async function checkHealth(req: Request) {
-  const docker = process.env.NODE_ENV === 'production' || process.env.RUNNER === 'docker';
-  if (docker) {
+  const runner = runnerKind();
+  if (runner === 'sandbox') {
+    try { await verifySandbox(); }
+    catch (error: any) { throw new ApiError(503, 'runner_unavailable', error.message); }
+  }
+  if (runner === 'docker') {
     try {
       // Both checks must use the same Docker daemon as DockerRunner.
       await execFileAsync('docker', ['info', '--format', '{{.ServerVersion}}'], { timeout: 3000 });
@@ -21,8 +27,8 @@ async function checkHealth(req: Request) {
     }
   }
   // Fails the Pages deploy check instead of silently publishing an unsandboxed runner.
-  if (!docker && !isDirectLocal(req)) throw new ApiError(503, 'local_runner_not_public', LOCAL_RUNNER_PUBLIC_ERROR);
-  return { status: 'ok', runner: docker ? 'docker' : 'local' };
+  if (runner === 'local' && !isDirectLocal(req)) throw new ApiError(503, 'local_runner_not_public', LOCAL_RUNNER_PUBLIC_ERROR);
+  return { status: 'ok', runner };
 }
 
 export function createApp() {

@@ -252,13 +252,15 @@ Health thành công chưa chứng minh biên dịch và thu trace đã hoạt đ
 | `HOST` | Backend | Địa chỉ bind; mặc định `127.0.0.1` |
 | `PORT` | Backend | Cổng HTTP; mặc định `3001` |
 | `CORS_ORIGINS` | Backend | Các origin cho phép, cách nhau bằng dấu phẩy |
-| `NODE_ENV` | Backend | `production` chọn DockerRunner |
-| `RUNNER` | Backend | `docker` chọn DockerRunner ngoài production |
+| `NODE_ENV` | Backend | `production` chọn DockerRunner nếu không đặt `RUNNER` |
+| `RUNNER` | Backend | `docker`: container mới cho mỗi run (VPS); `sandbox`: jail trong container của service (Render, xem [DEPLOYMENT.md](DEPLOYMENT.md)); để trống ngoài production: LocalRunner chỉ phục vụ localhost |
+| `RUN_TIMEOUT_MS` | Backend (`sandbox`) | Giới hạn chạy mỗi chương trình; mặc định `5000`, tối đa `20000` (gói free của Render cần `20000`) |
+| `SANDBOX_MEMORY_MB` | Backend (`sandbox`) | Giới hạn bộ nhớ ảo mỗi tiến trình trong jail; mặc định `512` |
 | `RATE_LIMIT_PER_MIN` | Backend | Số lần tạo run mỗi phút cho mỗi khách; mặc định `20` |
 | `MAX_CONCURRENT_RUNS` | Backend | Số run chạy cùng lúc; mặc định `2` |
 | `MAX_QUEUED_RUNS` | Backend | Số run chờ tối đa, quá thì `503`; mặc định `8` |
 
-Backend hiện đọc `process.env`; không tự động nạp `.env`. Hãy đặt biến trong shell hoặc cấu hình của hosting. Frontend có `.env.production` chứa URL tunnel; cần thay bằng địa chỉ backend thực tế và kiểm tra URL được nhúng vào bản build.
+Backend hiện đọc `process.env`; không tự động nạp `.env`. Hãy đặt biến trong shell hoặc cấu hình của hosting (trên Render: `render.yaml`). URL backend của frontend lấy từ repository variable `VITE_API_BASE_URL` lúc build.
 
 ## Triển khai
 
@@ -357,7 +359,7 @@ README này mô tả những gì mã nguồn thể hiện và các phần còn t
 
 ### Khắc phục lỗi thiếu máy chủ chạy code
 
-1. Triển khai backend trên máy chủ hỗ trợ Docker và HTTPS. GitHub Pages không chạy backend C++.
+1. Triển khai backend: Render qua [`render.yaml`](render.yaml), hoặc máy chủ có Docker và HTTPS; xem [DEPLOYMENT.md](DEPLOYMENT.md). GitHub Pages không chạy backend C++.
 2. Đặt `CORS_ORIGINS=https://devk4z.github.io` trong môi trường backend.
 3. Khi dùng `backend/deploy.sh`, PM2 đọc `backend/.env` bằng `--env-file=.env` (Node 22+). Script giữ cấu hình `.env` đã có. Đảm bảo upstream Nginx dùng cùng `PORT` trong file này.
 4. Trong repository: Settings → Secrets and variables → Actions → Variables, đặt `VITE_API_BASE_URL` bằng URL backend thật có đuôi `/api`.
@@ -390,7 +392,7 @@ Kết quả STDOUT/STDERR được hiển thị riêng; chế độ này **khôn
 Lỗi parser/instrumentation không có nghĩa code C++ gốc không hợp lệ. Không tự động
 chạy lại bằng chế độ khác để tránh thực thi chương trình hai lần.
 
-Sau khi cập nhật code, cần build lại sandbox và backend trên máy chạy tunnel:
+Khi tự chạy backend bằng Docker (VPS hoặc máy cá nhân), sau khi cập nhật code cần build lại sandbox và backend:
 
 ```powershell
 # Từ thư mục gốc repository; Docker Desktop phải đang chạy
@@ -402,10 +404,10 @@ Sau khi cập nhật code, cần build lại sandbox và backend trên máy ch�
  npm start
 ```
 
-Dừng tiến trình backend cũ trước khi chạy lại; giữ tunnel đang chạy để không đổi URL.
+Dừng tiến trình backend cũ trước khi chạy lại. Trên Render, push lên `main` là đủ: service tự build lại.
 Frontend cần build/deploy lại để có thanh chọn chế độ. API `POST /api/v1/runs` nhận
 thêm `mode: "run" | "visualize"` và `standard: "gnu++17" | "gnu++20"`; client cũ
-không gửi mode vẫn dùng visualize. Chạy native bắt buộc Docker, kể cả development.
+không gửi mode vẫn dùng visualize. Chạy native bắt buộc runner cô lập (`docker` hoặc `sandbox`), kể cả development.
 Giới hạn: code 50.000 ký tự, stdin 10.000 ký tự, compile 25 giây, chạy 5 giây,
 RAM container 256 MiB, 64 tiến trình, không network và không mount thư mục host.
 Code chỉ đọc/ghi file tạm bên trong container; nhập/xuất bài thi nên dùng stdin/stdout.

@@ -3,8 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { tokenize } from '../engine/lexer.js';
 import { parse } from '../engine/parser.js';
 import { instrument } from '../engine/instrumenter.js';
-import { LocalRunner } from '../runner/local.js';
-import { DockerRunner } from '../runner/dockerRunner.js';
+import { createRunner, runnerKind } from '../runner/select.js';
 import { BusyError, createGate, isDirectLocal, LOCAL_RUNNER_PUBLIC_ERROR } from '../guard.js';
 import { ApiError, methodNotAllowed } from '../problem.js';
 import type { Run, RunStatus } from '../types.js';
@@ -28,15 +27,16 @@ function remember(run: Run): Run {
 }
 
 const RUN_MODE_WARNING = 'Đã chạy code gốc bằng GCC. Chế độ này không tạo bản ghi trực quan hóa từng bước.';
-const DOCKER_TRACE_WARNING = 'GCC/GDB theo dõi code gốc theo dòng: trạng thái trước dòng đang tô sáng. Một dòng có nhiều lệnh có thể chỉ có một điểm dừng. Biến tối ưu hóa hoặc kiểu phức tạp có thể không đọc được; mảng/container hiển thị tối đa 100 phần tử. Không có nhãn so sánh/swap tự động.';
+const GDB_TRACE_WARNING = 'GCC/GDB theo dõi code gốc theo dòng: trạng thái trước dòng đang tô sáng. Một dòng có nhiều lệnh có thể chỉ có một điểm dừng. Biến tối ưu hóa hoặc kiểu phức tạp có thể không đọc được; mảng/container hiển thị tối đa 100 phần tử. Không có nhãn so sánh/swap tự động.';
 const LOCAL_SANDBOX_WARNING = 'Đang chạy LocalRunner. Chế độ này không cách ly bảo mật và chỉ dùng cho development.';
 
 const invalid = (detail: string) => new ApiError(422, 'invalid_run', detail);
 
 export async function executeRun(req: Request): Promise<Run> {
-  const useDocker = process.env.RUNNER === 'docker' || process.env.NODE_ENV === 'production';
+  const kind = runnerKind();
+  const isolated = kind !== 'local';
   // LocalRunner has no isolation; a blocklist cannot make arbitrary C++ safe, so never serve it through a proxy.
-  if (!useDocker && !isDirectLocal(req)) throw new ApiError(503, 'local_runner_not_public', LOCAL_RUNNER_PUBLIC_ERROR);
+  if (!isolated && !isDirectLocal(req)) throw new ApiError(503, 'local_runner_not_public', LOCAL_RUNNER_PUBLIC_ERROR);
   if (!req.is('application/json')) throw new ApiError(415, 'unsupported_media_type', 'Gửi body dạng application/json.');
 
   const { code, stdin = '', language, mode = 'visualize', standard = 'gnu++17' } = req.body ?? {};
@@ -46,19 +46,19 @@ export async function executeRun(req: Request): Promise<Run> {
   if (typeof code !== 'string' || !code) throw invalid('code phải là chuỗi không rỗng.');
   if (code.length > 50000) throw invalid('code vượt giới hạn 50KB.');
   if (typeof stdin !== 'string' || stdin.length > 10000) throw invalid('stdin phải là chuỗi tối đa 10KB.');
-  if (mode === 'run' && !useDocker) throw new ApiError(422, 'mode_unavailable', 'Chế độ C++ trực tiếp cần Docker. Khởi động backend với RUNNER=docker.');
+  if (mode === 'run' && !isolated) throw new ApiError(422, 'mode_unavailable', 'Chế độ C++ trực tiếp cần runner cô lập. Khởi động backend với RUNNER=docker hoặc RUNNER=sandbox.');
 
   const base = { id: uuidv4(), language: 'cpp' as const, mode, standard, createdAt: new Date().toISOString() };
   const warnings: Run['warnings'] = {
-    visualization: mode === 'run' ? RUN_MODE_WARNING : useDocker ? DOCKER_TRACE_WARNING : undefined,
-    sandbox: useDocker ? undefined : LOCAL_SANDBOX_WARNING,
+    visualization: mode === 'run' ? RUN_MODE_WARNING : isolated ? GDB_TRACE_WARNING : undefined,
+    sandbox: isolated ? undefined : LOCAL_SANDBOX_WARNING,
   };
   const failed = (status: RunStatus, error: string): Run =>
     ({ ...base, status, durationMs: 0, stdout: '', stderr: '', error, stepCount: 0, trace: [], warnings });
 
   // Native mode sends the original source to GCC; the teaching parser is not a C++ validator.
   let source = code;
-  if (mode === 'visualize' && !useDocker) {
+  if (mode === 'visualize' && !isolated) {
     try {
       source = instrument(parse(tokenize(code)), code);
     } catch (error: any) {
@@ -67,16 +67,16 @@ export async function executeRun(req: Request): Promise<Run> {
     }
   }
 
-  const runner = useDocker ? new DockerRunner() : new LocalRunner();
+  const runner = createRunner(kind);
   let result;
   try {
     result = await gate(() => runner.run(source, stdin, {
-      standard, captureTrace: mode === 'visualize', debugTrace: mode === 'visualize' && useDocker,
+      standard, captureTrace: mode === 'visualize', debugTrace: mode === 'visualize' && isolated,
     }));
   } catch (error: any) {
     if (error instanceof BusyError) throw new ApiError(503, 'runner_busy', error.message, { 'Retry-After': '5' });
     if (error.name === 'CompilationError' || error.name === 'ParseError') {
-      const hint = mode === 'visualize' && !useDocker && error.name === 'CompilationError'
+      const hint = mode === 'visualize' && !isolated && error.name === 'CompilationError'
         ? '\nLỗi trên code đã gắn theo dõi; hãy thử “Chạy C++ / thi đấu” để kiểm tra code gốc.' : '';
       return remember(failed('compile_error', error.message + hint));
     }
