@@ -23,16 +23,17 @@ function checkOrigin(response) {
 
 export async function checkBackend(value, request = fetch) {
   const base = validateBase(value);
-  const health = await request(`${base}/health`, {
+  const health = await request(`${base}/v1/health`, {
     headers: { Origin: ORIGIN }, signal: AbortSignal.timeout(15000), redirect: 'error'
   });
-  if (!health.headers.get('content-type')?.includes('application/json'))
+  // Failures arrive as application/problem+json, successes as application/json.
+  if (!/[/+]json\b/.test(health.headers.get('content-type') || ''))
     throw new Error(`Health trả HTTP ${health.status}, không phải JSON. Kiểm tra URL API/reverse proxy.`);
   const data = await health.json();
   if (!health.ok || data?.status !== 'ok')
-    throw new Error(`Backend/runner chưa sẵn sàng (HTTP ${health.status}). Kiểm tra log backend và Docker.`);
+    throw new Error(`Backend/runner chưa sẵn sàng (HTTP ${health.status}). ${data?.detail || 'Kiểm tra log backend và Docker.'}`);
   checkOrigin(health);
-  const preflight = await request(`${base}/execute`, {
+  const preflight = await request(`${base}/v1/runs`, {
     method: 'OPTIONS',
     headers: { Origin: ORIGIN, 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type' },
     signal: AbortSignal.timeout(15000), redirect: 'error'

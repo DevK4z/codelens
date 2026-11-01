@@ -1,4 +1,4 @@
-import { TraceEvent } from '../routes/execute.js';
+import { TraceEvent } from '../types.js';
 
 export interface RunResult {
   trace: TraceEvent[];

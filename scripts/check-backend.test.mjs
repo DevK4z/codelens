@@ -28,9 +28,9 @@ test('health and preflight use Pages origin and do not execute code', async () =
     return calls.length === 1 ? health() : options();
   });
   assert.equal(calls.length, 2);
-  assert.equal(calls[0][0], `${base}/health`);
+  assert.equal(calls[0][0], `${base}/v1/health`);
   assert.equal(calls[0][1].headers.Origin, origin);
-  assert.equal(calls[1][0], `${base}/execute`);
+  assert.equal(calls[1][0], `${base}/v1/runs`);
   assert.equal(calls[1][1].method, 'OPTIONS');
   assert.equal(calls[1][1].headers['Access-Control-Request-Method'], 'POST');
 });
@@ -41,6 +41,12 @@ test('reject unhealthy, HTML and malformed responses', async () => {
     health({'content-type': 'text/html'}, 200, '<html/>')]) {
     await assert.rejects(checkBackend(base, async () => response));
   }
+});
+
+test('problem details from an unavailable runner reach the deploy log', async () => {
+  const problem = health({ 'content-type': 'application/problem+json' }, 503,
+    '{"type":"about:blank","title":"Service Unavailable","status":503,"code":"local_runner_not_public","detail":"Khởi động backend với RUNNER=docker."}');
+  await assert.rejects(checkBackend(base, async () => problem), /HTTP 503\). Khởi động backend với RUNNER=docker\./);
 });
 
 test('reject missing origin and incomplete preflight permissions', async () => {

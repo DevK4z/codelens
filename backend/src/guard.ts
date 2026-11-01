@@ -1,4 +1,5 @@
 import type { Request, RequestHandler } from 'express';
+import { ApiError, sendProblem } from './problem.js';
 
 // cloudflared and reverse proxies always add one of these; a direct local request never has them.
 const FORWARD_HEADERS = ['cf-connecting-ip', 'x-forwarded-for', 'forwarded', 'x-real-ip'];
@@ -29,8 +30,7 @@ export function rateLimit(limit: number, windowMs: number, now = Date.now): Requ
     }
     if (++entry.count > limit) {
       const retry = Math.ceil((entry.reset - t) / 1000);
-      res.set('Retry-After', String(retry));
-      return res.status(429).json({ success: false, error: `Bạn gửi quá nhiều yêu cầu. Thử lại sau ${retry} giây.` });
+      return sendProblem(res, new ApiError(429, 'rate_limited', `Bạn gửi quá nhiều yêu cầu. Thử lại sau ${retry} giây.`, { 'Retry-After': String(retry) }));
     }
     next();
   };
