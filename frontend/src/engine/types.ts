@@ -40,6 +40,24 @@ export interface ExecuteResponse {
   isDemo?: boolean;
 }
 
+// Resource returned by POST /api/v1/runs and GET /api/v1/runs/{id}.
+export type RunStatus = 'succeeded' | 'compile_error' | 'runtime_error' | 'time_limit_exceeded' | 'step_limit_exceeded';
+export interface Run {
+  id: string;
+  status: RunStatus;
+  language: 'cpp';
+  mode: 'run' | 'visualize';
+  standard: 'gnu++17' | 'gnu++20';
+  createdAt: string;
+  durationMs: number;
+  stdout: string;
+  stderr: string;
+  error: string | null;
+  stepCount: number;
+  trace: TraceEvent[];
+  warnings: { sandbox?: string; visualization?: string };
+}
+
 export type VariableRole = 'array' | 'left-pointer' | 'right-pointer' | 'mid-pointer' | 'dp-table' | 'counter' | 'target' | 'result' | 'none';
 
 export interface VariableRoleMap {

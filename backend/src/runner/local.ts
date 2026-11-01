@@ -4,7 +4,7 @@ import * as os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import { execFile } from 'child_process';
 import { Runner, RunResult, RunLimits } from './sandbox.js';
-import { TraceEvent } from '../routes/execute.js';
+import { TraceEvent } from '../types.js';
 
 export class LocalRunner implements Runner {
   async run(instrumentedCode: string, stdin: string, limits?: Partial<RunLimits>): Promise<RunResult> {

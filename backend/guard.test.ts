@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
-import executeRouter from './src/routes/execute.js';
+import { createApp } from './src/app.js';
 import { BusyError, createGate, rateLimit } from './src/guard.js';
 
 async function serve(app: express.Express) {
@@ -16,21 +16,22 @@ async function serve(app: express.Express) {
 test('LocalRunner refuses proxied requests but still serves direct local development', async () => {
   const saved = process.env.RUNNER, savedNode = process.env.NODE_ENV;
   process.env.RUNNER = 'local'; process.env.NODE_ENV = 'test';
-  const app = express(); app.use(express.json()); app.use('/api/execute', executeRouter);
-  const { url, close } = await serve(app);
+  const { url, close } = await serve(createApp());
   // Mode "run" stops at the Docker check without compiling, so it proves the guard let the request through.
   const body = JSON.stringify({ code: 'int main(){}', stdin: '', language: 'cpp', mode: 'run' });
   const post = (headers: Record<string, string> = {}) =>
-    fetch(`${url}/api/execute`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body });
+    fetch(`${url}/api/v1/runs`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body });
   try {
     for (const header of [{ 'cf-connecting-ip': '203.0.113.7' }, { 'x-forwarded-for': '203.0.113.7' }, { forwarded: 'for=203.0.113.7' }]) {
       const res = await post(header);
       assert.equal(res.status, 503, JSON.stringify(header));
-      assert.match((await res.json()).error, /RUNNER=docker/);
+      const problem = await res.json();
+      assert.equal(problem.code, 'local_runner_not_public');
+      assert.match(problem.detail, /RUNNER=docker/);
     }
     const direct = await post();
-    assert.equal(direct.status, 400);
-    assert.match((await direct.json()).runtimeError, /Docker/);
+    assert.equal(direct.status, 422);
+    assert.equal((await direct.json()).code, 'mode_unavailable');
   } finally {
     await close();
     if (saved === undefined) delete process.env.RUNNER; else process.env.RUNNER = saved;
@@ -49,7 +50,8 @@ test('rate limit keys on the visitor address behind a tunnel and resets after th
     const limited = await get('198.51.100.1');
     assert.equal(limited.status, 429);
     assert.equal(limited.headers.get('retry-after'), '60');
-    assert.match((await limited.json()).error, /60 giây/);
+    assert.match(limited.headers.get('content-type') ?? '', /application\/problem\+json/);
+    assert.match((await limited.json()).detail, /60 giây/);
     assert.equal((await get('198.51.100.2')).status, 200, 'another visitor has its own budget');
     now += 60_000;
     assert.equal((await get('198.51.100.1')).status, 200);

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { execFile } from 'child_process';
 import { Runner, RunResult, RunLimits } from './sandbox.js';
-import { TraceEvent } from '../routes/execute.js';
+import { TraceEvent } from '../types.js';
 
 export class DockerRunner implements Runner {
   async run(instrumentedCode: string, stdin: string, limits?: Partial<RunLimits>): Promise<RunResult> {

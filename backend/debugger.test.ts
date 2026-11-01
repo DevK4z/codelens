@@ -1,9 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import express from 'express';
 import { once } from 'node:events';
 import { DockerRunner } from './src/runner/dockerRunner.js';
-import executeRouter from './src/routes/execute.js';
+import { createApp } from './src/app.js';
 
 const enabled = process.env.TEST_DOCKER === '1';
 const runner = new DockerRunner();
@@ -40,18 +39,18 @@ test('GCC/GDB traces original macros/templates/lambdas/shifts/STL without parser
 test('visualize API sends original code to GCC and returns real trace', {skip: !enabled}, async () => {
   const previous = process.env.RUNNER;
   process.env.RUNNER = 'docker';
-  const app = express(); app.use(express.json()); app.use('/execute', executeRouter);
-  const server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const server = createApp().listen(0, '127.0.0.1'); await once(server, 'listening');
   try {
     const address = server.address() as { port: number };
-    const response = await fetch(`http://127.0.0.1:${address.port}/execute`, {
+    const response = await fetch(`http://127.0.0.1:${address.port}/api/v1/runs`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({code, stdin:'', language:'cpp', mode:'visualize', standard:'gnu++17'})
     });
     const result = await response.json() as any;
-    assert.equal(result.success, true, result.compilationError || result.runtimeError);
+    assert.equal(response.status, 201);
+    assert.equal(result.status, 'succeeded', result.error);
     assert.ok(result.trace.length > 0);
-    assert.match(result.visualizationWarning, /GCC\/GDB/);
+    assert.match(result.warnings.visualization, /GCC\/GDB/);
     assert.equal(result._instrumentedCode, undefined);
   } finally { server.close(); if (previous === undefined) delete process.env.RUNNER; else process.env.RUNNER = previous; }
 });

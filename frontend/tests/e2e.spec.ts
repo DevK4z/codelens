@@ -3,27 +3,27 @@ import { test, expect } from '@playwright/test';
 test.describe('CodeLens E2E', () => {
   test.beforeEach(async ({ page }) => {
     // Mock the health check API to simulate backend availability
-    await page.route('**/api/health', route => {
+    await page.route('**/api/v1/health', route => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ status: 'ok' })
+        body: JSON.stringify({ status: 'ok', runner: 'docker' })
       });
     });
 
-    // Mock the execute API to return a dummy trace
-    await page.route('**/api/execute', async route => {
+    // Mock run creation to return a dummy trace
+    await page.route('**/api/v1/runs', async route => {
       // Simulate network delay
       await new Promise(r => setTimeout(r, 500));
       route.fulfill({
-        status: 200,
+        status: 201,
         contentType: 'application/json',
+        headers: { Location: '/api/v1/runs/e2e-run' },
         body: JSON.stringify({
-          success: true,
-          trace: [{ step: 0, line: 1, event: "init", variables: {}, changed: [], callStack: [{func: 'main', line: 1}] }],
-          stdout: "Mocked output",
-          stepCount: 1,
-          executionTimeMs: 10
+          id: 'e2e-run', status: 'succeeded', language: 'cpp', mode: 'visualize', standard: 'gnu++17',
+          createdAt: new Date().toISOString(), durationMs: 10, stdout: "Mocked output", stderr: '', error: null,
+          stepCount: 1, warnings: {},
+          trace: [{ step: 0, line: 1, event: "init", variables: {}, changed: [], callStack: [{func: 'main', line: 1}] }]
         })
       });
     });
