@@ -150,10 +150,12 @@ jobs:
       - name: Install backend test dependencies
         run: npm ci --prefix backend
 
-      # No --privileged, --cap-add or --init: the image must isolate runs on its own, as on Render.
-      - name: Start the image without extra privileges
+      # Exactly the capability bounding set Render grants (read from /proc/self/status on Render:
+      # 0x400cb). Notably no CAP_KILL, so root cannot signal a run's uid. No --privileged or --init.
+      - name: Start the image with Render's capabilities
         run: |
-          docker run -d --name codelens-render -p 10000:10000 --memory 512m codelens-render
+          caps='--cap-drop ALL --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --cap-add SETGID --cap-add SETUID --cap-add SYS_CHROOT'
+          docker run -d --name codelens-render -p 10000:10000 --memory 512m $caps codelens-render
           for i in $(seq 1 60); do curl -fsS http://127.0.0.1:10000/api/v1/health && exit 0; sleep 1; done
           curl -sS http://127.0.0.1:10000/api/v1/health || true
           docker logs codelens-render
