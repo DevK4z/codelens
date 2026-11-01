@@ -47,17 +47,26 @@ export function toExecuteResponse(run: Run): ExecuteResponse {
 export async function executeCode(code: string, stdin: string, mode: 'run' | 'visualize' = 'visualize', standard: 'gnu++17' | 'gnu++20' = 'gnu++17'): Promise<ExecuteResponse> {
   assertApiConfigured();
 
+  const post = () => fetch(`${API_BASE}/v1/runs`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ code, stdin, language: 'cpp', mode, standard }),
+    // Covers compiling and GDB stepping on a small CPU share.
+    signal: AbortSignal.timeout(90000)
+  });
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}/v1/runs`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ code, stdin, language: 'cpp', mode, standard }),
-      // Covers a cold start plus compiling on a small CPU share.
-      signal: AbortSignal.timeout(90000)
-    });
+    res = await post();
+    // The backend fell asleep since the page loaded: wait for it to wake, then send the run again.
+    if (isWaking(res)) { await healthCheck(); res = await post(); }
   } catch (err: any) {
     if (err.name === 'TimeoutError') throw new Error('Hết thời gian chờ kết nối đến backend.');
-    throw new Error('Không kết nối được đến backend. Vui lòng kiểm tra lại mạng hoặc URL.');
+    if (err instanceof ApiUnavailable) throw err;
+    try { await healthCheck(); res = await post(); }
+    catch (retryErr: any) {
+      if (retryErr instanceof ApiUnavailable) throw retryErr;
+      if (retryErr.name === 'TimeoutError') throw new Error('Hết thời gian chờ kết nối đến backend.');
+      throw new Error('Không kết nối được đến backend. Vui lòng kiểm tra lại mạng hoặc URL.');
+    }
   }
 
   if (res.status !== 201) throw new Error(await problemMessage(res));
@@ -81,19 +90,32 @@ function assertApiConfigured(): void {
     throw new Error('Trang HTTPS cần backend HTTPS để tránh bị trình duyệt chặn kết nối.');
 }
 
-export async function healthCheck(): Promise<void> {
+// Raised when the backend answered but cannot serve runs; retrying will not help.
+class ApiUnavailable extends Error { name = 'ApiUnavailable'; }
+
+// A sleeping Render free service answers with its own non-JSON page (without CORS headers, so
+// fetch rejects) or a gateway error until the container is up. Only the backend speaks JSON.
+const isWaking = (res: Response) => !isJson(res) && (res.ok || res.status >= 502);
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Waking a free-tier backend takes about a minute, sometimes more, so keep asking until the deadline.
+export async function healthCheck({ deadlineMs = 180000, retryDelayMs = 5000 } = {}): Promise<void> {
   assertApiConfigured();
-  let res: Response;
-  try {
-    // A sleeping free-tier backend takes about a minute to start.
-    res = await fetch(`${API_BASE}/v1/health`, { signal: AbortSignal.timeout(75000), cache: 'no-store' });
-  } catch (error: unknown) {
-    if (error instanceof Error && error.name === 'TimeoutError')
-      throw new Error('Backend chưa phản hồi sau 75 giây. Máy chủ có thể đang khởi động lại, hãy thử kết nối lại sau ít phút.');
-    throw new Error('Không truy cập được backend. Kiểm tra URL, máy chủ và CORS_ORIGINS (cần chứa ' + window.location.origin + ').');
+  const deadline = Date.now() + deadlineMs;
+  for (;;) {
+    let res: Response | undefined;
+    try {
+      res = await fetch(`${API_BASE}/v1/health`, { signal: AbortSignal.timeout(Math.max(1, Math.min(30000, deadline - Date.now()))), cache: 'no-store' });
+    } catch { /* Not reachable yet. */ }
+    if (res && !isWaking(res)) {
+      if (!res.ok) throw new ApiUnavailable(await problemMessage(res));
+      const data = await res.json().catch(() => null);
+      if (data?.status !== 'ok') throw new ApiUnavailable('API health trả JSON không hợp lệ.');
+      return;
+    }
+    if (Date.now() + retryDelayMs >= deadline)
+      throw new Error(`Backend chưa phản hồi sau ${Math.round(deadlineMs / 1000)} giây. Máy chủ có thể đang khởi động lại; hãy thử kết nối lại sau ít phút. Nếu vẫn lỗi, kiểm tra URL và CORS_ORIGINS (cần chứa ${window.location.origin}).`);
+    await sleep(retryDelayMs);
   }
-  if (!res.ok) throw new Error(await problemMessage(res));
-  if (!isJson(res)) throw new Error(`API health trả về HTTP ${res.status} và không phải JSON. Kiểm tra URL backend và đường dẫn /api.`);
-  const data = await res.json().catch(() => null);
-  if (data?.status !== 'ok') throw new Error('API health trả JSON không hợp lệ.');
 }
