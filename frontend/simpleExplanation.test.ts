@@ -33,3 +33,6 @@ test('AI uses header key, bounded structured reply and rejects malformed or over
 test('a 2D table change names the cell that changed',()=>{
  assert.equal(simpleExplanation(step(1,{dp:[[1,1],[1,2]]}),step(0,{dp:[[1,1],[1,0]]}),'').change,'dp[1][1]: 0 → 2');
 });
+test('a loop counter going out of scope is not reported as a change',()=>{
+ assert.equal(simpleExplanation(step(1,{j:null,i:1}),step(0,{j:3,i:0}),'').change,'i: 0 → 1');
+});

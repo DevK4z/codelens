@@ -1,13 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TraceEvent } from '../engine/types';
 import { simpleExplanation } from '../engine/simpleExplanation';
 import { generateExplanation } from '../engine/explanations';
 import { lineFocus } from '../engine/lineFocus';
+import { detectAlgorithm, lineInsight, loopContext, recursiveReturns } from '../engine/insight';
 import { explainStepWithAI, type AIExplanationResult } from '../engine/ai';
 
-export function SimpleStepExplanation({event, previous, nextEvent, code}: {event: TraceEvent; previous?: TraceEvent | null; nextEvent?: TraceEvent | null; code: string}) {
+export function SimpleStepExplanation({event, previous, nextEvent, code, trace}: {event: TraceEvent; previous?: TraceEvent | null; nextEvent?: TraceEvent | null; code: string; trace?: TraceEvent[]}) {
   const brief = simpleExplanation(event, previous, code, nextEvent);
-  const context = JSON.stringify({ source: code.split(/\r?\n/).slice(Math.max(0,event.line-4),event.line+3).join('\n').slice(0,4000), line: event.line, beforeLine: event.detail?.startsWith('GCC/GDB:') || false, observed: brief });
+  const algorithm = useMemo(() => detectAlgorithm(code), [code]);
+  const returns = useMemo(() => trace ? recursiveReturns(trace, code) : undefined, [trace, code]);
+  const focus = lineFocus(event, nextEvent, code);
+  const returned = trace && returns?.get(trace.indexOf(event));
+  const insights = lineInsight(event, nextEvent, code, focus, algorithm, returned);
+  const loops = loopContext(event, code);
+  const context = JSON.stringify({ source: code.split(/\r?\n/).slice(Math.max(0,event.line-4),event.line+3).join('\n').slice(0,4000), line: event.line, beforeLine: event.detail?.startsWith('GCC/GDB:') || false, observed: brief, algorithm: algorithm?.name, insight: insights });
   const [key, setKey] = useState('');
   const [model, setModel] = useState('gemini-3.8-flash');
   const [result, setResult] = useState<{context: string; text: AIExplanationResult} | null>(null);
@@ -32,9 +39,13 @@ export function SimpleStepExplanation({event, previous, nextEvent, code}: {event
     <p><strong>Vừa thay đổi</strong><span>{text.change}</span></p>
     <p><strong>Tiếp theo</strong><span>{text.next}</span></p>
   </div>;
-  const focus = lineFocus(event, nextEvent, code);
   const hasResult = focus && (focus.outcome || focus.after.length > 0);
+  const why = insights.length > 0 && <p><strong>Vì sao?</strong><span className="insight">{insights.map((s, i) => <span key={i} className="block">{s}</span>)}</span></p>;
   return <div>
+    {(algorithm || loops.length > 0) && <div className="algo-strip">
+      {algorithm && <details><summary>💡 {algorithm.name} <span>· {algorithm.complexity}</span></summary><p>{algorithm.idea}</p></details>}
+      {loops.length > 0 && <span className="loop-chips" aria-label="Đang ở vòng lặp">{loops.map(l => <span key={l}>{l}</span>)}</span>}
+    </div>}
     {focus ? <div className="simple-step-rows">
       <p><strong>Dòng này làm gì?</strong><span>
         {focus.summary}
@@ -42,6 +53,7 @@ export function SimpleStepExplanation({event, previous, nextEvent, code}: {event
           {focus.steps.map((s, i) => <span key={i}>{i > 0 && <em aria-hidden="true">→</em>}<code>{s}</code></span>)}
         </span>}
       </span></p>
+      {why}
       <p><strong>Kết quả</strong><span>
         {focus.outcome && <b className={focus.outcome.taken ? 'focus-yes' : 'focus-no'}>{focus.outcome.text}</b>}
         {focus.after.length > 0 && <span className="block">{focus.outcome ? 'Sau đó: ' : 'Sau dòng này: '}{focus.after.join(' · ')}</span>}
@@ -49,7 +61,11 @@ export function SimpleStepExplanation({event, previous, nextEvent, code}: {event
         {hasResult && nextEvent && <span className="block text-xs text-[var(--text-secondary)]">{brief.next}</span>}
       </span></p>
       <p><strong>Vừa thay đổi</strong><span>{brief.change}</span></p>
-    </div> : rows(brief)}
+    </div> : returned ? <div className="simple-step-rows">
+      <p><strong>Dòng này làm gì?</strong><span>Kết thúc {returned.call}, trả kết quả về nơi đã gọi.</span></p>
+      <p><strong>Kết quả</strong><span className="insight">{insights[0]}</span></p>
+      <p><strong>Tiếp theo</strong><span>{brief.next}</span></p>
+    </div> : <>{rows(brief)}{why && <div className="simple-step-rows">{why}</div>}</>}
     <details className="text-xs mt-3 text-[var(--text-secondary)]"><summary>Code và chi tiết kỹ thuật</summary><p className="mt-2 whitespace-pre-wrap break-words">{generateExplanation(event, previous || undefined, undefined, code)}</p></details>
     <details className="text-sm mt-3"><summary className="text-[var(--accent)]">✨ Giải thích dễ hơn bằng AI</summary>
       <p className="text-xs text-[var(--text-secondary)] my-2">Khi nhấn Hỏi AI, đoạn code quanh dòng hiện tại và tóm tắt bước sẽ gửi đến Google Gemini. API key chỉ giữ trong bộ nhớ của mục này, không lưu trên máy. Có thể phát sinh phí theo tài khoản Google của bạn.</p>

@@ -30,6 +30,8 @@ export function simpleExplanation(event: TraceEvent, previous: TraceEvent | null
       if (!Object.prototype.hasOwnProperty.call(previous!.variables, name)) continue;
       const old = previous!.variables[name];
       if (JSON.stringify(old) === JSON.stringify(value)) continue;
+      // A loop counter whose loop ended reads as null again; its scope ended, its value did not change.
+      if (value === null && old !== null) continue;
       if (Array.isArray(old) && Array.isArray(value)) {
         if (old.length !== value.length) changes.push(`${name}: ${old.length} → ${value.length} phần tử`);
         for (let i = 0; i < Math.min(old.length, value.length) && changes.length < 3; i++) {
