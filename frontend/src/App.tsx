@@ -439,7 +439,7 @@ function App() {
           {currentEvent && !isStale && <div className="step-explanation" aria-live="polite">
             <strong>{currentEvent.event === 'stdout' && currentEvent.callStack.length === 0 ? 'Đầu ra cuối bản ghi' : `Dòng ${currentEvent.line}`} · Bước {currentStep + 1}/{totalSteps}</strong>
             {currentStep === totalSteps - 1 && <p className="text-sm mt-1 text-[var(--accent)]">Đã đến cuối bản ghi{runtimeError ? ' — chương trình có lỗi, xem thông báo phía trên.' : '.'}</p>}
-            <SimpleStepExplanation event={currentEvent} previous={prevEvent} nextEvent={trace[currentStep + 1]} code={traceCode} />
+            <SimpleStepExplanation event={currentEvent} previous={prevEvent} nextEvent={trace[currentStep + 1]} code={traceCode} trace={trace} />
           </div>}
           <div className="flex-1 min-h-0">
             <VisualizationPanel
