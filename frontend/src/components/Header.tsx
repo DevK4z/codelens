@@ -1,4 +1,4 @@
-import { Code, RefreshCw, BookOpen } from 'lucide-react';
+import { Code, RefreshCw, BookOpen, Bot } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { Sample } from '../data/samples';
 import { useState } from 'react';
@@ -11,9 +11,10 @@ interface HeaderProps {
   isBackendAvailable: boolean;
   onCheckConnection: () => Promise<boolean>;
   currentCode: string;
+  onOpenTutor?: () => void;
 }
 
-export function Header({ theme, toggleTheme, onOpenExerciseBank, isBackendAvailable, onCheckConnection }: HeaderProps) {
+export function Header({ theme, toggleTheme, onOpenExerciseBank, isBackendAvailable, onCheckConnection, onOpenTutor }: HeaderProps) {
   const [checking, setChecking] = useState(false);
 
   const handleCheck = async () => {
@@ -42,6 +43,13 @@ export function Header({ theme, toggleTheme, onOpenExerciseBank, isBackendAvaila
           <BookOpen size={18} />
           Ngân hàng bài tập
         </button>
+        {onOpenTutor && <button
+          onClick={onOpenTutor}
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 border border-[var(--accent)]/40 rounded-md font-medium text-sm transition-colors"
+        >
+          <Bot size={18} />
+          Trợ lý DSA
+        </button>}
 
         <div className="flex items-center gap-2 bg-[var(--bg-card)] px-3 py-1.5 rounded-full border border-[var(--border)] shadow-sm">
           <div className={`w-2.5 h-2.5 rounded-full ${isBackendAvailable ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`}></div>
