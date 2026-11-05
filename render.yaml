@@ -8,7 +8,8 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: .
     # Free: 0.1 CPU and 512 MB, sleeps after 15 idle minutes (about a minute to wake).
-    # Measured on this image: runs take ~8s and step-by-step visualization ~15s.
+    # Measured at 0.1 CPU: step-by-step visualization takes 5-11s the first time, 4-7s when only
+    # the input changes (the compiled program is reused) and is instant for an identical rerun.
     # starter (0.5 CPU) brings both to 1-2.5s; then RUN_TIMEOUT_MS can go back to 5000.
     plan: free
     region: singapore

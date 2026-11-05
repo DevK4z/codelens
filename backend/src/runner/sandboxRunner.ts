@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
-import { chmod, chown, mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { createHash, randomUUID } from 'node:crypto';
+import { chmod, chown, copyFile, lstat, mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Runner, RunResult, RunLimits } from './sandbox.js';
@@ -28,9 +29,11 @@ function killUid(uid: number): Promise<void> {
   });
 }
 
-interface Jailed { code: number; stdout: string; stderr: string; killed: boolean; overflow: boolean }
+export interface Jailed { code: number; stdout: string; stderr: string; killed: boolean; overflow: boolean }
+// `prepare` places files into the run directory (owned by the run's uid) before the jail starts.
+type Prepare = (dir: string, uid: number) => Promise<void>;
 
-async function jailed(program: string[], input: string, timeoutMs: number, maxBytes: number): Promise<Jailed> {
+async function jailed(program: string[], input: string, timeoutMs: number, maxBytes: number, prepare?: Prepare): Promise<Jailed> {
   const uid = freeUids.shift();
   if (uid === undefined) throw new Error('Không còn uid trống cho sandbox.');
   await mkdir(RUNS_DIR, { recursive: true });
@@ -39,6 +42,7 @@ async function jailed(program: string[], input: string, timeoutMs: number, maxBy
   try {
     // mkdtemp creates the directory 0700, so only this run's uid can enter it.
     await chown(dir, uid, uid);
+    await prepare?.(dir, uid);
     return await new Promise<Jailed>((resolve, reject) => {
       const child = spawn(JAIL, [String(uid), String(MEMORY_MB), dir, ...program], { env: {}, stdio: 'pipe' });
       const out: Buffer[] = [], err: Buffer[] = [];
@@ -76,15 +80,98 @@ function assertIsolated(result: Jailed) {
     throw new Error(`Sandbox không cô lập được lần chạy nên đã dừng: ${result.stderr.trim()}`);
 }
 
+// Programs compiled earlier, keyed by standard and source, so running the same code with new input
+// skips compilation (1.5-5s on a 0.1 CPU share). run.sh hands over the binary at the start of its
+// output, right after g++ and before the program runs, so the program cannot change what is stored.
+// The cache is root-only and each run gets its own copy.
+const BUILDS_DIR = join(tmpdir(), `codelens-builds-${process.pid}`);
+const MAX_BUILDS = 64;
+// Room for the base64 binary (run.sh emits at most 8 MiB, i.e. under 12 MiB encoded).
+const EMIT_ALLOWANCE = 12 * 1024 * 1024;
+const builds = new Map<string, string>();
+
+async function storeBuild(key: string, binary: Buffer): Promise<string> {
+  await mkdir(BUILDS_DIR, { recursive: true, mode: 0o700 });
+  const target = join(BUILDS_DIR, key), temp = `${target}.${randomUUID()}`;
+  await writeFile(temp, binary);
+  await chmod(temp, 0o500);
+  await rename(temp, target);
+  builds.delete(key);
+  builds.set(key, target);
+  for (const [old, path] of builds) {
+    if (builds.size <= MAX_BUILDS) break;
+    builds.delete(old);
+    await rm(path, { force: true });
+  }
+  return target;
+}
+
+async function placeBuild(build: string, dir: string, uid: number) {
+  const target = join(dir, 'code');
+  await copyFile(build, target);
+  await chown(target, uid, uid);
+  await chmod(target, 0o700);
+}
+
+// Identical requests for programs whose behaviour cannot vary between runs get the recorded result.
+// Anything that reads the clock, randomness or the process id is always run again.
+const NONDETERMINISTIC = /\b(?:time|clock|rand|srand|random_device|mt19937(?:_64)?|default_random_engine|\w+_distribution|chrono|getpid|shuffle|random_shuffle)\b/;
+const MAX_RESULTS = 32;
+const results = new Map<string, RunResult>();
+
+function remember(key: string, result: RunResult) {
+  results.delete(key);
+  results.set(key, structuredClone(result));
+  for (const old of results.keys()) {
+    if (results.size <= MAX_RESULTS) break;
+    results.delete(old);
+  }
+}
+
+// Splits off the "CODELENS-BUILD <length>" block run.sh wrote before the program started, stores it,
+// and leaves the output and its limit exactly as if the block had never been there.
+export function takeBuild(result: Jailed, maxBytes: number, store: (binary: Buffer) => Promise<unknown>): Jailed {
+  const header = /^CODELENS-BUILD (\d+)\n/.exec(result.stdout);
+  if (!header) return result;
+  const start = header[0].length, length = Number(header[1]);
+  // A block cut short means run.sh was stopped before the program could start.
+  if (result.stdout[start + length] !== '\n') return { ...result, stdout: '' };
+  store(Buffer.from(result.stdout.slice(start, start + length), 'base64')).catch(() => {});
+  let stdout = result.stdout.slice(start + length + 1);
+  const room = Math.max(0, maxBytes - Buffer.byteLength(result.stderr));
+  const overflow = result.overflow || Buffer.byteLength(stdout) > room;
+  if (overflow) stdout = Buffer.from(stdout).subarray(0, room).toString('utf8');
+  return { ...result, stdout, overflow };
+}
+
 export class SandboxRunner implements Runner {
   async run(code: string, stdin: string, limits?: Partial<RunLimits>): Promise<RunResult> {
     const current: RunLimits = { timeoutMs: RUN_TIMEOUT_MS, maxOutputBytes: 10 * 1024 * 1024, maxSteps: 10000, ...limits };
-    const payload = JSON.stringify({ code, stdin: stdin || '', standard: current.standard || 'gnu++17', timeoutMs: current.timeoutMs,
-      debugTrace: !!current.debugTrace, maxSteps: Math.min(current.maxSteps, 2000) });
+    const standard = current.standard || 'gnu++17';
+    const request = { code, stdin: stdin || '', standard, timeoutMs: current.timeoutMs, debugTrace: !!current.debugTrace, maxSteps: Math.min(current.maxSteps, 2000) };
     const started = Date.now();
+    const resultKey = createHash('sha256').update(JSON.stringify([request, current.captureTrace !== false, current.maxOutputBytes])).digest('hex');
+    const cached = results.get(resultKey);
+    if (cached) {
+      remember(resultKey, cached);
+      return { ...structuredClone(cached), executionTimeMs: Date.now() - started };
+    }
+
+    const buildKey = createHash('sha256').update(`${standard}\0${code}`).digest('hex');
+    let build = builds.get(buildKey);
+    if (build && !(await lstat(build).catch(() => undefined))) { builds.delete(buildKey); build = undefined; }
     // run.sh bounds compilation (25s) and execution itself; this outer limit only catches a stuck run.
-    const result = await jailed([RUN], payload, current.timeoutMs + 30000, current.maxOutputBytes);
+    const result = build
+      ? await jailed([RUN], JSON.stringify({ ...request, build: 'reuse' }), current.timeoutMs + 30000, current.maxOutputBytes, (dir, uid) => placeBuild(build!, dir, uid))
+      : takeBuild(await jailed([RUN], JSON.stringify({ ...request, build: 'emit' }), current.timeoutMs + 30000, current.maxOutputBytes + EMIT_ALLOWANCE),
+        current.maxOutputBytes, binary => storeBuild(buildKey, binary));
     assertIsolated(result);
+    const output = this.output(result, current, started);
+    if (!output.timeLimitExceeded && !result.overflow && !NONDETERMINISTIC.test(code)) remember(resultKey, output);
+    return output;
+  }
+
+  private output(result: Jailed, current: RunLimits, started: number): RunResult {
     return readRunOutput({
       exitCode: result.overflow ? 1 : result.code,
       stdout: result.stdout,
