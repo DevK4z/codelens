@@ -1,4 +1,5 @@
 import { Play, Loader2, Terminal, Sparkles, Code2 } from 'lucide-react';
+import { TutorPanel } from './components/TutorPanel';
 import { SampleSelector } from './components/SampleSelector';
 import { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
@@ -47,6 +48,9 @@ function App() {
   const [stdout, setStdout] = useState('');
   const [selectedExercise, setSelectedExercise] = useState<ExerciseItem | null>(null);
   const [showHints, setShowHints] = useState(false);
+  const [tutorOpen, setTutorOpen] = useState(false);
+  // Why a run stopped early, so the tutor can point at an endless loop.
+  const [runLimits, setRunLimits] = useState({ time: false, steps: false });
 
   const [isExerciseBankOpen, setIsExerciseBankOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -209,6 +213,7 @@ function App() {
     setCompilationError(undefined);
     setRuntimeError(undefined);
     setSandboxWarning(undefined);
+    setRunLimits({ time: false, steps: false });
     setStdout('');
     setTrace([]);
     reset();
@@ -235,6 +240,7 @@ function App() {
       if (!response.success && response.runtimeError) {
         setRuntimeError(response.runtimeError);
       }
+      setRunLimits({ time: !!response.timeLimitExceeded, steps: !!response.stepLimitExceeded });
 
       setIsDemo(false);
       connectionCheckId.current += 1;
@@ -320,6 +326,7 @@ function App() {
         toggleTheme={toggleTheme}
         onSelectSample={setPreviewSample}
         onOpenExerciseBank={() => setIsExerciseBankOpen(true)}
+        onOpenTutor={() => setTutorOpen(open => !open)}
         isBackendAvailable={backendAvailable}
         onCheckConnection={checkConnection}
         currentCode={code}
@@ -488,6 +495,16 @@ function App() {
         code={code}
       />
       </>}
+
+      {tutorOpen ? <TutorPanel onClose={() => setTutorOpen(false)} context={{
+        code: trace.length && !isStale ? traceCode : code,
+        trace: isStale ? [] : trace,
+        step: currentStep,
+        stdin: traceStdin,
+        exercise: selectedExercise,
+        runtimeError, compilationError,
+        timeLimitExceeded: runLimits.time, stepLimitExceeded: runLimits.steps,
+      }} /> : null}
     </div>
   );
 }
