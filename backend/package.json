@@ -6,7 +6,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "node --import tsx src/test_samples.ts && node --import tsx test_errors.ts && npm run test:regression && npm run test:types && npm run test:guard && npm run test:api",
+    "test": "node --import tsx src/test_samples.ts && node --import tsx test_errors.ts && npm run test:regression && npm run test:types && npm run test:guard && npm run test:api && npm run test:cache",
     "test:guard": "node --import tsx --test guard.test.ts",
     "test:api": "node --import tsx --test api.test.ts",
     "test:render": "node --import tsx --test render-sandbox.test.ts",
@@ -14,7 +14,8 @@
     "traces": "node --import tsx export_demo_traces.ts",
     "test:types": "node --import tsx type-compat.test.ts",
     "test:debugger": "node --import tsx --test debugger.test.ts",
-    "test:native": "node --import tsx --test native.test.ts"
+    "test:native": "node --import tsx --test native.test.ts",
+    "test:cache": "node --import tsx --test build-cache.test.ts"
   },
   "dependencies": {
     "cors": "^2.8.6",
