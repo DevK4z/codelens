@@ -326,7 +326,7 @@ export function lineFocus(event: TraceEvent, next: TraceEvent | null | undefined
   if (next && !sameFrame && next.callStack.length > event.callStack.length)
     after.push(`Dòng này gọi hàm ${next.callStack[next.callStack.length - 1]?.func ?? ''}: bước tiếp theo đi vào bên trong hàm đó.`);
   else if (next && !sameFrame && next.callStack.length < event.callStack.length && next.callStack.length)
-    after.push('Hàm hiện tại kết thúc, quay lại nơi đã gọi nó.');
+    after.push(`Hàm ${event.callStack[event.callStack.length - 1]?.func} kết thúc, quay lại ${event.callStack[event.callStack.length - 2]?.func} ở dòng ${event.callStack[event.callStack.length - 2]?.line} để làm nốt phần còn lại của dòng đó.`);
 
   const branch = (kind: 'if' | 'while' | 'for' | 'foreach', yes: string, no: string) => {
     const range = controlledRange(code, event.line);
@@ -367,10 +367,21 @@ export function lineFocus(event: TraceEvent, next: TraceEvent | null | undefined
       return { kind: 'foreach', summary: `Duyệt lần lượt từng phần tử của ${each[2].trim()}, mỗi lần gán vào ${each[1]}`, steps: [], outcome, after, refs: [] };
     }
     const [init = '', cond = '', step = ''] = loop.split(';').map(p => p.trim());
-    // At this stop the loop variable has not been incremented yet, so the condition is not evaluated here.
     const outcome = branch('for', 'Điều kiện còn đúng → chạy thêm một vòng', 'Điều kiện đã sai → thoát khỏi vòng lặp');
+    const name = /^(?:[\w:<>]+\s+)?([A-Za-z_]\w*)\s*=/.exec(init)?.[1];
+    const current = name ? vars[name] : undefined;
+    // Back at the header after the body: the step runs, then the condition, both before the next stop.
+    const back = /^[\w:<>]+\s+[A-Za-z_]/.test(init) && typeof current === 'number';
+    const observed = name && sameFrame ? next!.variables[name] : undefined;
+    const value = typeof observed === 'number' ? observed : back ? steppedValue(step, name!, current as number) : undefined;
+    const check = cond && name && value !== undefined ? substitute(cond, { ...vars, [name]: value }) : undefined;
+    const steps = check ? chain(cond, check, true) : [];
+    const verdict = check ? evaluate(check.valued) : undefined;
+    if (outcome && typeof verdict === 'boolean' && verdict !== outcome.taken) steps.pop();
+    if (back && value !== undefined && typeof observed !== 'number') after.push(`${name}: ${current} → ${value}`);
+    if (back) return { kind: 'for', summary: `Hết một vòng: thực hiện ${step}, rồi kiểm tra lại ${cond}`, steps, outcome, after, refs: check?.refs ?? [] };
     const parts = [init && `khởi tạo ${init}`, cond && `lặp khi ${cond}`, step && `sau mỗi vòng: ${step}`].filter(Boolean);
-    return { kind: 'for', summary: `Vòng lặp for: ${parts.join(', ')}`, steps: [], outcome, after, refs: [] };
+    return { kind: 'for', summary: `Vòng lặp for: ${parts.join(', ')}`, steps, outcome, after, refs: check?.refs ?? [] };
   }
   if ((h = header(source, /^(?:std::)?swap\s*\(/)) && !h.rest) {
     const [a = '', b = ''] = splitArgs(h.inner);
@@ -487,6 +498,14 @@ function header(source: string, keyword: RegExp): { inner: string; rest: string 
     else if (source[i] === ')' && --depth === 0) return { inner: source.slice(open + 1, i), rest: source.slice(i + 1).trim() };
   }
   return undefined;
+}
+
+// The loop variable after "i++", "i--" or "i += 2", for a stop where the program has not run it yet.
+function steppedValue(step: string, name: string, value: number): number | undefined {
+  const m = new RegExp(String.raw`^(?:${name}\s*(\+\+|--)|(\+\+|--)\s*${name}|${name}\s*([-+])=\s*(\d+))$`).exec(step.trim());
+  if (!m) return undefined;
+  const increment = m[1] ?? m[2];
+  return increment ? value + (increment === '++' ? 1 : -1) : value + (m[3] === '+' ? 1 : -1) * Number(m[4]);
 }
 
 function splitArgs(text: string): string[] {

@@ -183,3 +183,27 @@ test('a name that merely starts like a type is not a declaration', () => {
   assert.equal(summary(4), 'Tạo biến p và gán giá trị q');
   assert.equal(summary(5), 'Tạo biến v');
 });
+
+test('a for loop shows its start, each step and the check that ends it', () => {
+  const code = 'int main() {\n  for (int i = 0; i < 3; i++) {\n    s += i;\n  }\n  return s;\n}';
+  const start = lineFocus(at(2, { i: null, s: 0 }), at(3, { i: 0, s: 0 }), code)!;
+  assert.match(start.summary, /^Vòng lặp for: khởi tạo int i = 0/);
+  assert.deepEqual(start.steps, ['i < 3', '0 < 3', 'true']);
+
+  const again = lineFocus(at(2, { i: 0, s: 0 }), at(3, { i: 1, s: 0 }), code)!;
+  assert.equal(again.summary, 'Hết một vòng: thực hiện i++, rồi kiểm tra lại i < 3');
+  assert.deepEqual(again.steps, ['i < 3', '1 < 3', 'true']);
+  assert.equal(again.outcome?.taken, true);
+
+  const end = lineFocus(at(2, { i: 2, s: 3 }), at(5, { i: null, s: 3 }), code)!;
+  assert.deepEqual(end.steps, ['i < 3', '3 < 3', 'false']);
+  assert.equal(end.outcome?.taken, false);
+  assert.deepEqual(end.after, ['i: 2 → 3']);
+});
+
+test('leaving a function says where the program goes back to', () => {
+  const stack = [{ func: 'main', line: 9 }, { func: 'f', line: 2 }];
+  const code = 'int f() {\n  return 1;\n}';
+  const event = { ...at(2, {}), callStack: stack };
+  assert.match(lineFocus(event, at(9, {}), code)!.after[0], /^Hàm f kết thúc, quay lại main ở dòng 9/);
+});

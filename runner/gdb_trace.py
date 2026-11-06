@@ -15,6 +15,7 @@ LIBRARY_TYPES = ('std::', '__gnu', '__cxx', '_IO_', '__')
 pointers = []
 node_cache = {}
 previous_heap = {}
+starting = False
 # The program is always one file compiled as `g++ code.cpp`. Match it by that recorded name, not
 # by absolute path: a binary reused from the cache was compiled in another run's directory.
 SOURCE = 'code.cpp'
@@ -241,6 +242,10 @@ def emit(frame, sal):
         out = open('program.stdout', 'rb').read(1024 * 1024).decode('utf-8', errors='replace')
     except OSError:
         out = ''
+    # A jump to the condition stops once on the jump and once on the condition, with nothing between.
+    last = trace[-1] if trace else None
+    if last and last['line'] == sal.line and last['variables'] == variables and last['stdout'] == out and last['callStack'] == stack:
+        return
     event = {'step': len(trace), 'line': sal.line, 'event': 'line',
              'callStack': stack, 'variables': variables,
              'changed': [k for k in variables if k not in previous or variables[k] != previous[k]],
@@ -258,9 +263,24 @@ def exited(event):
     global exit_code
     exit_code = getattr(event, 'exit_code', 1)
 
+def later_line_addresses(symtab):
+    """Where a line's code resumes after other lines' code: the second and later runs of a line."""
+    seen = set()
+    addresses = []
+    current = None
+    for pc, line in sorted((entry.pc, entry.line) for entry in symtab.linetable()):
+        if line == current:
+            continue
+        current = line
+        if line > 0:
+            if line in seen:
+                addresses.append(pc)
+            seen.add(line)
+    return addresses
+
 def stopped(event):
     global signal
-    if isinstance(event, gdb.SignalEvent):
+    if not starting and isinstance(event, gdb.SignalEvent):
         signal = event.stop_signal
 
 def register_std_printers():
@@ -301,7 +321,19 @@ try:
             bp.silent = True
         except gdb.error:
             pass
-    gdb.execute('run < input.txt > program.stdout 2> program.stderr', to_string=True)
+    # A line breakpoint only covers a line's first address, which skips the increment and condition
+    # a loop runs at the bottom. Their addresses are final once the program is loaded (it is
+    # position independent), so stop at its first instruction and add them before anything runs.
+    starting = True
+    gdb.execute('starti < input.txt > program.stdout 2> program.stderr', to_string=True)
+    starting = False
+    for address in later_line_addresses(main.symtab):
+        try:
+            bp = gdb.Breakpoint('*%d' % address, internal=True)
+            bp.silent = True
+        except gdb.error:
+            pass
+    gdb.execute('continue', to_string=True)
     while exit_code is None and not signal:
         frame = gdb.newest_frame()
         sal = user_location(frame)
