@@ -337,6 +337,19 @@ export function lineFocus(event: TraceEvent, next: TraceEvent | null | undefined
 
   // A loop written on one line stops once per round; what runs in that round is its body.
   const inlineLoop = header(source, /^for\s*\(/) ?? header(source, /^while\s*\(/);
+  if (event.loopCheck && inlineLoop) {
+    const parts = inlineLoop.inner.split(';').map(p => p.trim());
+    const condition = /^for\b/.test(source) ? parts[1] : parts[0];
+    const taken = next?.line === event.line;
+    const text = taken ? 'ĐÚNG → chạy thêm một vòng lặp' : 'SAI → thoát khỏi vòng lặp';
+    const kind = /^for\b/.test(source) ? 'for' as const : 'while' as const;
+    if (condition === undefined) return { kind, summary: `Kiểm tra còn phần tử để duyệt không`, steps: [], outcome: { taken, text: taken ? 'Còn → chạy thêm một vòng lặp' : 'Hết → thoát khỏi vòng lặp' }, after: [], refs: [] };
+    const check = substitute(condition, vars);
+    const steps = chain(condition, check, true);
+    const verdict = evaluate(check.valued);
+    if (typeof verdict === 'boolean' && verdict !== taken) steps.pop();
+    return { kind, summary: `Kiểm tra điều kiện ${condition}`, steps, outcome: next ? { taken, text } : undefined, after: [], refs: check.refs };
+  }
   if (inlineLoop?.rest && !/^\{?\s*$/.test(inlineLoop.rest)) {
     const loopVar = /^(?:[\w:<>]+[\s&]+)?([A-Za-z_]\w*)\s*[=:]/.exec(inlineLoop.inner)?.[1];
     if (!loopVar || (vars[loopVar] !== null && vars[loopVar] !== undefined)) {
@@ -397,9 +410,10 @@ export function lineFocus(event: TraceEvent, next: TraceEvent | null | undefined
     const observed = name && sameFrame ? next!.variables[name] : undefined;
     const value = typeof observed === 'number' ? observed : back ? steppedValue(step, name!, current as number) : undefined;
     const check = cond && name && value !== undefined ? substitute(cond, { ...vars, [name]: value }) : undefined;
-    const steps = check ? chain(cond, check, true) : [];
+    // A one-line loop checks its condition in the next step, which shows it.
+    const steps = check && !next?.loopCheck ? chain(cond, check, true) : [];
     const verdict = check ? evaluate(check.valued) : undefined;
-    if (outcome && typeof verdict === 'boolean' && verdict !== outcome.taken) steps.pop();
+    if (steps.length && outcome && typeof verdict === 'boolean' && verdict !== outcome.taken) steps.pop();
     if (back && value !== undefined && typeof observed !== 'number') after.push(`${name}: ${current} → ${value}`);
     if (back) return { kind: 'for', summary: `Hết một vòng: thực hiện ${step}, rồi kiểm tra lại ${cond}`, steps, outcome, after, refs: check?.refs ?? [] };
     const parts = [init && `khởi tạo ${init}`, cond && `lặp khi ${cond}`, step && `sau mỗi vòng: ${step}`].filter(Boolean);
@@ -463,7 +477,14 @@ export function lineFocus(event: TraceEvent, next: TraceEvent | null | undefined
   }
   const assignment = topLevelAssignment(source);
   if (assignment && /^[A-Za-z_*(]/.test(assignment.lhs)) {
-    const { lhs, op, rhs } = assignment;
+    const { lhs, op } = assignment;
+    let { rhs } = assignment;
+    // a = b = 0 writes every name in the chain.
+    const targets = [lhs];
+    for (let more = op === '=' ? topLevelAssignment(rhs) : undefined; more?.op === '='; more = topLevelAssignment(rhs)) {
+      targets.push(more.lhs);
+      rhs = more.rhs;
+    }
     const target = substitute(lhs, vars, 'write');
     const expr = op === '=' ? rhs : `${lhs} ${op[0]} ${/[-+*/%]/.test(rhs) ? `(${rhs})` : rhs}`;
     const s = substitute(expr, vars);
@@ -471,9 +492,10 @@ export function lineFocus(event: TraceEvent, next: TraceEvent | null | undefined
     // Nothing to compute in "x = 1" or "x = y": it is a plain copy.
     const plain = /^(?:-?\d+(?:\.\d+)?|true|false|'[^']*'|[A-Za-z_]\w*)$/.test(rhs);
     const summary = op !== '=' ? `${OPERATION[op]?.(lhs, rhs) ?? `Cập nhật ${lhs} với ${rhs}`}${where}`
-      : plain ? `Gán ${rhs} vào ${lhs}${where}` : `Tính ${rhs} rồi lưu vào ${lhs}${where}`;
+      : plain ? `Gán ${rhs} vào ${targets.join(', ')}${where}` : `Tính ${rhs} rồi lưu vào ${targets.join(', ')}${where}`;
     const reads = s.refs.filter(r => !target.refs.some(t => t.text === r.text));
-    return { kind: 'assign', summary, steps: chain(expr, s, true), after, refs: [...target.refs, ...reads] };
+    const chained = targets.slice(1).flatMap(name => substitute(name, vars, 'write').refs);
+    return { kind: 'assign', summary, steps: chain(expr, s, true), after, refs: [...target.refs, ...chained, ...reads] };
   }
   const s = substitute(source, vars);
   return { kind: 'other', summary: statementSummary(source), steps: s.valued !== source ? chain(source, s, false) : [], after, refs: s.refs };
@@ -528,6 +550,18 @@ function steppedValue(step: string, name: string, value: number): number | undef
   if (!m) return undefined;
   const increment = m[1] ?? m[2];
   return increment ? value + (increment === '++' ? 1 : -1) : value + (m[3] === '+' ? 1 : -1) * Number(m[4]);
+}
+
+// Names and cells this line reads that the program has not written yet: what it gets is leftover memory.
+export function unknownReads(focus: LineFocus, unset: string[] = []): string[] {
+  // A for header sets its own variable before testing it.
+  if (focus.kind === 'for' || focus.kind === 'foreach') return [];
+  const cells = focus.refs.filter(r => r.access === 'read' && r.inRange && r.value === null).map(r => r.text);
+  // Arguments are left out: a function may take them by reference and write them.
+  const expression = (focus.steps[0] ?? '').replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, ' ').replace(/[\w.>-]+\s*\([^()]*\)/g, ' ').replace(/>>\s*[A-Za-z_]\w*/g, ' ').replace(/[A-Za-z_]\w*\s*\[[^\]]*\]/g, ' ');
+  const names = (expression.match(/(?<![.\w>])[A-Za-z_]\w*\b(?!\s*\()/g) ?? [])
+    .filter(name => unset.includes(name) && !new RegExp(`>>\\s*${name}\\b`).test(focus.steps[0] ?? ''));
+  return [...new Set([...cells, ...names])];
 }
 
 // Statements sharing a line; semicolons inside parentheses or literals do not count.

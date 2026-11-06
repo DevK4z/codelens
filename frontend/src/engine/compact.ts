@@ -15,6 +15,9 @@ export function compactTrace(trace: TraceEvent[], code: string): TraceEvent[] {
     const source = stripComment(lines[event.line - 1] ?? '').trim();
     const depth = event.callStack.length, before = trace[i - 1]?.callStack.length ?? 0, after = trace[i + 1]?.callStack.length ?? 0;
     if (depth > before && !source.endsWith(';') && FUNCTION_HEADER.test(source)) return false;
+    // The jump to a one-line while's condition: the check that follows says the same with its result.
+    const following = trace[i + 1];
+    if (following?.loopCheck && following.line === event.line && !event.loopCheck && JSON.stringify(following.variables) === JSON.stringify(event.variables)) return false;
     const func = event.callStack[depth - 1]?.func ?? '';
     return !(/^\}\s*;?$/.test(source) && !(after < depth && recursive.has(func)));
   });
@@ -68,6 +71,7 @@ export function hideUninitialized(trace: TraceEvent[], code: string): TraceEvent
     const ran = sameCall ? lines[previous.line - 1] ?? '' : '';
     const writes = sameCall && previous.event === 'line' ? lineFocus(previous, event, code)?.refs.filter(r => r.access === 'write') ?? [] : [];
     let variables = event.variables;
+    const unset: string[] = [];
     for (const { name, from, to } of candidates) {
       if (event.line < from || event.line > to || !Object.prototype.hasOwnProperty.call(event.variables, name)) continue;
       const key = `${depth}:${name}:${from}`, value = event.variables[name];
@@ -76,11 +80,39 @@ export function hideUninitialized(trace: TraceEvent[], code: string): TraceEvent
       states.set(key, state);
       for (const ref of writes) if (ref.array === name) state.written.add(['', ...ref.indices].join('/'));
       const assigned = new RegExp(`(?:\\b${name}\\s*(?:[-+*/%]?=(?!=)|\\+\\+|--)|(?:\\+\\+|--|>>\\s*|&\\s*)${name}\\b)`).test(ran);
-      // Passed whole to something like memset or fill.
-      const whole = assigned || new RegExp(`\\(\\s*${name}\\s*[,)]`).test(ran);
+      // Handed to something that can write it: an argument (memset, a reference parameter) or a pointer.
+      const whole = assigned || new RegExp(`[(,]\\s*${name}\\s*[-+,)]|\\*\\s*\\w+\\s*=\\s*${name}\\b`).test(ran);
       const masked = maskLeaves(value, state.base, state.written, whole, '');
       if (masked !== value) variables = { ...variables, [name]: masked };
+      if (masked === null) unset.push(name);
     }
-    return variables === event.variables ? event : { ...event, variables };
+    if (variables === event.variables) return event;
+    return { ...event, variables, ...(unset.length ? { unset } : {}) };
+  });
+}
+
+function resolvePointer(expression: string, event: TraceEvent): string | undefined {
+  const [first, ...fields] = expression.trim().split('->').map(part => part.trim());
+  let value: unknown = event.variables[first];
+  for (const field of fields) value = event.heap?.[String(value).split(' ')[0]]?.fields[field];
+  return typeof value === 'string' && value.startsWith('0x') ? value.split(' ')[0] : undefined;
+}
+
+// The tracer reads memory, and memory keeps a deleted node's bytes. The program said it is gone, so
+// it leaves the picture from the next step, until new hands that address out again with new contents.
+export function dropDeletedNodes(trace: TraceEvent[], code: string): TraceEvent[] {
+  if (!/\bdelete\b/.test(code)) return trace;
+  const lines = code.split(/\r?\n/), freed = new Map<string, string>();
+  return trace.map((event, i) => {
+    const previous = trace[i - 1];
+    if (previous) {
+      const source = stripComment(lines[previous.line - 1] ?? '').trim();
+      const target = /^delete(?:\s*\[\s*\])?\s+([^;]+);/.exec(source)?.[1];
+      const address = target ? resolvePointer(target, previous) : undefined;
+      if (address && previous.heap?.[address]) freed.set(address, JSON.stringify(previous.heap[address]));
+      if (/\bnew\b/.test(source)) for (const [key, node] of freed) if (event.heap?.[key] && JSON.stringify(event.heap[key]) !== node) freed.delete(key);
+    }
+    if (!event.heap || ![...freed.keys()].some(key => event.heap![key])) return event;
+    return { ...event, heap: Object.fromEntries(Object.entries(event.heap).filter(([key]) => !freed.has(key))) };
   });
 }

@@ -149,6 +149,8 @@ int main() {
 `, 'visualize');
   assert.equal(inline.stdout, '3');
   const rounds = inline.trace.filter(e => e.line === 5 && typeof e.variables.i === 'number');
-  assert.deepEqual(rounds.map(e => e.variables.i), [2, 3, 4]);
-  assert.deepEqual(rounds.map(e => e.variables.f.slice(0, e.variables.i)), [[0, 1], [0, 1, 1], [0, 1, 1, 2]], 'one cell per round');
+  const checks = rounds.filter(e => e.loopCheck), bodies = rounds.filter(e => !e.loopCheck);
+  assert.deepEqual(bodies.map(e => e.variables.i), [2, 3, 4]);
+  assert.deepEqual(bodies.map(e => e.variables.f.slice(0, e.variables.i)), [[0, 1], [0, 1, 1], [0, 1, 1, 2]], 'one cell per round');
+  assert.deepEqual(checks.map(e => e.variables.i), [2, 3, 4, 5], 'the condition is seen with the updated i, ending at 5');
 });

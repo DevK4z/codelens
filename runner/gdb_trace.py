@@ -17,6 +17,8 @@ node_cache = {}
 previous_heap = {}
 starting = False
 resumed = set()
+rounds = set()
+checks = set()
 ONE_LINE_LOOP = re.compile(r'\b(?:for|while)\s*\(.*\)\s*[^\s{/].*;')
 # The program is always one file compiled as `g++ code.cpp`. Match it by that recorded name, not
 # by absolute path: a binary reused from the cache was compiled in another run's directory.
@@ -249,12 +251,16 @@ def emit(frame, sal):
         out = ''
     # A jump to the condition stops once on the jump and once on the condition, with nothing between.
     last = trace[-1] if trace else None
-    if last and last['line'] == sal.line and last['variables'] == variables and last['stdout'] == out and last['callStack'] == stack:
+    at_check = frame.pc() in checks
+    # A round and the check before it can look identical, yet each is a step of its own.
+    if last and not at_check and frame.pc() not in rounds and last['line'] == sal.line and last['variables'] == variables and last['stdout'] == out and last['callStack'] == stack:
         return
     event = {'step': len(trace), 'line': sal.line, 'event': 'line',
              'callStack': stack, 'variables': variables,
              'changed': [k for k in variables if k not in previous or variables[k] != previous[k]],
              'stdout': out, 'detail': 'GCC/GDB: trạng thái trước khi thực thi dòng này.'}
+    if at_check:
+        event['loopCheck'] = True
     # Recorded only when it changes: long runs over a tree would otherwise repeat it at every step.
     if heap != previous_heap:
         event['heap'] = heap
@@ -284,21 +290,38 @@ def later_line_addresses(symtab):
     return addresses
 
 def one_line_loop_bodies(symtab):
-    """Where each round of a loop written on one line starts. All of its code is one line, so line
-    information cannot split it; the backward jump that closes the loop lands on the body."""
+    """Where each round of a loop written on one line starts, and where its condition is checked.
+    All of its code is one line, so line numbers cannot split it. The machine code can: the backward
+    jump that closes the loop lands on the body, and the jump that enters it lands on the condition."""
     source = open(SOURCE, errors='replace').read().split('\n')
     entries = sorted((entry.pc, entry.line) for entry in symtab.linetable())
     architecture = gdb.selected_frame().architecture()
-    targets = []
+    bodies = []
+    groups = []
     for (start, line), (end, _) in zip(entries, entries[1:]):
+        if groups and groups[-1][2] == line and groups[-1][1] == start:
+            groups[-1][1] = end
+        else:
+            groups.append([start, end, line])
+    for start, end, line in groups:
         text = source[line - 1] if 0 < line <= len(source) else ''
         if end <= start or not ONE_LINE_LOOP.search(text):
             continue
+        jumps = []
         for instruction in architecture.disassemble(start, end - 1):
-            jump = re.match(r'j\w+\s+0x([0-9a-f]+)', instruction['asm'])
-            if jump and int(jump.group(1), 16) < instruction['addr']:
-                targets.append(int(jump.group(1), 16))
-    return sorted(set(targets))
+            jump = re.match(r'(j\w+)\s+0x([0-9a-f]+)', instruction['asm'])
+            if jump:
+                jumps.append((instruction['addr'], jump.group(1), int(jump.group(2), 16)))
+        for address, _, body in [j for j in jumps if j[2] < j[0]]:
+            bodies.append(body)
+            entered = [target for at, name, target in jumps if name == 'jmp' and at < body <= target <= address]
+            if entered:
+                # A range-for compares iterators in code inlined from a header; the program's own
+                # code resumes at the part holding the jump.
+                check = gdb.find_pc_line(entered[-1])
+                inlined = not check.symtab or check.symtab.filename != SOURCE
+                checks.add(gdb.find_pc_line(address).pc if inlined else entered[-1])
+    return sorted(set(bodies))
 
 def stopped(event):
     global signal
@@ -349,7 +372,8 @@ try:
     starting = True
     gdb.execute('starti < input.txt > program.stdout 2> program.stderr', to_string=True)
     starting = False
-    resumed.update(later_line_addresses(main.symtab) + one_line_loop_bodies(main.symtab))
+    rounds.update(one_line_loop_bodies(main.symtab))
+    resumed.update(later_line_addresses(main.symtab), rounds, checks)
     for address in resumed:
         try:
             bp = gdb.Breakpoint('*%d' % address, internal=True)

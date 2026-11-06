@@ -14,6 +14,8 @@ export interface TraceEvent {
   compareAccesses?: { array: string; index: number }[];
   compareInfo?: { left: string; right: string; leftValue: any; rightValue: any; operator: string; result: boolean };
   heap?: Heap;
+  loopCheck?: boolean;
+  unset?: string[];
 }
 
 // Structs reachable through pointers at this step, by address (see runner/gdb_trace.py).

@@ -1,6 +1,6 @@
 // Facts the tutor derives from a whole recorded run: how a variable evolved and what looks wrong.
 import type { TraceEvent } from '../engine/types.ts';
-import { indexable, lineFocus, stripComment } from '../engine/lineFocus.ts';
+import { indexable, lineFocus, stripComment, unknownReads } from '../engine/lineFocus.ts';
 import { formatObserved } from '../engine/stepState.ts';
 
 export const show = (v: unknown) => typeof v === 'string' && v.length === 1 ? `'${v}'` : formatObserved(v);
@@ -26,7 +26,7 @@ export function variableHistory(trace: TraceEvent[], name: string, step: number)
   return changes;
 }
 
-export interface Issue { step: number; line: number; kind: 'out_of_range' | 'overflow' | 'endless' | 'runtime' | 'compile'; text: string }
+export interface Issue { step: number; line: number; kind: 'out_of_range' | 'uninitialized' | 'overflow' | 'endless' | 'runtime' | 'compile'; text: string }
 
 const INT_LIMIT = 2_000_000_000;
 
@@ -52,6 +52,12 @@ export function findIssues(trace: TraceEvent[], code: string, status: { runtimeE
         seen.add(key);
         issues.push({ step, line: event.line, kind: 'out_of_range', text: `Dòng ${event.line} ${ref.access === 'write' ? 'ghi vào' : 'đọc'} \`${ref.text}\` = \`${ref.array}[${ref.indices.join('][')}]\` nhưng \`${ref.array}\` chỉ có ${items.length} phần tử (chỉ số hợp lệ 0..${items.length - 1}). Truy cập ngoài mảng là hành vi không xác định: có thể ra số rác hoặc làm chương trình dừng đột ngột.` });
       }
+    }
+    const focus = event.event === 'line' ? lineFocus(event, trace[step + 1], code) : undefined;
+    for (const name of focus ? unknownReads(focus, event.unset) : []) {
+      if (seen.has(`unset:${name}`)) continue;
+      seen.add(`unset:${name}`);
+      issues.push({ step, line: event.line, kind: 'uninitialized', text: `Dòng ${event.line} đọc \`${name}\` khi chưa được gán, nên chương trình dùng giá trị rác còn trong bộ nhớ. Hãy gán giá trị trước khi đọc.` });
     }
     for (const [name, value] of Object.entries(event.variables)) {
       if (typeof value === 'number' && Number.isInteger(value) && Math.abs(value) >= INT_LIMIT && !seen.has(`overflow:${name}`)) {

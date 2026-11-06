@@ -285,6 +285,7 @@ const BUILDERS: Record<Exclude<Intent, 'more' | 'reveal'>, Builder> = {
     const first = issues[0];
     const questions = first.kind === 'out_of_range'
       ? [`Hãy xem dòng ${first.line} ở bước ${first.step + 1}. Mảng ở đó có bao nhiêu phần tử, và chỉ số đang dùng là bao nhiêu?`, 'Chỉ số hợp lệ lớn nhất là n - 1. Điều kiện vòng lặp hay biểu thức chỉ số nào để giá trị vượt quá?']
+      : first.kind === 'uninitialized' ? [`Hãy xem dòng ${first.line} ở bước ${first.step + 1}: giá trị được đọc ở đó đã được gán ở đâu chưa?`, 'Nếu chưa, biến đó đang chứa gì? Nên khởi tạo nó ở dòng nào?']
       : first.kind === 'endless' ? ['Biến nào quyết định khi nào vòng lặp (hoặc đệ quy) dừng?', 'Sau mỗi vòng, biến đó có tiến gần tới điều kiện dừng không?']
       : first.kind === 'compile' ? [`Trình biên dịch báo lỗi${first.line ? ` ở dòng ${first.line}` : ''}. Bạn đọc dòng đó xem có thiếu dấu ; ngoặc, hay sai tên biến không?`]
       : [`Có dấu hiệu bất thường ở dòng ${first.line}. Bạn xem giá trị các biến ở bước ${first.step + 1} có đúng như dự đoán không?`];
