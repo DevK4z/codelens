@@ -252,8 +252,41 @@ function topLevelAssignment(text: string): { lhs: string; op: string; rhs: strin
   return undefined;
 }
 
-const DECLARATION = /^(?:static\s+)?(?:const\s+)?(?:unsigned\s+|signed\s+)?(?:long\s+long|long|int|short|double|float|char|bool|auto|size_t|(?:std::)?string|(?:std::)?vector\s*<.*>)\s*[&*]?\s*([A-Za-z_]\w*)\s*(.*)$/;
-const OPERATION: Record<string, string> = { '+=': 'Cộng thêm', '-=': 'Trừ bớt', '*=': 'Nhân', '/=': 'Chia', '%=': 'Lấy dư' };
+const BUILT_IN_TYPES = String.raw`long\s+long|long|int|short|double|float|char|bool|auto|void|size_t|(?:std::)?string|(?:std::)?\w+\s*<.*>`;
+
+// Names the program defines for types: typedef long long ll, using ll = ..., #define ll ..., struct Node.
+export function definedTypes(code: string): string[] {
+  const names = [
+    ...code.matchAll(/\btypedef\b[^;]*?\b(\w+)\s*;/g), ...code.matchAll(/\busing\s+(\w+)\s*=/g),
+    ...code.matchAll(/^\s*#\s*define\s+(\w+)\s+(?:unsigned|signed|long|int|short|double|float|char|bool|string|vector|pair|map|set|std)\b/gm),
+    ...code.matchAll(/\b(?:struct|class)\s+(\w+)/g),
+  ].map(m => m[1]);
+  return [...new Set(names)];
+}
+
+function declarationPattern(code: string): RegExp {
+  const types = [BUILT_IN_TYPES, ...definedTypes(code)].join('|');
+  return new RegExp(String.raw`^(?:static\s+|inline\s+|constexpr\s+)*(?:const\s+)?(?:unsigned\s+|signed\s+)?(?:${types})(?:\s+const)?(?:\s+|\s*[&*]+\s*|(?<=>))([A-Za-z_~][\w:~]*)\s*(.*)$`);
+}
+
+// Names of constants defined at file scope, which never change and say nothing about a step.
+export function globalConstants(code: string): Set<string> {
+  const names = new Set<string>();
+  let depth = 0;
+  for (const raw of code.split(/\r?\n/)) {
+    const line = stripComment(raw);
+    if (depth === 0 && /^(?:static\s+)?(?:const|constexpr)\b/.test(line)) {
+      const declared = /^(?:static\s+)?(?:const|constexpr)\s+(?:const\s+)?[\w:<>]+(?:\s+[\w:<>]+)*?\s+(.+?);?$/.exec(line)?.[1] ?? '';
+      for (const part of splitArgs(declared)) { const name = /^[*&\s]*([A-Za-z_]\w*)/.exec(part)?.[1]; if (name) names.add(name); }
+    }
+    depth += (line.match(/\{/g) ?? []).length - (line.match(/\}/g) ?? []).length;
+  }
+  return names;
+}
+const OPERATION: Record<string, (lhs: string, rhs: string) => string> = {
+  '+=': (l, r) => `Cộng thêm ${r} vào ${l}`, '-=': (l, r) => `Trừ bớt ${r} khỏi ${l}`, '*=': (l, r) => `Nhân ${l} với ${r}`,
+  '/=': (l, r) => `Chia ${l} cho ${r}`, '%=': (l, r) => `Lấy ${l} chia ${r} lấy dư`,
+};
 
 function observedChanges(event: TraceEvent, next: TraceEvent): string[] {
   const changes: string[] = [];
@@ -367,12 +400,20 @@ export function lineFocus(event: TraceEvent, next: TraceEvent | null | undefined
     const lhs = substitute(target, vars, 'write');
     return { kind: 'assign', summary: `${up ? 'Tăng' : 'Giảm'} ${target} ${up ? 'thêm' : 'bớt'} 1`, steps: chain(`${target} ${up ? '+' : '-'} 1`, s, true), after, refs: [...lhs.refs, ...s.refs.filter(r => r.text !== target)] };
   }
-  const declaration = DECLARATION.exec(source);
+  // Statements that continue the previous line have no meaning of their own to explain.
+  const open = (source.match(/\(/g) ?? []).length, close = (source.match(/\)/g) ?? []).length;
+  if (/^[:?&|]/.test(source) || (open !== close && !/^(?:else\s+)?(?:if|while)\b/.test(source))) return { kind: 'other', summary: `Phần tiếp theo của câu lệnh ở dòng trên: ${source}`, steps: [], after, refs: substitute(source, vars).refs };
+  if (/^(?:else\s+)?(?:if|while)\b/.test(source)) return { kind: 'other', summary: `Kiểm tra điều kiện viết trên nhiều dòng, bắt đầu bằng ${source}`, steps: [], after, refs: [] };
+  const definition = /^(?:struct|class)\s+(\w+)/.exec(source);
+  if (definition) return { kind: 'other', summary: `Khởi tạo ${definition[1]}`, steps: [], after, refs: [] };
+  if (/^[A-Za-z_~][\w:~]*\s*\(.*\)$/.test(source) && !/;\s*$/.test(stripComment(raw)))
+    return { kind: 'other', summary: `Bắt đầu hàm ${source.slice(0, source.indexOf('(')).trim()}`, steps: [], after, refs: [] };
+  const declaration = declarationPattern(code).exec(source);
   if (declaration) {
     const [, name, rawRest] = declaration;
     const rest = rawRest.trim();
     // A function header ends without ';' (prototypes aside); "vector<int> v(n, 0);" is a declaration.
-    if (!/;\s*$/.test(stripComment(raw)) && /^\((?:\s*|.*\b(?:int|long|double|float|char|bool|string|vector|auto|const)\b.*)\)$/.test(rest))
+    if (!/;\s*$/.test(stripComment(raw)) && rest.startsWith('('))
       return { kind: 'other', summary: `Bắt đầu hàm ${name}`, steps: [], after, refs: [] };
     if (rest.startsWith('[')) return { kind: 'declare', summary: `Tạo mảng ${name}${rest.replace(/\s+/g, ' ')}`, steps: [], after, refs: [] };
     if (rest.startsWith(',')) return { kind: 'declare', summary: `Tạo các biến ${name}${rest}`, steps: [], after, refs: [] };
@@ -388,7 +429,7 @@ export function lineFocus(event: TraceEvent, next: TraceEvent | null | undefined
     return { kind: 'declare', summary: `Tạo biến ${name} và gán giá trị ${init.trim()}`, steps: chain(init, s, true), after, refs: s.refs };
   }
   const assignment = topLevelAssignment(source);
-  if (assignment && /^[A-Za-z_]/.test(assignment.lhs)) {
+  if (assignment && /^[A-Za-z_*(]/.test(assignment.lhs)) {
     const { lhs, op, rhs } = assignment;
     const target = substitute(lhs, vars, 'write');
     const expr = op === '=' ? rhs : `${lhs} ${op[0]} ${/[-+*/%]/.test(rhs) ? `(${rhs})` : rhs}`;
@@ -396,13 +437,39 @@ export function lineFocus(event: TraceEvent, next: TraceEvent | null | undefined
     const where = target.indexed !== lhs ? ` (tức ${target.indexed})` : '';
     // Nothing to compute in "x = 1" or "x = y": it is a plain copy.
     const plain = /^(?:-?\d+(?:\.\d+)?|true|false|'[^']*'|[A-Za-z_]\w*)$/.test(rhs);
-    const summary = op !== '=' ? `${OPERATION[op] ?? 'Cập nhật'} ${rhs} vào ${lhs}${where}`
+    const summary = op !== '=' ? `${OPERATION[op]?.(lhs, rhs) ?? `Cập nhật ${lhs} với ${rhs}`}${where}`
       : plain ? `Gán ${rhs} vào ${lhs}${where}` : `Tính ${rhs} rồi lưu vào ${lhs}${where}`;
     const reads = s.refs.filter(r => !target.refs.some(t => t.text === r.text));
     return { kind: 'assign', summary, steps: chain(expr, s, true), after, refs: [...target.refs, ...reads] };
   }
   const s = substitute(source, vars);
-  return { kind: 'other', summary: `Thực hiện ${source}`, steps: s.valued !== source ? chain(source, s, false) : [], after, refs: s.refs };
+  return { kind: 'other', summary: statementSummary(source), steps: s.valued !== source ? chain(source, s, false) : [], after, refs: s.refs };
+}
+
+const MEMBER_ACTIONS: Record<string, (object: string, args: string) => string> = {
+  push_back: (o, a) => `Thêm ${a} vào cuối ${o}`, emplace_back: (o, a) => `Thêm ${a} vào cuối ${o}`, push_front: (o, a) => `Thêm ${a} vào đầu ${o}`,
+  push: (o, a) => `Đưa ${a} vào ${o}`, emplace: (o, a) => `Đưa ${a} vào ${o}`, enqueue: (o, a) => `Đưa ${a} vào cuối hàng đợi ${o}`,
+  pop_back: o => `Bỏ phần tử cuối của ${o}`, pop_front: o => `Bỏ phần tử đầu của ${o}`, pop: o => `Lấy phần tử tiếp theo ra khỏi ${o}`,
+  dequeue: o => `Lấy phần tử đầu ra khỏi hàng đợi ${o}`, clear: o => `Xóa hết phần tử của ${o}`,
+  insert: (o, a) => `Chèn ${a} vào ${o}`, erase: (o, a) => `Xóa ${a} khỏi ${o}`,
+};
+
+// Plain words for a statement that is a call or a delete.
+function statementSummary(source: string): string {
+  const removed = /^delete(?:\s*\[\s*\])?\s+(.+)$/.exec(source);
+  if (removed) return `Giải phóng vùng nhớ mà ${removed[1]} đang trỏ tới`;
+  const member = /^([^()\s]+?)(?:\.|->)(\w+)\s*\((.*)\)$/.exec(source);
+  if (member && Object.prototype.hasOwnProperty.call(MEMBER_ACTIONS, member[2])) return MEMBER_ACTIONS[member[2]](member[1], member[3].trim());
+  if (member) return `Gọi phương thức ${member[2]} của ${member[1]}${member[3].trim() ? ` với ${member[3].trim()}` : ''}`;
+  const algorithm = /^(?:std::)?(sort|stable_sort|reverse)\s*\((.*)\)$/.exec(source);
+  if (algorithm) {
+    const args = splitArgs(algorithm[2]);
+    const target = /^\s*(\w+)\s*\.\s*begin\(\)/.exec(args[0])?.[1] ?? 'đoạn này';
+    return algorithm[1] === 'reverse' ? `Đảo ngược ${target}` : `Sắp xếp ${target} ${args.length > 2 ? 'theo tiêu chí được truyền vào' : 'tăng dần'}`;
+  }
+  const call = /^([A-Za-z_][\w:]*)\s*\((.*)\)$/.exec(source);
+  if (call) return `Gọi hàm ${call[1]} với ${call[2].trim() || 'không có tham số'}`;
+  return `Tính biểu thức ${source}`;
 }
 
 // "if (a[i] > f(x)) y = 1" -> { inner: "a[i] > f(x)", rest: "y = 1" } for the given keyword.
@@ -412,7 +479,11 @@ function header(source: string, keyword: RegExp): { inner: string; rest: string 
   const open = m[0].length - 1;
   let depth = 0;
   for (let i = open; i < source.length; i++) {
-    if (source[i] === '(') depth++;
+    // Parentheses inside literals, as in c == '(', are not structure.
+    if (source[i] === "'" || source[i] === '"') {
+      const quote = source[i];
+      for (i++; i < source.length && source[i] !== quote; i++) if (source[i] === '\\') i++;
+    } else if (source[i] === '(') depth++;
     else if (source[i] === ')' && --depth === 0) return { inner: source.slice(open + 1, i), rest: source.slice(i + 1).trim() };
   }
   return undefined;

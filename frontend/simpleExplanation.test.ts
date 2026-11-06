@@ -11,7 +11,7 @@ test('simple summary keeps pre-line condition unknown and shows only observed ch
 test('recursion never compares different call frames; changes and output stay short',()=>{
  const a=step(0,{n:4}); const b={...step(1,{n:3}),callStack:[...a.callStack,{func:'factorial',line:2,id:2}]};
  assert.doesNotMatch(simpleExplanation(b,a,'').change,/4 → 3/);
- const result=simpleExplanation(step(1,{a:[1,2,3,4,5]}),step(0,{a:[0,0,0,0,0]}),'');
+ const result=simpleExplanation(step(1,{a:[1,2,3,4,5,6,7,8]}),step(0,{a:[0,0,0,0,0,0,0,0]}),'');
  assert.match(result.change,/Xem thêm/); assert.ok(result.change.length<180);
  assert.equal(simpleExplanation({...a,event:'stdout',callStack:[],stdout:'120'},b,'').action,'Đây là kết quả chương trình đã in ra.');
 });

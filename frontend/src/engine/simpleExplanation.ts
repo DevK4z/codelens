@@ -2,7 +2,7 @@ import type { TraceEvent } from './types.ts';
 import { sameCallContext, formatObserved } from './stepState.ts';
 
 export interface SimpleExplanation { action: string; change: string; next: string }
-const short = (value: unknown) => { const s = formatObserved(value); return s.length > 50 ? s.slice(0, 47) + '…' : s; };
+const short = (value: unknown) => { const s = formatObserved(value); return s.length > 120 ? s.slice(0, 117) + '…' : s; };
 export function simpleExplanation(event: TraceEvent, previous: TraceEvent | null | undefined, code: string, nextEvent?: TraceEvent | null): SimpleExplanation {
   const source = code.split(/\r?\n/)[event.line - 1]?.trim() || '';
   const before = event.event === 'line' && !!event.detail?.startsWith('GCC/GDB:');
@@ -34,7 +34,7 @@ export function simpleExplanation(event: TraceEvent, previous: TraceEvent | null
       if (value === null && old !== null) continue;
       if (Array.isArray(old) && Array.isArray(value)) {
         if (old.length !== value.length) changes.push(`${name}: ${old.length} → ${value.length} phần tử`);
-        for (let i = 0; i < Math.min(old.length, value.length) && changes.length < 3; i++) {
+        for (let i = 0; i < Math.min(old.length, value.length) && changes.length < 7; i++) {
           if (JSON.stringify(old[i]) === JSON.stringify(value[i])) continue;
           // In a 2D table name the cell, not the whole row.
           if (Array.isArray(old[i]) && Array.isArray(value[i]) && old[i].length === value[i].length)
@@ -42,11 +42,11 @@ export function simpleExplanation(event: TraceEvent, previous: TraceEvent | null
           else changes.push(`${name}[${i}]: ${short(old[i])} → ${short(value[i])}`);
         }
       } else changes.push(`${name}: ${short(old)} → ${short(value)}`);
-      if (changes.length >= 3) break;
+      if (changes.length >= 7) break;
     }
   }
   const change = finalOutput ? (event.stdout ? `Kết quả: ${short(event.stdout)}` : 'Không có dữ liệu được in ra.') : changes.length
-    ? changes.slice(0, 2).join(' · ') + (changes.length > 2 ? ' · Xem thêm ở bảng biến.' : '')
+    ? changes.slice(0, 6).join(' · ') + (changes.length > 6 ? ' · Xem thêm ở bảng biến.' : '')
     : previous && !sameCallContext(event, previous) ? 'Đã chuyển lời gọi hàm; xem các biến của hàm hiện tại.'
     : previous ? 'Chưa thấy biến đang theo dõi thay đổi.' : 'Đây là trạng thái đầu tiên được ghi lại.';
   const next = nextEvent ? (nextEvent.event === 'stdout' && !nextEvent.callStack.length ? 'Bước tiếp theo hiển thị đầu ra.' : `Bước tiếp theo trong bản ghi: dòng ${nextEvent.line}.`) : 'Đã đến cuối bản ghi.';

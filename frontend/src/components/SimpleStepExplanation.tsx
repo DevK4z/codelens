@@ -62,7 +62,7 @@ export function SimpleStepExplanation({event, previous, nextEvent, code, trace}:
       </span></p>
       <p><strong>Vừa thay đổi</strong><span>{brief.change}</span></p>
     </div> : returned ? <div className="simple-step-rows">
-      <p><strong>Dòng này làm gì?</strong><span>Kết thúc {returned.call}, trả kết quả về nơi đã gọi.</span></p>
+      <p><strong>Dòng này làm gì?</strong><span>Kết thúc {returned.call}{returned.value === undefined ? ', quay lại nơi đã gọi.' : ', trả kết quả về nơi đã gọi.'}</span></p>
       <p><strong>Kết quả</strong><span className="insight">{insights[0]}</span></p>
       <p><strong>Tiếp theo</strong><span>{brief.next}</span></p>
     </div> : <>{rows(brief)}{why && <div className="simple-step-rows">{why}</div>}</>}

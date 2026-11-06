@@ -12,7 +12,7 @@ interface ArrayVizProps {
   focus?: LineFocus;
 }
 
-const CELL = 56, GAP = 12, STEP = CELL + GAP, POINTER_ROW = 34;
+const MIN_CELL = 56, MAX_CELL = 136, GAP = 12, POINTER_ROW = 34;
 const PALETTE = ['#10b981', '#f43f5e', '#0ea5e9', '#a855f7', '#f59e0b', '#14b8a6', '#ec4899', '#84cc16'];
 const ROLE_COLOR: Record<string, string> = { 'left-pointer': '#10b981', 'right-pointer': '#f43f5e', 'mid-pointer': '#0ea5e9' };
 const READ = '#3b82f6', WRITE = '#f59e0b', SWAP = '#a855f7', COMPARE = '#eab308', CHANGED = '#f97316';
@@ -22,7 +22,7 @@ type Arc = { from: number; to: number; kind: 'copy' | 'swap' | 'compare'; label:
 
 const short = (value: unknown) => {
   const text = value === null ? '?' : typeof value === 'object' ? JSON.stringify(value) : String(value);
-  return text.length > 6 ? text.slice(0, 5) + '…' : text;
+  return text.length > 14 ? text.slice(0, 13) + '…' : text;
 };
 
 // What the highlighted line does to this array: cells it reads or writes, and copy/swap/compare arrows between them.
@@ -55,6 +55,9 @@ export function ArrayViz({ event, variableRoles, prevEvent, arrayName, code = ''
     return <div className="p-8 text-center text-[var(--text-secondary)]">Chưa chọn hoặc không tìm thấy biến mảng để hiển thị.</div>;
   }
   const items = raw.slice(0, 100);
+  // Cells grow with their longest value, so numbers like 1000000007 are not cut.
+  const CELL = Math.min(MAX_CELL, Math.max(MIN_CELL, Math.max(0, ...items.map(v => short(v).length)) * 9 + 18));
+  const STEP = CELL + GAP;
   const vars = event.variables;
 
   // Index variables: those the code writes inside name[...], plus any the learner marked as pointers.

@@ -57,7 +57,7 @@ export function VisualizationPanel({ event, variableRoles, isDemo, prevEvent, ne
           </div>
         ) : (
           <div className="flex flex-col min-h-full">
-            <StepStatePanel event={event} previous={prevEvent} />
+            <StepStatePanel event={event} previous={prevEvent} code={code} />
             {heapView && <div className="border-b border-[var(--border)]"><HeapViz view={heapView} /></div>}
             {hasArray && <div className="border-b border-[var(--border)]">
               {arrays.length > 1 && <label className="flex gap-2 items-center px-4 pt-3 text-sm">Mảng đang xem
