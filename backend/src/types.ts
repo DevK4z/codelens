@@ -11,6 +11,7 @@ export interface TraceEvent {
   swapInfo?: { name: string; i: number; j: number };
   compareInfo?: { left: string; right: string; leftValue: any; rightValue: any; operator: string; result: boolean };
   heap?: Record<string, { type: string; fields: Record<string, any> }>;
+  loopCheck?: boolean;
 }
 
 export type RunMode = 'run' | 'visualize';

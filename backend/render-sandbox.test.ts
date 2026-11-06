@@ -120,3 +120,37 @@ int main() {
   const main = strings.trace.find(e => e.line === 6);
   assert.deepEqual([main.variables.m, main.variables.v], [{ a: 1 }, ['x']]);
 });
+
+test('every loop check and every round of a one-line loop is a step', { skip }, async () => {
+  const blocks = await run(`#include <iostream>
+int main() {
+  int s = 0;
+  for (int i = 0; i < 2; i++) {
+    s += i;
+  }
+  while (s > 0) {
+    s--;
+  }
+  std::cout << s;
+  return 0;
+}
+`, 'visualize');
+  assert.deepEqual(blocks.trace.filter(e => e.event === 'line' && e.line === 4).map(e => e.variables.i), [null, 0, 1], 'start, then back at the header with i readable');
+  assert.equal(blocks.trace.filter(e => e.line === 7).length, 2, 'the condition is checked again and ends the loop');
+
+  const inline = await run(`#include <iostream>
+int main() {
+  int f[5];
+  f[0] = 0; f[1] = 1;
+  for (int i = 2; i < 5; i++) f[i] = f[i - 1] + f[i - 2];
+  std::cout << f[4];
+  return 0;
+}
+`, 'visualize');
+  assert.equal(inline.stdout, '3');
+  const rounds = inline.trace.filter(e => e.line === 5 && typeof e.variables.i === 'number');
+  const checks = rounds.filter(e => e.loopCheck), bodies = rounds.filter(e => !e.loopCheck);
+  assert.deepEqual(bodies.map(e => e.variables.i), [2, 3, 4]);
+  assert.deepEqual(bodies.map(e => e.variables.f.slice(0, e.variables.i)), [[0, 1], [0, 1, 1], [0, 1, 1, 2]], 'one cell per round');
+  assert.deepEqual(checks.map(e => e.variables.i), [2, 3, 4, 5], 'the condition is seen with the updated i, ending at 5');
+});

@@ -19,7 +19,7 @@ import { SAMPLES } from './data/samples';
 import { EXERCISE_SOLUTIONS } from './data/exerciseSolutions';
 import { SamplePreview, PreviewSample } from './components/SamplePreview';
 import { getFallbackDemoTrace } from './data/demoTraces';
-import { compactTrace } from './engine/compact';
+import { compactTrace, dropDeletedNodes, hideUninitialized } from './engine/compact';
 import { readSavedRun, saveRun } from './utils/savedRun';
 
 function App() {
@@ -247,7 +247,7 @@ function App() {
       connectionCheckId.current += 1;
       setBackendAvailable(true);
       setConnectionError(null);
-      setTrace(compactTrace(response.trace, code));
+      setTrace(dropDeletedNodes(hideUninitialized(compactTrace(response.trace, code), code), code));
       setTraceCode(code);
       setTraceStdin(stdin);
       setStdout(response.stdout || '');

@@ -89,3 +89,15 @@ test('a call that returns nothing is not said to return a result', () => {
   const returned = { call: 'walk(1)', caller: 'main' };
   assert.equal(lineInsight(at(3, {}), undefined, code, undefined, undefined, returned)[0], 'walk(1) đã xong, quay lại main đang chờ.');
 });
+
+test('reading an unwritten value is called out', () => {
+  const code = 'int main() {\n  s = s + 1;\n}';
+  assert.match(why(code, { ...at(2, { s: null }), unset: ['s'] })[0], /Chú ý: dòng này đọc s khi chưa được gán/);
+});
+
+test('moving a pointer says which node it lands on', () => {
+  const code = 'int main() {\n  p = p->next;\n  p = p->next;\n}';
+  const heap = { '0x1': { type: 'Node', fields: { value: 1, next: '0x2' } }, '0x2': { type: 'Node', fields: { value: 7, next: '0x0' } } };
+  assert.deepEqual(why(code, at(2, { p: '0x1' }), { ...at(3, { p: '0x2' }), heap }), ['p giờ trỏ tới nút 7.']);
+  assert.deepEqual(why(code, at(3, { p: '0x2' }), { ...at(4, { p: '0x0' }), heap }), ['p giờ là NULL: không còn trỏ tới nút nào.']);
+});

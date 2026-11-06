@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { activeRange, controlledRange, definedTypes, evaluate, globalConstants, indexVariables, lineFocus } from './src/engine/lineFocus.ts';
+import { activeRange, controlledRange, definedTypes, evaluate, globalConstants, indexVariables, lineFocus, unknownReads } from './src/engine/lineFocus.ts';
 
 const frame = [{ func: 'main', line: 1, id: 1 }];
 const at = (line: number, variables: Record<string, unknown>, extra = {}) =>
@@ -206,4 +206,75 @@ test('leaving a function says where the program goes back to', () => {
   const code = 'int f() {\n  return 1;\n}';
   const event = { ...at(2, {}), callStack: stack };
   assert.match(lineFocus(event, at(9, {}), code)!.after[0], /^Hàm f kết thúc, quay lại main ở dòng 9/);
+});
+
+test('a loop on one line explains its body at each round', () => {
+  const code = 'int main() {\n  for (int i = 2; i <= n; i++) f[i] = f[i - 1] + f[i - 2];\n  return f[n];\n}';
+  const vars = { n: 3, i: 2, f: [0, 1, null, null] };
+  const round = lineFocus(at(2, vars), at(2, { ...vars, i: 3, f: [0, 1, 1, null] }), code)!;
+  assert.match(round.summary, /^Thân vòng lặp: Tính f\[i - 1\] \+ f\[i - 2\] rồi lưu vào f\[i\]/);
+  assert.deepEqual(round.steps.at(-1), '1');
+  assert.deepEqual(round.refs.map(r => [r.text, r.access]), [['f[i]', 'write'], ['f[i-1]', 'read'], ['f[i-2]', 'read']]);
+  const start = lineFocus(at(2, { ...vars, i: null }), at(2, vars), code)!;
+  assert.match(start.summary, /^Vòng lặp for/);
+});
+
+test('reading into a cell marks it as written', () => {
+  const code = 'int main() {\n  cin >> a[i];\n}';
+  assert.deepEqual(lineFocus(at(2, { a: [0, 0], i: 1 }), null, code)!.refs.map(r => [r.array, r.indices, r.access]), [['a', [1], 'write']]);
+});
+
+test('several statements on a line are each described', () => {
+  const code = 'int main() {\n  f[0] = 0; f[1] = 1;\n  cout << "a;b";\n}';
+  const focus = lineFocus(at(2, { f: [5, 6] }), at(3, { f: [0, 1] }), code)!;
+  assert.equal(focus.summary, 'Gán 0 vào f[0], rồi Gán 1 vào f[1]');
+  assert.deepEqual(focus.refs.map(r => r.indices[0]), [0, 1]);
+  assert.deepEqual(focus.after, ['f[0]: 5 → 0', 'f[1]: 6 → 1']);
+  assert.equal(lineFocus(at(3, {}), null, code)!.kind, 'output', 'a semicolon inside a string separates nothing');
+});
+
+test('a one-line range-for does not guess the element of this round', () => {
+  const code = 'int main() {\n  for (int x : v) s += x;\n}';
+  const focus = lineFocus(at(2, { x: 0, s: 0, v: [1, 2] }), at(2, { x: 1, s: 1, v: [1, 2] }), code)!;
+  assert.deepEqual(focus.steps, []);
+  assert.deepEqual(focus.after, ['s: 0 → 1', 'x: 0 → 1'].sort((a, b) => focus.after.indexOf(a) - focus.after.indexOf(b)));
+});
+
+test('a one-line loop checks its condition with the updated variable', () => {
+  const code = 'int main() {\n  for (int i = 2; i <= n; i++) f[i] = 1;\n  while (s > 3) s--;\n  for (int x : v) t += x;\n}';
+  const check = (line: number, vars: Record<string, unknown>, nextLine: number) => lineFocus({ ...at(line, vars), loopCheck: true }, at(nextLine, vars), code)!;
+  const go = check(2, { i: 3, n: 3 }, 2);
+  assert.equal(go.summary, 'Kiểm tra điều kiện i <= n');
+  assert.deepEqual(go.steps, ['i <= n', '3 <= 3', 'true']);
+  assert.equal(go.outcome?.taken, true);
+  const stop = check(2, { i: 4, n: 3 }, 3);
+  assert.deepEqual(stop.steps, ['i <= n', '4 <= 3', 'false']);
+  assert.match(stop.outcome!.text, /SAI → thoát/);
+  assert.deepEqual(check(3, { s: 6 }, 3).steps, ['s > 3', '6 > 3', 'true']);
+  assert.match(check(4, {}, 5).outcome!.text, /Hết/);
+});
+
+test('a chained assignment writes every name in the chain', () => {
+  const code = 'int main() {\n  f[0] = f[1] = 1;\n}';
+  const focus = lineFocus(at(2, { f: [5, 6] }), null, code)!;
+  assert.equal(focus.summary, 'Gán 1 vào f[0], f[1]');
+  assert.deepEqual(focus.refs.map(r => [r.indices[0], r.access]), [[0, 'write'], [1, 'write']]);
+});
+
+test('reads of values never written are named', () => {
+  const code = 'int main() {\n  y = x + a[1] + a[0] + f(q);\n}';
+  const vars = { x: null, y: 0, a: [3, null], q: null };
+  assert.deepEqual(unknownReads(lineFocus(at(2, vars), null, code)!, ['x', 'q']).sort(), ['a[1]', 'x'], 'arguments may be written by reference');
+});
+
+test('a loop setting its own variable or input being read is not reading an unset value', () => {
+  const code = 'int main() {\n  for (int i = 0; i < n; i++) {\n    x = 1;\n  }\n  if (cin >> m) {\n    x = 2;\n  }\n}';
+  const loop = { n: 2, i: null, m: null, x: 0 };
+  assert.deepEqual(unknownReads(lineFocus(at(2, loop), at(3, { ...loop, i: 0 }), code)!, ['i']), []);
+  assert.deepEqual(unknownReads(lineFocus(at(5, loop), at(6, { ...loop, m: 1 }), code)!, ['m']), []);
+});
+
+test('a value read from input inside the condition is not unset', () => {
+  const code = 'int main() {\n  while (cin >> op && op) {\n    x = 1;\n  }\n}';
+  assert.deepEqual(unknownReads(lineFocus(at(2, { op: null }), at(3, { op: 1 }), code)!, ['op']), []);
 });

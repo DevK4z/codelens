@@ -1,5 +1,5 @@
 import type { CallFrame, TraceEvent } from './types.ts';
-import { activeRange, controlledRange, evaluate, indexable, stripComment, type LineFocus } from './lineFocus.ts';
+import { activeRange, controlledRange, evaluate, indexable, stripComment, unknownReads, type LineFocus } from './lineFocus.ts';
 import { sameCallContext, formatObserved } from './stepState.ts';
 
 // "Why" behind a step: what the line means for the algorithm being written. Every claim is
@@ -125,7 +125,7 @@ export function loopContext(event: TraceEvent, code: string): string[] {
   const lines = code.split(/\r?\n/), result: string[] = [];
   lines.forEach((raw, index) => {
     const line = index + 1;
-    if (line >= event.line) return;
+    if (line > event.line) return;
     const loop = countedLoop(stripComment(raw).replace(/^\}\s*/, ''));
     const body = loop && controlledRange(code, line);
     if (!loop || !body || event.line < body.bodyStart || event.line > body.end) return;
@@ -165,6 +165,19 @@ export function recursiveReturns(trace: TraceEvent[], code: string): Map<number,
   return result;
 }
 
+// "p = p->next": which node the pointer lands on, read from the structure in memory.
+function pointerTarget(event: TraceEvent, next: TraceEvent | null | undefined, focus: LineFocus): string | undefined {
+  const name = /^(?:Tính|Gán|Tạo biến) (?:.*? (?:vào|lưu vào) )?([A-Za-z_]\w*)(?: và gán giá trị .*)?$/.exec(focus.summary)?.[1];
+  const value = name && next && sameCallContext(next, event) ? next.variables[name] : undefined;
+  if (typeof value !== 'string' || !value.startsWith('0x')) return undefined;
+  const address = /^0x[0-9a-f]+/.exec(value)?.[0] ?? '';
+  if (address === '0x0') return `${name} giờ là NULL: không còn trỏ tới nút nào.`;
+  const node = next?.heap?.[address];
+  if (!node) return undefined;
+  const data = Object.entries(node.fields).filter(([, v]) => !(typeof v === 'string' && v.startsWith('0x')));
+  return `${name} giờ trỏ tới nút ${data.length === 1 ? show(data[0][1]) : data.map(([k, v]) => `${k} = ${show(v)}`).join(', ')}.`;
+}
+
 export type ReturnedValue = ReturnType<typeof recursiveReturns> extends Map<number, infer V> ? V : never;
 
 export function lineInsight(event: TraceEvent, next: TraceEvent | null | undefined, code: string, focus: LineFocus | undefined, algorithm = detectAlgorithm(code), returned?: ReturnedValue): string[] {
@@ -174,6 +187,10 @@ export function lineInsight(event: TraceEvent, next: TraceEvent | null | undefin
     : `${returned.call} trả về ${returned.work ? `${returned.work} = ${returned.value}` : returned.value} cho ${returned.caller} đang chờ.`];
   if (!focus) return [];
   const out: string[] = [];
+  const unknown = unknownReads(focus, event.unset);
+  if (unknown.length) out.push(`Chú ý: dòng này đọc ${unknown.join(', ')} khi chưa được gán, nên chương trình đang dùng giá trị rác còn trong bộ nhớ. Kết quả có thể khác nhau giữa các lần chạy.`);
+  const pointerMove = focus.kind === 'assign' || focus.kind === 'declare' ? pointerTarget(event, next, focus) : undefined;
+  if (pointerMove) out.push(pointerMove);
   const vars = event.variables;
   const sameFrame = !!next && sameCallContext(next, event);
   const after = sameFrame ? next!.variables : undefined;
