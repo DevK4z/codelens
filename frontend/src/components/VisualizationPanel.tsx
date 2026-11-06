@@ -3,6 +3,8 @@ import { TraceEvent, VariableRoleMap } from '../engine/types';
 import { indexable, lineFocus } from '../engine/lineFocus';
 import { ArrayViz } from './visualizations/ArrayViz';
 import { MatrixViz } from './visualizations/MatrixViz';
+import { HeapViz } from './visualizations/HeapViz';
+import { layoutHeap } from '../engine/heap';
 import { StepStatePanel } from './StepStatePanel';
 import { RecursionViz } from './visualizations/RecursionViz';
 
@@ -27,6 +29,7 @@ export function VisualizationPanel({ event, variableRoles, isDemo, prevEvent, ne
   const lineArray = focus?.refs.find(r => arrays.includes(r.array))?.array;
   const arrayName = arrays.includes(selectedArray) ? selectedArray : lineArray ?? arrays[0];
   const hasArray = arrays.length > 0;
+  const heapView = event ? layoutHeap(event.heap, event.variables, prevEvent?.heap) : undefined;
   // A lone main frame says nothing; the call chain matters once a function is called.
   const hasRecursion = event && event.callStack.length > 1;
 
@@ -55,6 +58,7 @@ export function VisualizationPanel({ event, variableRoles, isDemo, prevEvent, ne
         ) : (
           <div className="flex flex-col min-h-full">
             <StepStatePanel event={event} previous={prevEvent} />
+            {heapView && <div className="border-b border-[var(--border)]"><HeapViz view={heapView} /></div>}
             {hasArray && <div className="border-b border-[var(--border)]">
               {arrays.length > 1 && <label className="flex gap-2 items-center px-4 pt-3 text-sm">Mảng đang xem
                 <select aria-label="Mảng đang xem" value={arrayName} onChange={e => setSelectedArray(e.target.value)} className="rounded p-1 border border-[var(--border)] bg-[var(--bg-panel)]">
@@ -65,7 +69,7 @@ export function VisualizationPanel({ event, variableRoles, isDemo, prevEvent, ne
                 ? <MatrixViz name={arrayName} event={event} prevEvent={prevEvent} code={code} focus={focus} />
                 : <ArrayViz arrayName={arrayName} prevEvent={prevEvent} event={event} variableRoles={variableRoles} code={code} focus={focus} />}</div>}
             {hasRecursion && <div><RecursionViz event={event} /></div>}
-            {!hasArray && !hasRecursion && (
+            {!hasArray && !hasRecursion && !heapView && (
               <div className="h-full flex flex-col items-center justify-center p-8 text-[var(--text-secondary)]">
                 <p>Không có cấu trúc dữ liệu đặc biệt nào được thiết lập.</p>
                 <p className="text-sm mt-2">Chỉ định vai trò "Mảng" cho biến trong tab <strong>Biến</strong> để xem trực quan hóa.</p>
