@@ -169,7 +169,9 @@ export type ReturnedValue = ReturnType<typeof recursiveReturns> extends Map<numb
 
 export function lineInsight(event: TraceEvent, next: TraceEvent | null | undefined, code: string, focus: LineFocus | undefined, algorithm = detectAlgorithm(code), returned?: ReturnedValue): string[] {
   // A recursive call ending at its closing brace has no line to describe, only a value to hand back.
-  if (returned) return [`${returned.call} trả về ${returned.value === undefined ? 'kết quả' : returned.work ? `${returned.work} = ${returned.value}` : returned.value} cho ${returned.caller} đang chờ.`];
+  if (returned) return [returned.value === undefined
+    ? `${returned.call} đã xong, quay lại ${returned.caller} đang chờ.`
+    : `${returned.call} trả về ${returned.work ? `${returned.work} = ${returned.value}` : returned.value} cho ${returned.caller} đang chờ.`];
   if (!focus) return [];
   const out: string[] = [];
   const vars = event.variables;

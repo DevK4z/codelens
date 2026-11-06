@@ -7,7 +7,7 @@ const MAX = 30;
 
 const short = (value: unknown) => {
   const text = value === null ? '?' : typeof value === 'object' ? JSON.stringify(value) : String(value);
-  return text.length > 5 ? text.slice(0, 4) + '…' : text;
+  return text.length > 12 ? text.slice(0, 11) + '…' : text;
 };
 
 // A 2D array such as a DP table: the cells the line reads/writes, the row and column the index variables select.
@@ -58,7 +58,7 @@ export function MatrixViz({ event, prevEvent, name, code = '', focus }: { event:
               const active = here.length > 0 || colVars.some(n => vars[n] === c);
               const color = mark ? (mark.access === 'write' ? WRITE : READ) : old !== undefined ? CHANGED : undefined;
               return <td key={c} title={old !== undefined ? `trước: ${formatObserved(old)}` : formatObserved(row[c])}
-                className="relative text-center rounded-md border-2 transition-colors duration-300"
+                className="relative text-center rounded-md border-2 px-1.5 whitespace-nowrap transition-colors duration-300"
                 style={{ minWidth: 38, height: 34, borderColor: color ?? 'var(--border)', background: color ? `color-mix(in srgb, ${color} 18%, var(--bg-panel))` : active ? 'color-mix(in srgb, var(--accent) 6%, var(--bg-panel))' : 'var(--bg-panel)' }}>
                 {row[c] === undefined ? '' : short(row[c])}
               </td>;

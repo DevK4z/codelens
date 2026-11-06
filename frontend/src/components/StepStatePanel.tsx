@@ -1,8 +1,11 @@
 import type { TraceEvent } from '../engine/types';
 import { formatObserved, observedScalars } from '../engine/stepState';
+import { globalConstants } from '../engine/lineFocus';
 
-export function StepStatePanel({event, previous}: {event: TraceEvent; previous?: TraceEvent | null}) {
-  const values = observedScalars(event, previous);
+export function StepStatePanel({event, previous, code = ''}: {event: TraceEvent; previous?: TraceEvent | null; code?: string}) {
+  // Constants like MOD never change; the tab Biến still lists them.
+  const constants = globalConstants(code);
+  const values = observedScalars(event, previous).filter(v => !constants.has(v.name));
   const frame = event.callStack[event.callStack.length - 1];
   return <section className="p-4 border-b border-[var(--border)]" aria-label="Trạng thái tại bước hiện tại">
     <div className="flex flex-wrap justify-between gap-2 mb-3 text-sm">

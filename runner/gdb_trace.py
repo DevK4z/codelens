@@ -105,6 +105,12 @@ def encode(v, depth=0):
     except (gdb.error, RuntimeError, ValueError, OverflowError, TypeError):
         return '<unavailable>'
 
+def function_name(frame):
+    # GDB may give the whole signature: countParts[abi:cxx11](int, int), or a lambda's operator()(int) const.
+    name = re.sub(r'\[abi:\w+\]', '', frame.name() or '<anonymous>')
+    match = re.match(r'(.*?(?:operator\(\))?)\(.*\)(?: const)?$', name)
+    return match.group(1) if match and match.group(1) else name
+
 def user_location(frame):
     # GCC attributes generated iostream initialization to code.cpp too. These
     # frames are compiler scaffolding, not source statements written by the user.
@@ -224,7 +230,7 @@ def emit(frame, sal):
     while f and len(stack) < 64:
         loc = user_location(f)
         if loc:
-            stack.append({'func': f.name() or '<anonymous>', 'line': loc.line,
+            stack.append({'func': function_name(f), 'line': loc.line,
                           'params': frame_parameters(f)})
             if f != frame:
                 note_frame_pointers(f, loc.line)

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { activeRange, controlledRange, evaluate, indexVariables, lineFocus } from './src/engine/lineFocus.ts';
+import { activeRange, controlledRange, definedTypes, evaluate, globalConstants, indexVariables, lineFocus } from './src/engine/lineFocus.ts';
 
 const frame = [{ func: 'main', line: 1, id: 1 }];
 const at = (line: number, variables: Record<string, unknown>, extra = {}) =>
@@ -99,4 +99,87 @@ test('declarations with several variables, nested vectors and ended loop counter
   assert.match(lineFocus(at(3, {}), null, code)!.summary, /^Tạo vector dp gồm 3 phần tử/);
   const after = lineFocus(at(4, { j: 3, dp: [[0, 0], [0, 0]] }), at(5, { j: null, dp: [[0, 0], [0, 2]] }), code)!.after;
   assert.deepEqual(after, ['dp[1][1]: 0 → 2']);
+});
+
+const custom = `#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+using pii = pair<int, int>;
+#define vi vector<int>
+struct Node { int v; Node *next; };
+const ll MOD = 1000000007;
+const int N = 5, M = 7;
+static const ll INF = 1e18;
+ll power(const ll &a, ll b) {
+  ll r = 1;
+  const ll base = a % MOD;
+  Node *p = head;
+  ops.push(c);
+  st.pop();
+  v.push_back(x + 1);
+  delete p;
+  sort(a.begin(), a.end());
+  visit(p->left, d + 1);
+  if (c == '(') {
+    r = 2;
+  }
+  return r;
+}
+`;
+
+test('types the program defines are types, and file-scope constants are recognised', () => {
+  assert.deepEqual(definedTypes(custom).sort(), ['Node', 'll', 'pii', 'vi'].sort());
+  assert.deepEqual([...globalConstants(custom)].sort(), ['INF', 'M', 'MOD', 'N']);
+  const code = 'int main() {\n  const int local = 1;\n}\nconst int LATE = 2;';
+  assert.deepEqual([...globalConstants(code)], ['LATE'], 'a local const stays visible');
+});
+
+test('declarations with defined types and function headers read as such', () => {
+  const summary = (line: number, vars: Record<string, unknown> = {}) => lineFocus(at(line, vars), null, custom)!;
+  assert.equal(summary(10).summary, 'Bắt đầu hàm power');
+  assert.equal(summary(11).summary, 'Tạo biến r và gán giá trị 1');
+  const constant = summary(12, { a: 10, MOD: 7 });
+  assert.equal(constant.summary, 'Tạo biến base và gán giá trị a % MOD');
+  assert.deepEqual(constant.steps, ['a % MOD', '10 % 7', '3'], 'constants keep their value in the substitution');
+  assert.equal(summary(13).summary, 'Tạo biến p và gán giá trị head');
+});
+
+test('calls and delete are said in plain words', () => {
+  const summary = (line: number) => lineFocus(at(line, {}), null, custom)!.summary;
+  assert.equal(summary(14), 'Đưa c vào ops');
+  assert.equal(summary(15), 'Lấy phần tử tiếp theo ra khỏi st');
+  assert.equal(summary(16), 'Thêm x + 1 vào cuối v');
+  assert.equal(summary(17), 'Giải phóng vùng nhớ mà p đang trỏ tới');
+  assert.equal(summary(18), 'Sắp xếp a tăng dần');
+  assert.equal(summary(19), 'Gọi hàm visit với p->left, d + 1');
+});
+
+test('a parenthesis inside a character literal does not end a condition', () => {
+  const focus = lineFocus(at(20, { c: '(' }), at(21, { c: '(' }), custom)!;
+  assert.equal(focus.kind, 'if');
+  assert.equal(focus.summary, "Kiểm tra điều kiện c == '('");
+  assert.equal(focus.outcome?.taken, true);
+});
+
+test('compound assignments, user methods and multi-line statements read correctly', () => {
+  const code = 'int main() {\n  b /= 2;\n  a -= c;\n  r *= x;\n  n %= 3;\n  h.put(s);\n  l.print();\n  *it = y;\n  (f(a) ||\n  a[i] > 0 ? 1 : 2;\n}';
+  const summary = (line: number) => lineFocus(at(line, {}), null, code)!.summary;
+  assert.equal(summary(2), 'Chia b cho 2');
+  assert.equal(summary(3), 'Trừ bớt c khỏi a');
+  assert.equal(summary(4), 'Nhân r với x');
+  assert.equal(summary(5), 'Lấy n chia 3 lấy dư');
+  assert.equal(summary(6), 'Gọi phương thức put của h với s');
+  assert.equal(summary(7), 'Gọi phương thức print của l');
+  assert.equal(summary(8), 'Gán y vào *it');
+  assert.match(summary(9), /^Phần tiếp theo của câu lệnh/);
+  assert.equal(summary(10), 'Tính biểu thức a[i] > 0 ? 1 : 2');
+});
+
+test('a name that merely starts like a type is not a declaration', () => {
+  const code = 'int main() {\n  longest = 3;\n  integer(2);\n  int*p = q;\n  vector<int>v;\n}';
+  const summary = (line: number) => lineFocus(at(line, {}), null, code)!.summary;
+  assert.equal(summary(2), 'Gán 3 vào longest');
+  assert.equal(summary(3), 'Gọi hàm integer với 2');
+  assert.equal(summary(4), 'Tạo biến p và gán giá trị q');
+  assert.equal(summary(5), 'Tạo biến v');
 });

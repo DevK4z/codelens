@@ -83,3 +83,9 @@ test('dp cells name the subproblems they are built from', () => {
   const v = { i: 1, j: 1, dp: [[1, 1], [1, 0]] };
   assert.match(why(code, at(2, v), at(2, { ...v, dp: [[1, 1], [1, 2]] }))[0], /dp\[1\]\[1\] được tính từ .*dp\[0\]\[1\] = 1 \(ô phía trên\) và dp\[1\]\[0\] = 1 \(ô bên trái\)/);
 });
+
+test('a call that returns nothing is not said to return a result', () => {
+  const code = 'void walk(int n) {\n  if (n) walk(n - 1);\n}';
+  const returned = { call: 'walk(1)', caller: 'main' };
+  assert.equal(lineInsight(at(3, {}), undefined, code, undefined, undefined, returned)[0], 'walk(1) đã xong, quay lại main đang chờ.');
+});

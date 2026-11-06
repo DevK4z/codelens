@@ -19,6 +19,7 @@ import { SAMPLES } from './data/samples';
 import { EXERCISE_SOLUTIONS } from './data/exerciseSolutions';
 import { SamplePreview, PreviewSample } from './components/SamplePreview';
 import { getFallbackDemoTrace } from './data/demoTraces';
+import { compactTrace } from './engine/compact';
 import { readSavedRun, saveRun } from './utils/savedRun';
 
 function App() {
@@ -246,7 +247,7 @@ function App() {
       connectionCheckId.current += 1;
       setBackendAvailable(true);
       setConnectionError(null);
-      setTrace(response.trace);
+      setTrace(compactTrace(response.trace, code));
       setTraceCode(code);
       setTraceStdin(stdin);
       setStdout(response.stdout || '');
@@ -448,7 +449,7 @@ function App() {
             {currentStep === totalSteps - 1 && <p className="text-sm mt-1 text-[var(--accent)]">Đã đến cuối bản ghi{runtimeError ? ' — chương trình có lỗi, xem thông báo phía trên.' : '.'}</p>}
             <SimpleStepExplanation event={currentEvent} previous={prevEvent} nextEvent={trace[currentStep + 1]} code={traceCode} trace={trace} />
           </div>}
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-[520px]">
             <VisualizationPanel
               prevEvent={isStale ? null : prevEvent}
               nextEvent={isStale ? null : trace[currentStep + 1]}

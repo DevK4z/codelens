@@ -46,7 +46,7 @@ export interface HeapView {
 
 const shortValue = (value: unknown) => {
   const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
-  return text.length > 8 ? `${text.slice(0, 7)}…` : text;
+  return text.length > 16 ? `${text.slice(0, 15)}…` : text;
 };
 
 export function layoutHeap(heap: Heap | undefined, variables: Record<string, unknown>, previous?: Heap): HeapView | undefined {
@@ -132,17 +132,22 @@ export function layoutHeap(heap: Heap | undefined, variables: Record<string, unk
     }
   }
 
-  const box = tree ? { width: 60, height: 36 } : { width: 64, height: 40 };
-  const stepX = tree ? 70 : 96, stepY = tree ? 82 : 92, top = 30, side = 12;
+  const dataText = (address: string) => {
+    const data = Object.entries(heap[address].fields).filter(([, value]) => !addressOf(value));
+    const text = data.length === 1 ? shortValue(data[0][1]) : data.map(([key, value]) => `${key}=${shortValue(value)}`).join(' ');
+    return text.length > 28 ? `${text.slice(0, 27)}…` : text;
+  };
+  // Nodes widen to fit their value instead of cutting it.
+  const longest = Math.max(0, ...shown.map(a => dataText(a).length));
+  const box = { width: Math.max(tree ? 60 : 64, Math.min(220, longest * 7.6 + 16)), height: tree ? 36 : 40 };
+  const stepX = box.width + (tree ? 10 : 32), stepY = tree ? 82 : 92, top = 30, side = 12;
   const px = (col: number) => side + col * stepX;
   const py = (row: number) => top + row * stepY;
   const nodes: PlacedNode[] = shown.filter(a => place.has(a)).map(address => {
     const node = heap[address], at = place.get(address)!;
-    const data = Object.entries(node.fields).filter(([, value]) => !addressOf(value));
-    const text = data.length === 1 ? shortValue(data[0][1]) : data.map(([key, value]) => `${key}=${shortValue(value)}`).join(' ');
     const before = previous?.[address];
     return {
-      address, type: node.type, text: text.length > 14 ? `${text.slice(0, 13)}…` : text,
+      address, type: node.type, text: dataText(address),
       title: `${node.type}: ${JSON.stringify(node.fields)}`,
       x: px(at.col), y: py(at.row), labels: labels.get(address) ?? [],
       state: !previous ? 'same' : !before ? 'new' : JSON.stringify(before) !== JSON.stringify(node) ? 'changed' : 'same',
