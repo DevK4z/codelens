@@ -152,7 +152,7 @@ export function ArrayViz({ event, variableRoles, prevEvent, arrayName, code = ''
                 <div title={value === null ? 'Chưa có giá trị xác định' : formatObserved(value)}
                   className={`relative w-full flex items-center justify-center rounded-xl border-2 font-mono text-sm font-semibold transition-all duration-300 ${inRange(i) ? '' : 'opacity-35'}`}
                   style={{ height: CELL, borderColor: swapped ? SWAP : color ?? 'var(--border)', background: color ? `color-mix(in srgb, ${swapped ? SWAP : color} 16%, var(--bg-panel))` : range && inRange(i) ? 'color-mix(in srgb, var(--accent) 7%, var(--bg-panel))' : 'var(--bg-panel)' }}>
-                  {old !== undefined && <span className="absolute top-0.5 right-1 text-[10px] line-through text-[var(--text-secondary)]">{short(old)}</span>}
+                  {old !== undefined && old !== null && <span className="absolute top-0.5 right-1 text-[10px] line-through text-[var(--text-secondary)]">{short(old)}</span>}
                   <span className={value === null ? 'opacity-50' : ''}>{short(value)}</span>
                 </div>
                 <span className="text-[11px] font-mono text-[var(--text-secondary)] mt-1">{i}</span>

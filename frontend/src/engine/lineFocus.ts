@@ -335,6 +335,28 @@ export function lineFocus(event: TraceEvent, next: TraceEvent | null | undefined
     return { taken, text: taken ? yes : (kind === 'if' && range.hasElse ? `${no}, chuyển sang else` : no) };
   };
 
+  // A loop written on one line stops once per round; what runs in that round is its body.
+  const inlineLoop = header(source, /^for\s*\(/) ?? header(source, /^while\s*\(/);
+  if (inlineLoop?.rest && !/^\{?\s*$/.test(inlineLoop.rest)) {
+    const loopVar = /^(?:[\w:<>]+[\s&]+)?([A-Za-z_]\w*)\s*[=:]/.exec(inlineLoop.inner)?.[1];
+    if (!loopVar || (vars[loopVar] !== null && vars[loopVar] !== undefined)) {
+      const lines = code.split(/\r?\n/);
+      lines[event.line - 1] = `${inlineLoop.rest};`;
+      const body = lineFocus(event, next, lines.join('\n'));
+      // A range-for stops before its variable takes this round's element, so its value is not yet known.
+      const ranged = /:/.test(inlineLoop.inner) && !inlineLoop.inner.includes(';');
+      if (body) return { ...body, steps: ranged ? [] : body.steps, summary: `Thân vòng lặp: ${body.summary}` };
+    }
+  }
+  const statements = splitStatements(source);
+  if (statements.length > 1 && !/^(?:for|while|if|else)\b/.test(source)) {
+    const lines = code.split(/\r?\n/);
+    const parts = statements.map(statement => {
+      lines[event.line - 1] = `${statement};`;
+      return lineFocus(event, next, lines.join('\n'));
+    }).filter(part => part !== undefined);
+    return { kind: 'other', summary: parts.map(part => part.summary).join(', rồi '), steps: [], after, refs: parts.flatMap(part => part.refs) };
+  }
   let m: RegExpExecArray | null;
   let h: { inner: string; rest: string } | undefined;
   if (source === 'else') return { kind: 'other', summary: 'Nhánh else: chỉ chạy khi điều kiện if phía trên sai', steps: [], after, refs: [] };
@@ -396,7 +418,7 @@ export function lineFocus(event: TraceEvent, next: TraceEvent | null | undefined
   }
   if ((m = /^(?:std::)?cin\s*>>\s*(.*)$/.exec(source))) {
     const targets = m[1].split('>>').map(x => x.trim());
-    return { kind: 'input', summary: `Đọc dữ liệu từ input vào ${targets.join(', ')}`, steps: [], after, refs: [] };
+    return { kind: 'input', summary: `Đọc dữ liệu từ input vào ${targets.join(', ')}`, steps: [], after, refs: targets.flatMap(target => substitute(target, vars, 'write').refs) };
   }
   if ((m = /^return\b\s*(.*)$/.exec(source))) {
     const expr = m[1];
@@ -506,6 +528,21 @@ function steppedValue(step: string, name: string, value: number): number | undef
   if (!m) return undefined;
   const increment = m[1] ?? m[2];
   return increment ? value + (increment === '++' ? 1 : -1) : value + (m[3] === '+' ? 1 : -1) * Number(m[4]);
+}
+
+// Statements sharing a line; semicolons inside parentheses or literals do not count.
+function splitStatements(source: string): string[] {
+  const parts: string[] = [];
+  let depth = 0, start = 0;
+  for (let i = 0; i < source.length; i++) {
+    const c = source[i];
+    if (c === "'" || c === '"') for (i++; i < source.length && source[i] !== c; i++) { if (source[i] === '\\') i++; }
+    else if ('([{'.includes(c)) depth++;
+    else if (')]}'.includes(c)) depth--;
+    else if (c === ';' && depth === 0) { parts.push(source.slice(start, i)); start = i + 1; }
+  }
+  parts.push(source.slice(start));
+  return parts.map(part => part.trim()).filter(Boolean);
 }
 
 function splitArgs(text: string): string[] {

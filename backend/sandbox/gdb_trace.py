@@ -16,6 +16,8 @@ pointers = []
 node_cache = {}
 previous_heap = {}
 starting = False
+resumed = set()
+ONE_LINE_LOOP = re.compile(r'\b(?:for|while)\s*\(.*\)\s*[^\s{/].*;')
 # The program is always one file compiled as `g++ code.cpp`. Match it by that recorded name, not
 # by absolute path: a binary reused from the cache was compiled in another run's directory.
 SOURCE = 'code.cpp'
@@ -123,6 +125,9 @@ def user_location(frame):
 
 def snapshot(frame, line):
     variables = {}
+    # Coming back to a line (a loop's increment, or the next round of a one-line loop) means what
+    # it declares has been declared; on the first arrival it has not.
+    declared_after = line if frame.pc() in resumed else line - 1
     block = frame.block()
     while block:
         for sym in block:
@@ -130,7 +135,7 @@ def snapshot(frame, line):
                 continue
             try:
                 # Locals whose declaration has not executed should not show random storage.
-                if sym.is_variable and not block.is_global and not block.is_static and sym.line >= line:
+                if sym.is_variable and not block.is_global and not block.is_static and sym.line > declared_after:
                     variables[sym.name] = None
                 else:
                     variables[sym.name] = encode(frame.read_var(sym))
@@ -278,6 +283,23 @@ def later_line_addresses(symtab):
             seen.add(line)
     return addresses
 
+def one_line_loop_bodies(symtab):
+    """Where each round of a loop written on one line starts. All of its code is one line, so line
+    information cannot split it; the backward jump that closes the loop lands on the body."""
+    source = open(SOURCE, errors='replace').read().split('\n')
+    entries = sorted((entry.pc, entry.line) for entry in symtab.linetable())
+    architecture = gdb.selected_frame().architecture()
+    targets = []
+    for (start, line), (end, _) in zip(entries, entries[1:]):
+        text = source[line - 1] if 0 < line <= len(source) else ''
+        if end <= start or not ONE_LINE_LOOP.search(text):
+            continue
+        for instruction in architecture.disassemble(start, end - 1):
+            jump = re.match(r'j\w+\s+0x([0-9a-f]+)', instruction['asm'])
+            if jump and int(jump.group(1), 16) < instruction['addr']:
+                targets.append(int(jump.group(1), 16))
+    return sorted(set(targets))
+
 def stopped(event):
     global signal
     if not starting and isinstance(event, gdb.SignalEvent):
@@ -327,7 +349,8 @@ try:
     starting = True
     gdb.execute('starti < input.txt > program.stdout 2> program.stderr', to_string=True)
     starting = False
-    for address in later_line_addresses(main.symtab):
+    resumed.update(later_line_addresses(main.symtab) + one_line_loop_bodies(main.symtab))
+    for address in resumed:
         try:
             bp = gdb.Breakpoint('*%d' % address, internal=True)
             bp.silent = True

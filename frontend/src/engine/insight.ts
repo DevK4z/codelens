@@ -125,7 +125,7 @@ export function loopContext(event: TraceEvent, code: string): string[] {
   const lines = code.split(/\r?\n/), result: string[] = [];
   lines.forEach((raw, index) => {
     const line = index + 1;
-    if (line >= event.line) return;
+    if (line > event.line) return;
     const loop = countedLoop(stripComment(raw).replace(/^\}\s*/, ''));
     const body = loop && controlledRange(code, line);
     if (!loop || !body || event.line < body.bodyStart || event.line > body.end) return;

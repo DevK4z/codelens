@@ -207,3 +207,35 @@ test('leaving a function says where the program goes back to', () => {
   const event = { ...at(2, {}), callStack: stack };
   assert.match(lineFocus(event, at(9, {}), code)!.after[0], /^Hàm f kết thúc, quay lại main ở dòng 9/);
 });
+
+test('a loop on one line explains its body at each round', () => {
+  const code = 'int main() {\n  for (int i = 2; i <= n; i++) f[i] = f[i - 1] + f[i - 2];\n  return f[n];\n}';
+  const vars = { n: 3, i: 2, f: [0, 1, null, null] };
+  const round = lineFocus(at(2, vars), at(2, { ...vars, i: 3, f: [0, 1, 1, null] }), code)!;
+  assert.match(round.summary, /^Thân vòng lặp: Tính f\[i - 1\] \+ f\[i - 2\] rồi lưu vào f\[i\]/);
+  assert.deepEqual(round.steps.at(-1), '1');
+  assert.deepEqual(round.refs.map(r => [r.text, r.access]), [['f[i]', 'write'], ['f[i-1]', 'read'], ['f[i-2]', 'read']]);
+  const start = lineFocus(at(2, { ...vars, i: null }), at(2, vars), code)!;
+  assert.match(start.summary, /^Vòng lặp for/);
+});
+
+test('reading into a cell marks it as written', () => {
+  const code = 'int main() {\n  cin >> a[i];\n}';
+  assert.deepEqual(lineFocus(at(2, { a: [0, 0], i: 1 }), null, code)!.refs.map(r => [r.array, r.indices, r.access]), [['a', [1], 'write']]);
+});
+
+test('several statements on a line are each described', () => {
+  const code = 'int main() {\n  f[0] = 0; f[1] = 1;\n  cout << "a;b";\n}';
+  const focus = lineFocus(at(2, { f: [5, 6] }), at(3, { f: [0, 1] }), code)!;
+  assert.equal(focus.summary, 'Gán 0 vào f[0], rồi Gán 1 vào f[1]');
+  assert.deepEqual(focus.refs.map(r => r.indices[0]), [0, 1]);
+  assert.deepEqual(focus.after, ['f[0]: 5 → 0', 'f[1]: 6 → 1']);
+  assert.equal(lineFocus(at(3, {}), null, code)!.kind, 'output', 'a semicolon inside a string separates nothing');
+});
+
+test('a one-line range-for does not guess the element of this round', () => {
+  const code = 'int main() {\n  for (int x : v) s += x;\n}';
+  const focus = lineFocus(at(2, { x: 0, s: 0, v: [1, 2] }), at(2, { x: 1, s: 1, v: [1, 2] }), code)!;
+  assert.deepEqual(focus.steps, []);
+  assert.deepEqual(focus.after, ['s: 0 → 1', 'x: 0 → 1'].sort((a, b) => focus.after.indexOf(a) - focus.after.indexOf(b)));
+});
