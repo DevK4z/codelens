@@ -1,4 +1,5 @@
 import type { ExecuteResponse, Run } from './types.ts';
+import { withHeap } from './heap.ts';
 
 const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
 const configured = (env?.VITE_API_BASE_URL || env?.VITE_API_URL || '').trim().replace(/\/+$/, '');
@@ -29,7 +30,7 @@ export function toExecuteResponse(run: Run): ExecuteResponse {
   const failedToRun = run.status !== 'succeeded' && run.status !== 'compile_error';
   return {
     success: run.status === 'succeeded',
-    trace: run.trace,
+    trace: withHeap(run.trace),
     stdout: run.stdout,
     stderr: run.stderr,
     compilationError: run.status === 'compile_error' ? run.error ?? 'Biên dịch thất bại.' : undefined,

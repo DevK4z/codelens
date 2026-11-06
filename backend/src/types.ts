@@ -10,6 +10,7 @@ export interface TraceEvent {
   arrayAccess?: { name: string; index: number; action: 'read' | 'write'; value: any };
   swapInfo?: { name: string; i: number; j: number };
   compareInfo?: { left: string; right: string; leftValue: any; rightValue: any; operator: string; result: boolean };
+  heap?: Record<string, { type: string; fields: Record<string, any> }>;
 }
 
 export type RunMode = 'run' | 'visualize';

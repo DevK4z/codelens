@@ -12,7 +12,7 @@ async function run(code: string, mode: 'run' | 'visualize' = 'run', stdin = '') 
     body: JSON.stringify({ language: 'cpp', mode, stdin, code }),
   });
   assert.equal(res.status, 201, await res.clone().text());
-  return res.json() as Promise<{ status: string; stdout: string; error: string | null; trace: unknown[] }>;
+  return res.json() as Promise<{ status: string; stdout: string; error: string | null; trace: any[] }>;
 }
 
 test('health proves the jail works on this host', { skip }, async () => {
@@ -73,4 +73,50 @@ test('background processes are cleaned up and never hold the request open', { sk
   const check = await run('#include <cstdio>\n#include <dirent.h>\n#include <cstdlib>\nint main(){ int n = 0; DIR *d = opendir("/proc"); while (dirent *e = readdir(d)) if (atoi(e->d_name) > 0) n++; printf("%d", n); }');
   // Only tini, node and this run's own short process chain should exist.
   assert.ok(Number(check.stdout) < 10, `processes visible: ${check.stdout}`);
+});
+
+test('linked structures are read from memory, and bad pointers cannot break a trace', { skip }, async () => {
+  const list = await run(`#include <iostream>
+struct Node { int value; Node *next; };
+int main() {
+  Node *head = nullptr;
+  for (int i = 3; i > 0; i--)
+    head = new Node{i, head};
+  std::cout << head->value;
+  return 0;
+}`, 'visualize');
+  assert.equal(list.status, 'succeeded', list.error ?? '');
+  const heap = list.trace.filter(e => e.heap).at(-1).heap;
+  assert.deepEqual(Object.values(heap).map((n: any) => n.fields.value), [1, 2, 3]);
+
+  const hostile = await run(`#include <cstdio>
+struct Node { int value; Node *next; };
+int main() {
+  Node *wild = reinterpret_cast<Node *>(0x1234560);
+  Node *odd = reinterpret_cast<Node *>(0x7ffe00000003);
+  Node loop{1, nullptr};
+  loop.next = &loop;
+  Node *head = nullptr;
+  for (int i = 0; i < 100; i++)
+    head = new Node{i, head};
+  printf("%d %d", wild == odd, head->value);
+  return 0;
+}`, 'visualize');
+  assert.equal(hostile.status, 'succeeded', hostile.error ?? '');
+  assert.equal(hostile.stdout, '0 99');
+  const sizes = hostile.trace.filter(e => e.heap).map(e => Object.keys(e.heap).length);
+  assert.ok(Math.max(...sizes) <= 64, `read at most 64 nodes, got ${Math.max(...sizes)}`);
+  assert.ok(!hostile.trace.some(e => e.heap?.['0x1234560']), 'an unmapped address is skipped');
+
+  const strings = await run(`#include <bits/stdc++.h>
+using namespace std;
+int main() {
+  map<string, int> m = {{"a", 1}};
+  vector<string> v = {"x"};
+  cout << m.size();
+  return 0;
+}
+`, 'visualize');
+  const main = strings.trace.find(e => e.line === 6);
+  assert.deepEqual([main.variables.m, main.variables.v], [{ a: 1 }, ['x']]);
 });

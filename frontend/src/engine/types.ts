@@ -13,7 +13,12 @@ export interface TraceEvent {
   swapInfo?: { array: string; index1: number; index2: number };
   compareAccesses?: { array: string; index: number }[];
   compareInfo?: { left: string; right: string; leftValue: any; rightValue: any; operator: string; result: boolean };
+  heap?: Heap;
 }
+
+// Structs reachable through pointers at this step, by address (see runner/gdb_trace.py).
+export interface HeapNode { type: string; fields: Record<string, unknown> }
+export type Heap = Record<string, HeapNode>;
 
 export interface CallFrame {
   id?: number;

@@ -9,6 +9,12 @@ import sys
 
 MAX_ITEMS = 100
 MAX_DEPTH = 4
+MAX_NODES = 64
+MAX_NODE_BYTES = 4096
+LIBRARY_TYPES = ('std::', '__gnu', '__cxx', '_IO_', '__')
+pointers = []
+node_cache = {}
+previous_heap = {}
 # The program is always one file compiled as `g++ code.cpp`. Match it by that recorded name, not
 # by absolute path: a binary reused from the cache was compiled in another run's directory.
 SOURCE = 'code.cpp'
@@ -67,14 +73,19 @@ def encode(v, depth=0):
             n = float(v)
             return n if math.isfinite(n) else None
         if t.code == gdb.TYPE_CODE_PTR:
-            # No arbitrary pointer dereference or inferior calls.
+            # Never call into the inferior; pointers to the program's own structs are followed by
+            # follow_pointers, which only reads memory.
+            target = t.target().strip_typedefs()
+            if target.code == gdb.TYPE_CODE_STRUCT and not str(target.unqualified()).startswith(LIBRARY_TYPES):
+                pointers.append(v)
             return str(v)
         if t.code == gdb.TYPE_CODE_ARRAY:
             lo, hi = t.range()
             count = min(hi - lo + 1, MAX_ITEMS)
             return [encode(v[lo + i], depth + 1) for i in range(max(0, count))]
-        name = str(t)
-        if 'basic_string<' in name:
+        # Only the outermost type: map<string, int> also has basic_string in its name.
+        name = str(t.unqualified())
+        if name.startswith(('std::__cxx11::basic_string<', 'std::basic_string<')):
             return v['_M_dataplus']['_M_p'].string(length=min(int(v['_M_string_length']), 4096))
         if name.startswith('std::vector<') and 'bool' not in str(t.template_argument(0)):
             start = v['_M_impl']['_M_start']
@@ -123,6 +134,67 @@ def snapshot(frame, line):
         block = block.superblock
     return variables
 
+def note_frame_pointers(frame, line):
+    # Locals of the calling frames keep their structures visible while a callee runs, e.g. the
+    # whole tree during a recursive insert. Only pointers matter here, so skip everything else.
+    block = frame.block()
+    while block and not block.is_global and not block.is_static:
+        for sym in block:
+            if not sym.name or not sym.is_variable or sym.line >= line or HIDDEN.match(sym.name):
+                continue
+            t = sym.type.strip_typedefs()
+            elements = t.target().strip_typedefs() if t.code == gdb.TYPE_CODE_ARRAY else None
+            own_struct = t.code == gdb.TYPE_CODE_STRUCT and not str(t.unqualified()).startswith(LIBRARY_TYPES)
+            if t.code == gdb.TYPE_CODE_PTR or own_struct or (elements is not None and elements.code == gdb.TYPE_CODE_PTR):
+                try:
+                    encode(frame.read_var(sym))
+                except (gdb.error, RuntimeError):
+                    pass
+        block = block.superblock
+
+def read_node(pointer, address):
+    target = pointer.type.strip_typedefs().target()
+    size = target.sizeof
+    # A misaligned or tiny address can only be an uninitialised pointer.
+    if address < 4096 or not 0 < size <= MAX_NODE_BYTES or address % max(target.alignof, 1):
+        return None
+    data = bytes(gdb.selected_inferior().read_memory(address, size))
+    key = (address, str(target))
+    known = node_cache.get(key)
+    if known and known[0] == data:
+        pointers.extend(known[2])
+        return known[1]
+    start = len(pointers)
+    fields = encode(pointer.dereference())
+    if not isinstance(fields, dict):
+        return None
+    node = {'type': str(target.unqualified()), 'fields': fields}
+    # Identical bytes prove identical contents only when nothing is stored behind a further pointer.
+    if all(v is None or isinstance(v, (bool, int, float)) or (isinstance(v, str) and v.startswith('0x')) for v in fields.values()):
+        node_cache[key] = (data, node, pointers[start:])
+    return node
+
+def follow_pointers():
+    """Everything reachable from this step's pointers, by address. Reading memory cannot run or
+    disturb the program; the limits keep a corrupt or cyclic structure from stalling the trace."""
+    heap = {}
+    seen = set()
+    index = 0
+    while index < len(pointers) and len(heap) < MAX_NODES:
+        pointer = pointers[index]
+        index += 1
+        try:
+            address = int(pointer)
+            if address in seen:
+                continue
+            seen.add(address)
+            node = read_node(pointer, address)
+        except (gdb.error, RuntimeError, ValueError, OverflowError, TypeError):
+            continue
+        if node:
+            heap[hex(address)] = node
+    return heap
+
 def frame_parameters(frame):
     # Read each frame's own arguments. Never borrow the newest frame's locals
     # or call functions in the inferior to format them.
@@ -144,7 +216,8 @@ def frame_parameters(frame):
     return params
 
 def emit(frame, sal):
-    global previous
+    global previous, previous_heap
+    pointers.clear()
     variables = snapshot(frame, sal.line)
     stack = []
     f = frame
@@ -153,8 +226,11 @@ def emit(frame, sal):
         if loc:
             stack.append({'func': f.name() or '<anonymous>', 'line': loc.line,
                           'params': frame_parameters(f)})
+            if f != frame:
+                note_frame_pointers(f, loc.line)
         f = f.older()
     stack.reverse()
+    heap = follow_pointers()
     try:
         out = open('program.stdout', 'rb').read(1024 * 1024).decode('utf-8', errors='replace')
     except OSError:
@@ -163,6 +239,10 @@ def emit(frame, sal):
              'callStack': stack, 'variables': variables,
              'changed': [k for k in variables if k not in previous or variables[k] != previous[k]],
              'stdout': out, 'detail': 'GCC/GDB: trạng thái trước khi thực thi dòng này.'}
+    # Recorded only when it changes: long runs over a tree would otherwise repeat it at every step.
+    if heap != previous_heap:
+        event['heap'] = heap
+        previous_heap = heap
     trace.append(event)
     previous = variables
     with open('debug.trace', 'a') as stream:
