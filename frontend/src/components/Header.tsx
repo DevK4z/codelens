@@ -1,4 +1,4 @@
-import { Code, RefreshCw, BookOpen, Bot } from 'lucide-react';
+import { Code, RefreshCw, BookOpen, Bot, ClipboardList } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { Sample } from '../data/samples';
 import { useState } from 'react';
@@ -12,9 +12,10 @@ interface HeaderProps {
   onCheckConnection: () => Promise<boolean>;
   currentCode: string;
   onOpenTutor?: () => void;
+  onOpenExam?: () => void;
 }
 
-export function Header({ theme, toggleTheme, onOpenExerciseBank, isBackendAvailable, onCheckConnection, onOpenTutor }: HeaderProps) {
+export function Header({ theme, toggleTheme, onOpenExerciseBank, isBackendAvailable, onCheckConnection, onOpenTutor, onOpenExam }: HeaderProps) {
   const [checking, setChecking] = useState(false);
 
   const handleCheck = async () => {
@@ -49,6 +50,13 @@ export function Header({ theme, toggleTheme, onOpenExerciseBank, isBackendAvaila
         >
           <Bot size={18} />
           Trợ lý DSA
+        </button>}
+        {onOpenExam && <button
+          onClick={onOpenExam}
+          className="flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 border border-green-500/30 rounded-md font-medium text-sm transition-colors"
+        >
+          <ClipboardList size={18} />
+          Làm bài thi
         </button>}
 
         <div className="flex items-center gap-2 bg-[var(--bg-card)] px-3 py-1.5 rounded-full border border-[var(--border)] shadow-sm">

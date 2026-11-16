@@ -21,6 +21,8 @@ import { SamplePreview, PreviewSample } from './components/SamplePreview';
 import { getFallbackDemoTrace } from './data/demoTraces';
 import { compactTrace, dropDeletedNodes, hideUninitialized } from './engine/compact';
 import { readSavedRun, saveRun } from './utils/savedRun';
+import { ExamMode } from './components/ExamMode';
+import { loadSession } from './engine/examGrading';
 
 function App() {
   const [savedRun, setSavedRun] = useState(readSavedRun);
@@ -54,6 +56,8 @@ function App() {
   const [runLimits, setRunLimits] = useState({ time: false, steps: false });
 
   const [isExerciseBankOpen, setIsExerciseBankOpen] = useState(false);
+  // Mở lại phòng thi nếu còn phiên thi chưa nộp (ví dụ sau khi tải lại trang).
+  const [isExamOpen, setIsExamOpen] = useState(() => { const s = loadSession(); return !!s && !s.submittedAt; });
   const [theme, setTheme] = useState<ThemeMode>(() => {
     try {
       const saved = localStorage.getItem('theme');
@@ -315,6 +319,7 @@ function App() {
 
   return (
     <div className="app-shell text-[var(--text-primary)]">
+      {isExamOpen && <ExamMode theme={theme} onExit={() => setIsExamOpen(false)} />}
       <SamplePreview sample={previewSample} onClose={() => setPreviewSample(null)} onTry={handleSelectSample} />
       <ExerciseBankModal 
         isOpen={isExerciseBankOpen} 
@@ -327,6 +332,7 @@ function App() {
         toggleTheme={toggleTheme}
         onSelectSample={setPreviewSample}
         onOpenExerciseBank={() => setIsExerciseBankOpen(true)}
+        onOpenExam={() => setIsExamOpen(true)}
         onOpenTutor={() => setTutorOpen(open => !open)}
         isBackendAvailable={backendAvailable}
         onCheckConnection={checkConnection}
