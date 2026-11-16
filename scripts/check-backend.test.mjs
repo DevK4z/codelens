@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkBackend, validateBase } from './check-backend.mjs';
+import { checkBackend, validateBase, EdgeRateLimited } from './check-backend.mjs';
 
 const base = 'https://api.example.com/api';
 const origin = 'https://devk4z.github.io';
@@ -73,4 +73,14 @@ test('a waking backend is retried until it answers', async () => {
 
 test('network failure is surfaced', async () => {
   await assert.rejects(checkBackend(base, async () => { throw new Error('network unavailable'); }), /network unavailable/);
+});
+
+test('an edge 429 is retried, and if it persists it is reported as unverifiable, not as a broken backend', async () => {
+  const edge = () => new Response('<html>Too Many Requests</html>', { status: 429, headers: { 'content-type': 'text/html' } });
+  let call = 0;
+  await checkBackend(base, async () => { call++; return call === 1 ? edge() : call === 2 ? health() : options(); }, { attempts: 3, delayMs: 0 });
+  assert.equal(call, 3);
+  await assert.rejects(checkBackend(base, async () => edge(), { attempts: 2, delayMs: 0 }), error => error instanceof EdgeRateLimited);
+  const appLimit = health({ 'content-type': 'application/problem+json' }, 429, '{"status":429,"detail":"rate limited"}');
+  await assert.rejects(checkBackend(base, async () => appLimit), error => !(error instanceof EdgeRateLimited));
 });
