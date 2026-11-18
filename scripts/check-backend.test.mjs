@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkBackend, validateBase } from './check-backend.mjs';
+import { checkBackend, validateBase, EdgeRateLimited } from './check-backend.mjs';
 
 const base = 'https://api.example.com/api';
 const origin = 'https://devk4z.github.io';
@@ -28,9 +28,9 @@ test('health and preflight use Pages origin and do not execute code', async () =
     return calls.length === 1 ? health() : options();
   });
   assert.equal(calls.length, 2);
-  assert.equal(calls[0][0], `${base}/health`);
+  assert.equal(calls[0][0], `${base}/v1/health`);
   assert.equal(calls[0][1].headers.Origin, origin);
-  assert.equal(calls[1][0], `${base}/execute`);
+  assert.equal(calls[1][0], `${base}/v1/runs`);
   assert.equal(calls[1][1].method, 'OPTIONS');
   assert.equal(calls[1][1].headers['Access-Control-Request-Method'], 'POST');
 });
@@ -43,6 +43,12 @@ test('reject unhealthy, HTML and malformed responses', async () => {
   }
 });
 
+test('problem details from an unavailable runner reach the deploy log', async () => {
+  const problem = health({ 'content-type': 'application/problem+json' }, 503,
+    '{"type":"about:blank","title":"Service Unavailable","status":503,"code":"local_runner_not_public","detail":"Khởi động backend với RUNNER=docker."}');
+  await assert.rejects(checkBackend(base, async () => problem), /HTTP 503\). Khởi động backend với RUNNER=docker\./);
+});
+
 test('reject missing origin and incomplete preflight permissions', async () => {
   await assert.rejects(checkBackend(base, async () => health({'access-control-allow-origin': 'http://localhost:5173'})), /CORS/);
   for (const response of [options({'access-control-allow-origin': ''}),
@@ -53,6 +59,28 @@ test('reject missing origin and incomplete preflight permissions', async () => {
   }
 });
 
+test('a waking backend is retried until it answers', async () => {
+  let call = 0;
+  await checkBackend(base, async () => {
+    call++;
+    if (call === 1) throw new Error('fetch failed');
+    if (call === 2) return health({}, 503, '{"status":503,"detail":"starting"}');
+    return call === 3 ? health() : options();
+  }, { attempts: 5, delayMs: 0 });
+  assert.equal(call, 4);
+  await assert.rejects(checkBackend(base, async () => { throw new Error('still asleep'); }, { attempts: 3, delayMs: 0 }), /still asleep/);
+});
+
 test('network failure is surfaced', async () => {
   await assert.rejects(checkBackend(base, async () => { throw new Error('network unavailable'); }), /network unavailable/);
+});
+
+test('an edge 429 is retried, and if it persists it is reported as unverifiable, not as a broken backend', async () => {
+  const edge = () => new Response('<html>Too Many Requests</html>', { status: 429, headers: { 'content-type': 'text/html' } });
+  let call = 0;
+  await checkBackend(base, async () => { call++; return call === 1 ? edge() : call === 2 ? health() : options(); }, { attempts: 3, delayMs: 0 });
+  assert.equal(call, 3);
+  await assert.rejects(checkBackend(base, async () => edge(), { attempts: 2, delayMs: 0 }), error => error instanceof EdgeRateLimited);
+  const appLimit = health({ 'content-type': 'application/problem+json' }, 429, '{"status":429,"detail":"rate limited"}');
+  await assert.rejects(checkBackend(base, async () => appLimit), error => !(error instanceof EdgeRateLimited));
 });

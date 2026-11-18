@@ -1,3 +1,4 @@
+import { HighlightedCode } from './HighlightedCode';
 import { useEffect, useRef, useState } from 'react';
 import type { Sample } from '../data/samples';
 
@@ -39,7 +40,7 @@ export function SamplePreview({ sample, onClose, onTry }: Props) {
           <section className="min-w-0">
             <div className="flex justify-between items-center mb-2"><h3 className="font-semibold">C++ · {sample.code.split('\n').length} dòng</h3>
               <button onClick={() => copy(sample.code)} className="text-sm text-[var(--accent)] underline">Sao chép code</button></div>
-            <pre tabIndex={0} aria-label="Code mẫu chỉ đọc" className="text-xs leading-6 overflow-auto max-h-[48dvh] p-3 rounded border border-[var(--border)] bg-[var(--bg-panel)] select-text"><code>{sample.code}</code></pre>
+            <HighlightedCode code={sample.code} />
           </section>
           <div className="space-y-4 min-w-0">
             <section><div className="flex justify-between gap-2 mb-2"><h3 className="font-semibold">Input mẫu</h3>

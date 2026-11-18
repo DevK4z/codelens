@@ -39,7 +39,7 @@ CodeLens kết hợp trình soạn thảo, dữ liệu đầu vào, bản ghi th
 
 ## Cách hoạt động
 
-1. Frontend gửi mã C++ và stdin đến `POST /api/execute`.
+1. Frontend gửi mã C++ và stdin đến `POST /api/v1/runs`.
 2. Backend tách token, phân tích cú pháp và chèn mã theo dõi vào chương trình.
 3. Runner biên dịch bằng `g++`, chạy chương trình và thu thập stdout cùng trace.
 4. Backend trả kết quả JSON; frontend phát lại trace để trực quan hóa từng bước.
@@ -56,7 +56,8 @@ Frontend sử dụng React, TypeScript, Vite, Tailwind CSS và Monaco Editor. Ba
 | [`frontend/src/engine/`](frontend/src/engine/) | API client, kiểu dữ liệu, giải thích và file tích hợp AI |
 | [`frontend/src/data/`](frontend/src/data/) | Bài mẫu và trace mẫu |
 | [`backend/src/engine/`](backend/src/engine/) | Lexer, parser và instrumentation |
-| [`backend/src/routes/execute.ts`](backend/src/routes/execute.ts) | API chạy C++ |
+| [`backend/src/routes/runs.ts`](backend/src/routes/runs.ts) | Resource `/api/v1/runs`: kiểm tra request, chạy C++, lưu run |
+| [`backend/src/app.ts`](backend/src/app.ts) | Khai báo route, CORS, rate limit và lỗi RFC 9457 |
 | [`backend/src/runner/`](backend/src/runner/) | LocalRunner và DockerRunner |
 | [`runner/`](runner/) | Image/script sandbox được workflow CI build |
 | [`scripts/`](scripts/) | Công cụ kiểm tra cấu hình backend |
@@ -191,24 +192,56 @@ AI chỉ hỗ trợ giải thích. Đầu ra và trạng thái thực thi phải
 
 ### Các endpoint
 
-| Endpoint | Mục đích |
+API theo kiểu REST, có phiên bản `/api/v1`. Body request và response là JSON.
+
+| Endpoint | Kết quả |
 | --- | --- |
-| `GET /api/health` | Kiểm tra backend; khi dùng Docker còn kiểm tra daemon và image |
-| `POST /api/execute` | Nhận code C++, stdin và trả kết quả thực thi |
+| `GET /api/v1/health` | `200 {"status":"ok","runner":"docker"}`; `503` nếu Docker/image chưa sẵn sàng hoặc LocalRunner bị truy cập qua proxy |
+| `POST /api/v1/runs` | Tạo một lần chạy: `201 Created`, header `Location: /api/v1/runs/{id}`, body là run |
+| `GET /api/v1/runs/{id}` | Đọc lại run vừa tạo: `200`; `404` nếu không có hoặc đã quá 15 phút (lưu trong bộ nhớ, không lưu source code) |
 
-Ví dụ request:
+Ví dụ tạo run:
 
-```json
-{
-  "language": "cpp",
-  "code": "#include <iostream>\nint main() { std::cout << 8; return 0; }",
-  "stdin": ""
-}
+```http
+POST /api/v1/runs
+Content-Type: application/json
+
+{ "language": "cpp", "mode": "run", "standard": "gnu++17", "stdin": "5",
+  "code": "#include <iostream>\nint main(){int n;std::cin>>n;std::cout<<n*n;}" }
 ```
 
-Phản hồi thực thi có các trường như `success`, `trace`, `stdout`, `stepCount`, `executionTimeMs`; có thể kèm `compilationError`, `runtimeError`, `timeLimitExceeded`, `stepLimitExceeded` hoặc `sandboxWarning`. Một số nhánh lỗi trả ít trường hơn. Cần đọc nội dung JSON, không chỉ dựa vào HTTP 200.
+```http
+HTTP/1.1 201 Created
+Location: /api/v1/runs/1f0c…
 
-Health thành công trả `status: "ok"` và loại runner. Nếu Docker hoặc image chưa sẵn sàng, health trả HTTP 503. Health thành công chưa chứng minh biên dịch và thu trace đã hoạt động.
+{ "id": "1f0c…", "status": "succeeded", "language": "cpp", "mode": "run", "standard": "gnu++17",
+  "createdAt": "2026-11-01T05:00:00.000Z", "durationMs": 41, "stdout": "25", "stderr": "",
+  "error": null, "stepCount": 0, "trace": [], "warnings": { "visualization": "…" } }
+```
+
+`mode` mặc định `visualize`, `standard` mặc định `gnu++17`. `status` là kết quả của lần chạy: `succeeded`, `compile_error`, `runtime_error`, `time_limit_exceeded` hoặc `step_limit_exceeded`. Lỗi biên dịch hay chương trình crash **vẫn là `201`**, vì run đã được tạo và chạy; thông báo nằm ở `error`, trace một phần (nếu có) vẫn được trả về.
+
+Mã HTTP lỗi chỉ dùng khi request không được thực hiện, kèm body `application/problem+json` theo [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457), có `code` ổn định để client xử lý:
+
+| HTTP | `code` | Khi nào |
+| --- | --- | --- |
+| 400 | `malformed_json` | Body không phải JSON hợp lệ |
+| 404 | `run_not_found`, `not_found` | Run không tồn tại/hết hạn; đường dẫn API không có |
+| 405 | `method_not_allowed` | Sai method; header `Allow` cho biết method đúng |
+| 413 | `body_too_large` | Body vượt 1MB |
+| 415 | `unsupported_media_type` | Không gửi `Content-Type: application/json` |
+| 422 | `invalid_run`, `mode_unavailable` | Trường sai/vượt giới hạn; `mode: "run"` khi backend không dùng Docker |
+| 429 | `rate_limited` | Vượt rate limit; header `Retry-After` |
+| 503 | `runner_busy`, `runner_unavailable`, `local_runner_not_public` | Hàng đợi đầy (`Retry-After`), Docker chưa sẵn sàng, LocalRunner bị gọi qua proxy |
+
+```json
+{ "type": "about:blank", "title": "Unprocessable Content", "status": 422,
+  "code": "invalid_run", "detail": "standard phải là \"gnu++17\" hoặc \"gnu++20\"." }
+```
+
+`GET /api/health` và `POST /api/execute` là alias **deprecated** giữ dạng phản hồi cũ (`success`, `compilationError`…) để bản frontend build trước v1 vẫn chạy khi backend được cập nhật trước. Response có header `Deprecation: true` và `Link` trỏ tới endpoint v1; client mới không nên dùng.
+
+Health thành công chưa chứng minh biên dịch và thu trace đã hoạt động.
 
 ### Biến môi trường
 
@@ -219,10 +252,15 @@ Health thành công trả `status: "ok"` và loại runner. Nếu Docker hoặc 
 | `HOST` | Backend | Địa chỉ bind; mặc định `127.0.0.1` |
 | `PORT` | Backend | Cổng HTTP; mặc định `3001` |
 | `CORS_ORIGINS` | Backend | Các origin cho phép, cách nhau bằng dấu phẩy |
-| `NODE_ENV` | Backend | `production` chọn DockerRunner |
-| `RUNNER` | Backend | `docker` chọn DockerRunner ngoài production |
+| `NODE_ENV` | Backend | `production` chọn DockerRunner nếu không đặt `RUNNER` |
+| `RUNNER` | Backend | `docker`: container mới cho mỗi run (VPS); `sandbox`: jail trong container của service (Render, xem [DEPLOYMENT.md](DEPLOYMENT.md)); để trống ngoài production: LocalRunner chỉ phục vụ localhost |
+| `RUN_TIMEOUT_MS` | Backend (`sandbox`) | Giới hạn chạy mỗi chương trình; mặc định `5000`, tối đa `20000` (gói free của Render cần `20000`) |
+| `SANDBOX_MEMORY_MB` | Backend (`sandbox`) | Giới hạn bộ nhớ ảo mỗi tiến trình trong jail; mặc định `512` |
+| `RATE_LIMIT_PER_MIN` | Backend | Số lần tạo run mỗi phút cho mỗi khách; mặc định `20` |
+| `MAX_CONCURRENT_RUNS` | Backend | Số run chạy cùng lúc; mặc định `2` |
+| `MAX_QUEUED_RUNS` | Backend | Số run chờ tối đa, quá thì `503`; mặc định `8` |
 
-Backend hiện đọc `process.env`; không tự động nạp `.env`. Hãy đặt biến trong shell hoặc cấu hình của hosting. Frontend có `.env.production` chứa URL tunnel; cần thay bằng địa chỉ backend thực tế và kiểm tra URL được nhúng vào bản build.
+Backend hiện đọc `process.env`; không tự động nạp `.env`. Hãy đặt biến trong shell hoặc cấu hình của hosting (trên Render: `render.yaml`). URL backend của frontend lấy từ repository variable `VITE_API_BASE_URL` lúc build.
 
 ## Triển khai
 
@@ -261,7 +299,7 @@ Không chuyển API công khai sang LocalRunner để vượt lỗi Docker. Cầ
 | HTTP 404 | URL có đúng tiền tố `/api` và route không? |
 | Không fetch được | Backend có chạy không, HTTPS, URL và CORS; không mặc định mọi lỗi là CORS |
 | HTTP 503 từ health | Docker daemon và image `codelens-sandbox` trên máy backend |
-| Health thành công nhưng không chạy được code | Giao thức DockerRunner/script, compiler và phản hồi `/execute` |
+| Health thành công nhưng không chạy được code | Giao thức DockerRunner/script, compiler và phản hồi `POST /api/v1/runs` |
 | AI không hoạt động | Module AI chưa hoàn thiện; nhập key không giải quyết được phần thiếu code |
 
 ## Kiểm thử
@@ -294,6 +332,17 @@ Có thể dùng `scripts/check-backend.mjs` với biến `VITE_API_BASE_URL` đ�
 
 Các lệnh trên là hướng dẫn kiểm tra, không phải tuyên bố phiên bản hiện tại đã vượt qua tất cả kiểm thử.
 
+## Làm bài thi (bài lập trình)
+
+- Nút **Làm bài thi** trên thanh tiêu đề mở phòng thi. Ngân hàng đề có 40 bài lập trình (`frontend/src/data/examBank.ts`), 4 bài cho mỗi chương L1–L9, không trùng ngân hàng 104 bài tập.
+- **Tạo đề theo chương**: chọn các chương muốn kiểm tra, số bài và thời gian (gợi ý 20 phút/bài). Bài được rải đều qua các chương đã chọn, thang 10 chia đều cho các bài. Có sẵn Đề A (60 phút) và Đề B (75 phút), mỗi đề 3 bài.
+- Hai chế độ: **thi có giám sát** (bắt buộc toàn màn hình; thoát toàn màn hình, chuyển tab/ứng dụng hoặc tải lại trang bị tính là vi phạm, đủ 3 lần thì tự nộp; dán, kéo thả, chuột phải và phím tắt DevTools bị chặn) và **luyện tập** (không giám sát). Hết giờ thì tự nộp.
+- Đánh dấu bài cần xem lại; trang kết quả có điểm theo chương và gợi ý chương nên ôn; lịch sử 30 lần làm gần nhất kèm tỉ lệ điểm từng chương.
+- Output của test được sinh từ lời giải mẫu (`frontend/examReferences.ts`, chỉ dùng trong test); `exams.test.ts` biên dịch lại bằng g++ và kiểm tra mọi test.
+- Bài lập trình chấm theo test ví dụ + test ẩn qua backend (`mode: run`); điểm mỗi bài tính theo tỉ lệ test đúng. Nếu mất kết nối khi nộp, bài làm vẫn được lưu và có nút **Chấm lại**.
+- Phiên thi lưu trong `localStorage` nên tải lại trang không mất bài và đồng hồ vẫn chạy tiếp.
+- Đây là chế độ luyện thi phía trình duyệt: test ẩn nằm trong bundle và các biện pháp chống gian lận chỉ mang tính ngăn chặn, không thay thế giám sát thật.
+
 ## Giới hạn hiện tại
 
 - **Lỗi build đang thấy trong mã nguồn:** `backend/src/server.ts`, `frontend/src/engine/api.ts` và `ExplanationPanel.tsx` có chuỗi/template bị hỏng; `App.tsx` còn sử dụng kết quả boolean trong khi `healthCheck` khai báo trả `void`. Cần sửa trước khi phát hành.
@@ -321,7 +370,7 @@ README này mô tả những gì mã nguồn thể hiện và các phần còn t
 
 ### Khắc phục lỗi thiếu máy chủ chạy code
 
-1. Triển khai backend trên máy chủ hỗ trợ Docker và HTTPS. GitHub Pages không chạy backend C++.
+1. Triển khai backend: Render qua [`render.yaml`](render.yaml), hoặc máy chủ có Docker và HTTPS; xem [DEPLOYMENT.md](DEPLOYMENT.md). GitHub Pages không chạy backend C++.
 2. Đặt `CORS_ORIGINS=https://devk4z.github.io` trong môi trường backend.
 3. Khi dùng `backend/deploy.sh`, PM2 đọc `backend/.env` bằng `--env-file=.env` (Node 22+). Script giữ cấu hình `.env` đã có. Đảm bảo upstream Nginx dùng cùng `PORT` trong file này.
 4. Trong repository: Settings → Secrets and variables → Actions → Variables, đặt `VITE_API_BASE_URL` bằng URL backend thật có đuôi `/api`.
@@ -354,7 +403,7 @@ Kết quả STDOUT/STDERR được hiển thị riêng; chế độ này **khôn
 Lỗi parser/instrumentation không có nghĩa code C++ gốc không hợp lệ. Không tự động
 chạy lại bằng chế độ khác để tránh thực thi chương trình hai lần.
 
-Sau khi cập nhật code, cần build lại sandbox và backend trên máy chạy tunnel:
+Khi tự chạy backend bằng Docker (VPS hoặc máy cá nhân), sau khi cập nhật code cần build lại sandbox và backend:
 
 ```powershell
 # Từ thư mục gốc repository; Docker Desktop phải đang chạy
@@ -366,10 +415,10 @@ Sau khi cập nhật code, cần build lại sandbox và backend trên máy ch�
  npm start
 ```
 
-Dừng tiến trình backend cũ trước khi chạy lại; giữ tunnel đang chạy để không đổi URL.
-Frontend cần build/deploy lại để có thanh chọn chế độ. API `POST /api/execute` nhận
+Dừng tiến trình backend cũ trước khi chạy lại. Trên Render, push lên `main` là đủ: service tự build lại.
+Frontend cần build/deploy lại để có thanh chọn chế độ. API `POST /api/v1/runs` nhận
 thêm `mode: "run" | "visualize"` và `standard: "gnu++17" | "gnu++20"`; client cũ
-không gửi mode vẫn dùng visualize. Chạy native bắt buộc Docker, kể cả development.
+không gửi mode vẫn dùng visualize. Chạy native bắt buộc runner cô lập (`docker` hoặc `sandbox`), kể cả development.
 Giới hạn: code 50.000 ký tự, stdin 10.000 ký tự, compile 25 giây, chạy 5 giây,
 RAM container 256 MiB, 64 tiến trình, không network và không mount thư mục host.
 Code chỉ đọc/ghi file tạm bên trong container; nhập/xuất bài thi nên dùng stdin/stdout.
@@ -386,14 +435,3 @@ CI đặt `TEST_DOCKER=1` để kiểm tra cùng bộ fixtures qua DockerRunner 
 - Mẫu dùng GNU++17. Code/input hợp lệ trong ghi chú; mẫu quay lui có thể chạm giới hạn trace. Biên dịch được không có nghĩa mọi cấu trúc dữ liệu đều có hình trực quan chuyên biệt.
 
 Kiểm tra thư viện: `python3 scripts/check-exercise-samples.py` (cần g++). Script biên dịch toàn bộ mẫu, so output và kiểm tra thêm biên/biến thể quan trọng. `npm --prefix frontend test` kiểm tra cả luồng xem/thử/khôi phục code và trường hợp bộ nhớ trình duyệt đầy.
-
-### Làm bài thi (bài lập trình)
-
-- Nút **Làm bài thi** trên thanh tiêu đề mở phòng thi. Ngân hàng đề có 40 bài lập trình (`frontend/src/data/examBank.ts`), 4 bài cho mỗi chương L1–L9, không trùng ngân hàng 104 bài tập.
-- **Tạo đề theo chương**: chọn các chương muốn kiểm tra, số bài và thời gian (gợi ý 20 phút/bài). Bài được rải đều qua các chương đã chọn, thang 10 chia đều cho các bài. Có sẵn Đề A (60 phút) và Đề B (75 phút), mỗi đề 3 bài.
-- Hai chế độ: **thi có giám sát** (bắt buộc toàn màn hình; thoát toàn màn hình, chuyển tab/ứng dụng hoặc tải lại trang bị tính là vi phạm, đủ 3 lần thì tự nộp; dán, kéo thả, chuột phải và phím tắt DevTools bị chặn) và **luyện tập** (không giám sát). Hết giờ thì tự nộp.
-- Đánh dấu bài cần xem lại; trang kết quả có điểm theo chương và gợi ý chương nên ôn; lịch sử 30 lần làm gần nhất kèm tỉ lệ điểm từng chương.
-- Output của test được sinh từ lời giải mẫu (`frontend/examReferences.ts`, chỉ dùng trong test); `exams.test.ts` biên dịch lại bằng g++ và kiểm tra mọi test.
-- Bài lập trình chấm theo test ví dụ + test ẩn qua backend (`mode: run`); điểm mỗi bài tính theo tỉ lệ test đúng. Nếu mất kết nối khi nộp, bài làm vẫn được lưu và có nút **Chấm lại**.
-- Phiên thi lưu trong `localStorage` nên tải lại trang không mất bài và đồng hồ vẫn chạy tiếp.
-- Đây là chế độ luyện thi phía trình duyệt: test ẩn nằm trong bundle và các biện pháp chống gian lận chỉ mang tính ngăn chặn, không thay thế giám sát thật.

@@ -1,4 +1,4 @@
-import { TraceEvent } from '../routes/execute.js';
+import { TraceEvent } from '../types.js';
 
 export function getDemoTrace(sampleId: string): { trace: TraceEvent[], stdout: string, isDemo: boolean } | null {
   if (sampleId === 'array-sum') {

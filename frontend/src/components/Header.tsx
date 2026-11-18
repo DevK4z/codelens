@@ -1,5 +1,4 @@
-import { Code, RefreshCw, BookOpen, ClipboardList } from 'lucide-react';
-import { SampleSelector } from './SampleSelector';
+import { Code, RefreshCw, BookOpen, Bot, ClipboardList } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { Sample } from '../data/samples';
 import { useState } from 'react';
@@ -9,13 +8,14 @@ interface HeaderProps {
   toggleTheme: () => void;
   onSelectSample: (sample: Sample) => void;
   onOpenExerciseBank: () => void;
-  onOpenExam: () => void;
   isBackendAvailable: boolean;
   onCheckConnection: () => Promise<boolean>;
   currentCode: string;
+  onOpenTutor?: () => void;
+  onOpenExam?: () => void;
 }
 
-export function Header({ theme, toggleTheme, onSelectSample, onOpenExerciseBank, onOpenExam, isBackendAvailable, onCheckConnection, currentCode }: HeaderProps) {
+export function Header({ theme, toggleTheme, onOpenExerciseBank, isBackendAvailable, onCheckConnection, onOpenTutor, onOpenExam }: HeaderProps) {
   const [checking, setChecking] = useState(false);
 
   const handleCheck = async () => {
@@ -25,14 +25,14 @@ export function Header({ theme, toggleTheme, onSelectSample, onOpenExerciseBank,
   };
 
   return (
-    <header className="flex flex-wrap gap-3 items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--bg-panel)]">
+    <header className="app-header">
       <div className="flex items-center gap-3">
         <div className="p-2 bg-[var(--accent)] rounded-lg text-white">
           <Code size={24} />
         </div>
         <div>
           <h1 className="text-xl font-bold">CodeLens</h1>
-          <p className="text-sm text-[var(--text-secondary)]">Trực quan hóa thuật toán</p>
+          <p className="text-sm text-[var(--text-secondary)]">Không gian học thuật toán</p>
         </div>
       </div>
       
@@ -44,13 +44,20 @@ export function Header({ theme, toggleTheme, onSelectSample, onOpenExerciseBank,
           <BookOpen size={18} />
           Ngân hàng bài tập
         </button>
-        <button
+        {onOpenTutor && <button
+          onClick={onOpenTutor}
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 border border-[var(--accent)]/40 rounded-md font-medium text-sm transition-colors"
+        >
+          <Bot size={18} />
+          Trợ lý DSA
+        </button>}
+        {onOpenExam && <button
           onClick={onOpenExam}
           className="flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 border border-green-500/30 rounded-md font-medium text-sm transition-colors"
         >
           <ClipboardList size={18} />
           Làm bài thi
-        </button>
+        </button>}
 
         <div className="flex items-center gap-2 bg-[var(--bg-card)] px-3 py-1.5 rounded-full border border-[var(--border)] shadow-sm">
           <div className={`w-2.5 h-2.5 rounded-full ${isBackendAvailable ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`}></div>
@@ -68,7 +75,7 @@ export function Header({ theme, toggleTheme, onSelectSample, onOpenExerciseBank,
             </button>
           )}
         </div>
-        <SampleSelector onSelect={onSelectSample} currentCode={currentCode} />
+
         <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
       </div>
     </header>

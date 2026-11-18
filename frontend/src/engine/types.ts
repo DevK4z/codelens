@@ -13,7 +13,14 @@ export interface TraceEvent {
   swapInfo?: { array: string; index1: number; index2: number };
   compareAccesses?: { array: string; index: number }[];
   compareInfo?: { left: string; right: string; leftValue: any; rightValue: any; operator: string; result: boolean };
+  heap?: Heap;
+  loopCheck?: boolean;
+  unset?: string[];
 }
+
+// Structs reachable through pointers at this step, by address (see runner/gdb_trace.py).
+export interface HeapNode { type: string; fields: Record<string, unknown> }
+export type Heap = Record<string, HeapNode>;
 
 export interface CallFrame {
   id?: number;
@@ -38,6 +45,24 @@ export interface ExecuteResponse {
   visualizationWarning?: string;
   stderr?: string;
   isDemo?: boolean;
+}
+
+// Resource returned by POST /api/v1/runs and GET /api/v1/runs/{id}.
+export type RunStatus = 'succeeded' | 'compile_error' | 'runtime_error' | 'time_limit_exceeded' | 'step_limit_exceeded';
+export interface Run {
+  id: string;
+  status: RunStatus;
+  language: 'cpp';
+  mode: 'run' | 'visualize';
+  standard: 'gnu++17' | 'gnu++20';
+  createdAt: string;
+  durationMs: number;
+  stdout: string;
+  stderr: string;
+  error: string | null;
+  stepCount: number;
+  trace: TraceEvent[];
+  warnings: { sandbox?: string; visualization?: string };
 }
 
 export type VariableRole = 'array' | 'left-pointer' | 'right-pointer' | 'mid-pointer' | 'dp-table' | 'counter' | 'target' | 'result' | 'none';

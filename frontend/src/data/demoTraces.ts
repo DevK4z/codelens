@@ -4635,6 +4635,565 @@ export const DEMO_TRACES: Record<string, Partial<ExecuteResponse>> = {
     "executionTimeMs": 3,
     "isDemo": true,
     "sandboxWarning": "Dữ liệu mô phỏng từ lần chạy C++ thật (Chế độ xem trước GitHub Pages)"
+  },
+  "two-pointers-palindrome": {
+    "success": true,
+    "trace": [
+      {
+        "step": 0,
+        "line": 5,
+        "event": "call",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {},
+        "changed": [],
+        "stdout": ""
+      },
+      {
+        "step": 1,
+        "line": 6,
+        "event": "vardecl",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": ""
+        },
+        "changed": [
+          "s"
+        ],
+        "stdout": ""
+      },
+      {
+        "step": 2,
+        "line": 7,
+        "event": "stdin",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar"
+        },
+        "changed": [
+          "s"
+        ],
+        "stdout": ""
+      },
+      {
+        "step": 3,
+        "line": 8,
+        "event": "vardecl",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 0
+        },
+        "changed": [
+          "left"
+        ],
+        "stdout": ""
+      },
+      {
+        "step": 4,
+        "line": 8,
+        "event": "vardecl",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 0,
+          "right": 6
+        },
+        "changed": [
+          "right"
+        ],
+        "stdout": ""
+      },
+      {
+        "step": 5,
+        "line": 9,
+        "event": "vardecl",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 0,
+          "right": 6,
+          "ok": true
+        },
+        "changed": [
+          "ok"
+        ],
+        "stdout": ""
+      },
+      {
+        "step": 6,
+        "line": 10,
+        "event": "compare",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 0,
+          "right": 6,
+          "ok": true
+        },
+        "changed": [],
+        "compareInfo": {
+          "left": "left",
+          "right": "right",
+          "leftValue": 0,
+          "rightValue": 6,
+          "operator": "<",
+          "result": true
+        },
+        "compareAccesses": [],
+        "stdout": ""
+      },
+      {
+        "step": 7,
+        "line": 11,
+        "event": "compare",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 0,
+          "right": 6,
+          "ok": true
+        },
+        "changed": [],
+        "compareInfo": {
+          "left": "s[left]",
+          "right": "s[right]",
+          "leftValue": "r",
+          "rightValue": "r",
+          "operator": "!=",
+          "result": false
+        },
+        "compareAccesses": [
+          {
+            "array": "s",
+            "index": 0
+          },
+          {
+            "array": "s",
+            "index": 6
+          }
+        ],
+        "stdout": ""
+      },
+      {
+        "step": 8,
+        "line": 15,
+        "event": "line",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 0,
+          "right": 6,
+          "ok": true
+        },
+        "changed": [],
+        "stdout": ""
+      },
+      {
+        "step": 9,
+        "line": 16,
+        "event": "line",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 1,
+          "right": 6,
+          "ok": true
+        },
+        "changed": [],
+        "stdout": ""
+      },
+      {
+        "step": 10,
+        "line": 10,
+        "event": "compare",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 1,
+          "right": 5,
+          "ok": true
+        },
+        "changed": [],
+        "compareInfo": {
+          "left": "left",
+          "right": "right",
+          "leftValue": 1,
+          "rightValue": 5,
+          "operator": "<",
+          "result": true
+        },
+        "compareAccesses": [],
+        "stdout": ""
+      },
+      {
+        "step": 11,
+        "line": 11,
+        "event": "compare",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 1,
+          "right": 5,
+          "ok": true
+        },
+        "changed": [],
+        "compareInfo": {
+          "left": "s[left]",
+          "right": "s[right]",
+          "leftValue": "a",
+          "rightValue": "a",
+          "operator": "!=",
+          "result": false
+        },
+        "compareAccesses": [
+          {
+            "array": "s",
+            "index": 1
+          },
+          {
+            "array": "s",
+            "index": 5
+          }
+        ],
+        "stdout": ""
+      },
+      {
+        "step": 12,
+        "line": 15,
+        "event": "line",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 1,
+          "right": 5,
+          "ok": true
+        },
+        "changed": [],
+        "stdout": ""
+      },
+      {
+        "step": 13,
+        "line": 16,
+        "event": "line",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 2,
+          "right": 5,
+          "ok": true
+        },
+        "changed": [],
+        "stdout": ""
+      },
+      {
+        "step": 14,
+        "line": 10,
+        "event": "compare",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 2,
+          "right": 4,
+          "ok": true
+        },
+        "changed": [],
+        "compareInfo": {
+          "left": "left",
+          "right": "right",
+          "leftValue": 2,
+          "rightValue": 4,
+          "operator": "<",
+          "result": true
+        },
+        "compareAccesses": [],
+        "stdout": ""
+      },
+      {
+        "step": 15,
+        "line": 11,
+        "event": "compare",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 2,
+          "right": 4,
+          "ok": true
+        },
+        "changed": [],
+        "compareInfo": {
+          "left": "s[left]",
+          "right": "s[right]",
+          "leftValue": "c",
+          "rightValue": "c",
+          "operator": "!=",
+          "result": false
+        },
+        "compareAccesses": [
+          {
+            "array": "s",
+            "index": 2
+          },
+          {
+            "array": "s",
+            "index": 4
+          }
+        ],
+        "stdout": ""
+      },
+      {
+        "step": 16,
+        "line": 15,
+        "event": "line",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 2,
+          "right": 4,
+          "ok": true
+        },
+        "changed": [],
+        "stdout": ""
+      },
+      {
+        "step": 17,
+        "line": 16,
+        "event": "line",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 3,
+          "right": 4,
+          "ok": true
+        },
+        "changed": [],
+        "stdout": ""
+      },
+      {
+        "step": 18,
+        "line": 10,
+        "event": "compare",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 3,
+          "right": 3,
+          "ok": true
+        },
+        "changed": [],
+        "compareInfo": {
+          "left": "left",
+          "right": "right",
+          "leftValue": 3,
+          "rightValue": 3,
+          "operator": "<",
+          "result": false
+        },
+        "compareAccesses": [],
+        "stdout": ""
+      },
+      {
+        "step": 19,
+        "line": 18,
+        "event": "stdout",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 3,
+          "right": 3,
+          "ok": true
+        },
+        "changed": [],
+        "stdout": "YES\n"
+      },
+      {
+        "step": 20,
+        "line": 19,
+        "event": "line",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {}
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 3,
+          "right": 3,
+          "ok": true
+        },
+        "changed": [],
+        "stdout": "YES\n"
+      },
+      {
+        "step": 21,
+        "line": 19,
+        "event": "return",
+        "callStack": [
+          {
+            "func": "main",
+            "line": 5,
+            "id": 1,
+            "params": {},
+            "returnValue": 0
+          }
+        ],
+        "variables": {
+          "s": "racecar",
+          "left": 3,
+          "right": 3,
+          "ok": true
+        },
+        "changed": [],
+        "stdout": "YES\n"
+      }
+    ],
+    "stdout": "YES\n",
+    "stepCount": 22,
+    "executionTimeMs": 151,
+    "isDemo": true,
+    "sandboxWarning": "Dữ liệu mô phỏng từ lần chạy C++ thật (Chế độ xem trước GitHub Pages)"
   }
 };
 export function getFallbackDemoTrace(code: string, stdin: string): Partial<ExecuteResponse> | null {

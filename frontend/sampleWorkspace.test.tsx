@@ -17,7 +17,7 @@ globalThis.fetch = async (_url, options) => {
     : { status: 'ok', runner: 'docker' }), { headers: { 'Content-Type': 'application/json' } });
 };
 const React = await import('react');
-const { render, screen, fireEvent, cleanup, waitFor } = await import('@testing-library/react');
+const { render, screen, fireEvent, cleanup, waitFor, act } = await import('@testing-library/react');
 mock.module('./src/components/CodeEditor.tsx', {
   namedExports: { CodeEditor: (props: any) => React.createElement('textarea', { 'aria-label': 'Test code editor', value: props.code, onChange: (e: any) => props.onChange(e.target.value) }) },
 });
@@ -81,4 +81,42 @@ test('storage failure blocks sample workspace instead of risking the main draft'
     assert.equal(screen.queryByRole('button', { name: 'Quay về code chính' }), null);
     assert.equal((screen.getByPlaceholderText(/Nhập dữ liệu/) as HTMLTextAreaElement).value, original.stdin);
   } finally { dom.window.Storage.prototype.setItem = savedSet; cleanup(); }
+});
+
+test('run mode shows output workspace; visualization controls only appear in visualization mode', async () => {
+  seed(); render(<App />);
+  assert.ok(screen.getByRole('region', { name: 'Kết quả chạy C++' }));
+  assert.equal(screen.queryByRole('slider', { name: 'Bước thực thi' }), null);
+  fireEvent.click(screen.getByRole('button', { name: 'Trực quan hóa', exact: true }));
+  assert.equal(screen.queryByRole('region', { name: 'Kết quả chạy C++' }), null);
+  assert.ok(screen.getByRole('slider', { name: 'Bước thực thi' }));
+  assert.equal((screen.getByLabelText('Test code editor') as HTMLTextAreaElement).value, original.code);
+  fireEvent.click(screen.getByRole('button', { name: 'Chạy C++', exact: true }));
+  fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
+  await waitFor(() => assert.equal(requests.length, 1));
+  assert.equal(requests[0].code, original.code);
+  assert.equal(requests[0].executionMode ?? requests[0].mode, 'run');
+  cleanup();
+});
+
+const { SimpleStepExplanation } = await import('./src/components/SimpleStepExplanation');
+test('changing steps clears stale AI and cancels its request without sending anything automatically', async () => {
+  cleanup(); const originalFetch = globalThis.fetch; let count = 0; let signal: AbortSignal | undefined;
+  let resolve!: (value: Response) => void;
+  globalThis.fetch = async (_url, options) => { count++; signal = options?.signal as AbortSignal; return new Promise<Response>(r => { resolve = r; }); };
+  const event = {step:0,line:1,event:'line',variables:{},changed:[],callStack:[{func:'main',line:1}],detail:'GCC/GDB: before'};
+  try {
+    const view = render(<SimpleStepExplanation event={event} code={'int n;\ncin >> n;'} />);
+    assert.equal(count,0);
+    fireEvent.click(screen.getByText('✨ Giải thích dễ hơn bằng AI'));
+    fireEvent.change(screen.getByLabelText('Gemini API key'),{target:{value:'test-key'}});
+    fireEvent.click(screen.getByRole('button',{name:'Hỏi AI về bước này'}));
+    await waitFor(()=>assert.equal(count,1));
+    view.rerender(<SimpleStepExplanation event={{...event,step:1,line:2}} code={'int n;\ncin >> n;'} />);
+    assert.equal(signal?.aborted,true);
+    await act(async () => { resolve(new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({action:'OLD ANSWER',change:'Old',next:'Old'})}]}}]})));
+    await new Promise(r=>setTimeout(r,0)); });
+    assert.equal(screen.queryByText('OLD ANSWER'),null);
+    assert.ok(screen.getByText(/Đọc dữ liệu từ input vào n/));
+  } finally { globalThis.fetch=originalFetch; cleanup(); }
 });

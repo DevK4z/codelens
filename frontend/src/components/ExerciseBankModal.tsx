@@ -15,6 +15,7 @@ export function ExerciseBankModal({ isOpen, onClose, onSelect, onPreview }: Exer
   useEffect(() => { if (isOpen) dialog.current?.showModal(); else dialog.current?.close(); }, [isOpen]);
   const [selectedChapter, setSelectedChapter] = useState<string>('All');
   const [selectedType, setSelectedType] = useState<string>('All');
+  const [completion, setCompletion] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   
   // Progress tracking via localStorage
@@ -26,9 +27,12 @@ export function ExerciseBankModal({ isOpen, onClose, onSelect, onPreview }: Exer
 
 
 
+  const chapterNames: Record<string, string> = { L1: 'Độ phức tạp', L2: 'Đệ quy', 'L3.1': 'Quy hoạch động', 'L3.2': 'Tham lam', L4: 'Danh sách liên kết', L5: 'Stack & Queue', L6: 'Cây', L7: 'Sắp xếp', L8: 'Merge & Quick Sort', L9: 'Tìm kiếm & Băm' };
   const chapters = ['All', ...Array.from(new Set(EXERCISES.map(e => e.chapter)))];
   
   const filtered = EXERCISES.filter(e => {
+    if (completion === 'done' && !progress[e.id]) return false;
+    if (completion === 'todo' && progress[e.id]) return false;
     if (selectedChapter !== 'All' && e.chapter !== selectedChapter) return false;
     if (selectedType !== 'All' && e.kind !== selectedType) return false;
     if (searchQuery && !e.title.toLowerCase().includes(searchQuery.toLowerCase()) && !e.id.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -70,7 +74,7 @@ export function ExerciseBankModal({ isOpen, onClose, onSelect, onPreview }: Exer
                 value={selectedChapter}
                 onChange={e => setSelectedChapter(e.target.value)}
               >
-                {chapters.map(c => <option key={c} value={c}>{c === 'All' ? 'Tất cả chương' : `Chương ${c}`}</option>)}
+                {chapters.map(c => <option key={c} value={c}>{c === 'All' ? 'Tất cả chương' : `${chapterNames[c] || "Chương"} · ${c}`}</option>)}
               </select>
             </div>
 
@@ -88,9 +92,14 @@ export function ExerciseBankModal({ isOpen, onClose, onSelect, onPreview }: Exer
               </select>
             </div>
 
+            <label className="text-sm font-semibold">Trạng thái
+              <select aria-label="Trạng thái học" value={completion} onChange={e => setCompletion(e.target.value)} className="w-full mt-2 p-2 rounded border border-[var(--border)] bg-[var(--bg-primary)]">
+                <option value="all">Tất cả bài</option><option value="todo">Chưa hoàn thành</option><option value="done">Đã tự đánh dấu hoàn thành</option>
+              </select>
+            </label>
             <div className="mt-auto pt-4 border-t border-[var(--border)]">
               <div className="text-sm text-[var(--text-secondary)]">
-                Tiến độ: {Object.keys(progress).length} / {EXERCISES.length}
+                Tự đánh dấu: {Object.values(progress).filter(Boolean).length} / {EXERCISES.length}
               </div>
               <div className="w-full bg-[var(--bg-primary)] h-2 rounded-full mt-2 overflow-hidden border border-[var(--border)]">
                 <div 
@@ -120,16 +129,10 @@ export function ExerciseBankModal({ isOpen, onClose, onSelect, onPreview }: Exer
                     </div>
                   </div>
                   
-                  <div className="text-sm text-[var(--text-secondary)] line-clamp-3">
+                  <div className="text-sm text-[var(--text-secondary)] line-clamp-2">
                     {ex.statement}
                   </div>
                   
-                  {ex.source_data && (
-                    <div className="text-xs bg-[var(--bg-panel)] p-2 rounded border border-[var(--border)] font-mono text-[var(--text-primary)]">
-                      {ex.source_data}
-                    </div>
-                  )}
-
                   <div className="mt-auto pt-3 flex flex-wrap gap-2">
                     {EXERCISE_SOLUTIONS[ex.id] && <button onClick={() => { onClose(); onPreview(ex); }} className="px-3 py-2 border border-[var(--accent)] text-[var(--accent)] rounded text-sm">Xem code mẫu</button>}
                     <button 
@@ -150,7 +153,7 @@ export function ExerciseBankModal({ isOpen, onClose, onSelect, onPreview }: Exer
                         try { localStorage.setItem('codelens_progress', JSON.stringify(newP)); } catch { /* Keep progress in memory. */ }
                       }}
                       className="px-3 py-2 border border-[var(--border)] bg-[var(--bg-panel)] rounded hover:bg-[var(--bg-primary)]"
-                      title="Đánh dấu hoàn thành"
+                      title={progress[ex.id] ? "Bỏ đánh dấu hoàn thành" : "Đánh dấu hoàn thành"} aria-pressed={!!progress[ex.id]}
                     >
                       {progress[ex.id] ? <CheckCircle size={18} className="text-green-500" /> : <Circle size={18} />}
                     </button>

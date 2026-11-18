@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import express from 'express';
 import { once } from 'node:events';
-import executeRouter from './src/routes/execute.js';
+import { createApp } from './src/app.js';
 import { LocalRunner } from './src/runner/local.js';
 import { DockerRunner } from './src/runner/dockerRunner.js';
 
@@ -87,18 +86,17 @@ test('execution timeout is reported',async()=>{
 test('API validates execution options and never runs native code on LocalRunner',async()=>{
   const savedRunner=process.env.RUNNER, savedNode=process.env.NODE_ENV;
   process.env.RUNNER=docker?'docker':'local'; process.env.NODE_ENV='test';
-  const app=express(); app.use(express.json()); app.use('/api/execute',executeRouter);
-  const server=app.listen(0,'127.0.0.1'); await once(server,'listening');
+  const server=createApp().listen(0,'127.0.0.1'); await once(server,'listening');
   const addr=server.address(); assert.ok(addr && typeof addr!=='string');
-  const post=(body:object)=>fetch(`http://127.0.0.1:${addr.port}/api/execute`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const post=(body:object)=>fetch(`http://127.0.0.1:${addr.port}/api/v1/runs`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   try {
     const base={code:cases[0].code,stdin:cases[0].stdin,language:'cpp',mode:'run'};
     for(const extra of [{standard:'gnu++17;id'},{mode:'unknown'},{stdin:0}]) {
-      assert.equal((await post({...base,...extra})).status,400);
+      assert.equal((await post({...base,...extra})).status,422);
     }
     const res=await post(base); const data=await res.json();
-    if(docker){ assert.equal(data.success,true,JSON.stringify(data));assert.equal(data.stdout,cases[0].expected);assert.deepEqual(data.trace,[]);assert.equal(data.executionMode,'run'); }
-    else {assert.equal(res.status,400);assert.match(data.runtimeError,/Docker/);}
+    if(docker){ assert.equal(res.status,201);assert.equal(data.status,'succeeded',JSON.stringify(data));assert.equal(data.stdout,cases[0].expected);assert.deepEqual(data.trace,[]);assert.equal(data.mode,'run'); }
+    else {assert.equal(res.status,422);assert.equal(data.code,'mode_unavailable');}
   } finally {
     server.closeAllConnections(); await new Promise<void>(resolve=>server.close(()=>resolve()));
     if(savedRunner===undefined) delete process.env.RUNNER;else process.env.RUNNER=savedRunner;

@@ -9,6 +9,7 @@ import { ExplanationPanel } from './ExplanationPanel';
 interface BottomTabsProps {
   event: TraceEvent | null;
   prevEvent: TraceEvent | null;
+  nextEvent?: TraceEvent | null;
   variableRoles: VariableRoleMap;
   onRoleChange: (varName: string, role: VariableRole) => void;
   stdout: string;
@@ -21,7 +22,7 @@ interface BottomTabsProps {
 type TabType = 'vars' | 'callstack' | 'explanation' | 'console';
 
 export function BottomTabs({ 
-  event, prevEvent, variableRoles, onRoleChange,
+  event, prevEvent, nextEvent, variableRoles, onRoleChange,
   stdout, compilationError, runtimeError, sandboxWarning, code
 }: BottomTabsProps) {
   const [expanded, setExpanded] = useState(false);
@@ -56,7 +57,7 @@ export function BottomTabs({
       {expanded && <div className="flex-1 overflow-hidden">
         {activeTab === 'vars' && <VariablePanel event={event} variableRoles={variableRoles} onRoleChange={onRoleChange} />}
         {activeTab === 'callstack' && <CallStackPanel event={event} />}
-        {activeTab === 'explanation' && <ExplanationPanel event={event} prevEvent={prevEvent} code={code} stdout={stdout} />}
+        {activeTab === 'explanation' && <ExplanationPanel event={event} prevEvent={prevEvent} nextEvent={nextEvent} code={code} stdout={stdout} />}
         {activeTab === 'console' && (
           <ConsolePanel 
             stdout={stdout} 
