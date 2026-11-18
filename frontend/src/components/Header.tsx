@@ -1,4 +1,4 @@
-import { Code, RefreshCw, BookOpen } from 'lucide-react';
+import { Code, RefreshCw, BookOpen, ClipboardList } from 'lucide-react';
 import { SampleSelector } from './SampleSelector';
 import { ThemeToggle } from './ThemeToggle';
 import { Sample } from '../data/samples';
@@ -9,12 +9,13 @@ interface HeaderProps {
   toggleTheme: () => void;
   onSelectSample: (sample: Sample) => void;
   onOpenExerciseBank: () => void;
+  onOpenExam: () => void;
   isBackendAvailable: boolean;
   onCheckConnection: () => Promise<boolean>;
   currentCode: string;
 }
 
-export function Header({ theme, toggleTheme, onSelectSample, onOpenExerciseBank, isBackendAvailable, onCheckConnection, currentCode }: HeaderProps) {
+export function Header({ theme, toggleTheme, onSelectSample, onOpenExerciseBank, onOpenExam, isBackendAvailable, onCheckConnection, currentCode }: HeaderProps) {
   const [checking, setChecking] = useState(false);
 
   const handleCheck = async () => {
@@ -42,6 +43,13 @@ export function Header({ theme, toggleTheme, onSelectSample, onOpenExerciseBank,
         >
           <BookOpen size={18} />
           Ngân hàng bài tập
+        </button>
+        <button
+          onClick={onOpenExam}
+          className="flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 border border-green-500/30 rounded-md font-medium text-sm transition-colors"
+        >
+          <ClipboardList size={18} />
+          Làm bài thi
         </button>
 
         <div className="flex items-center gap-2 bg-[var(--bg-card)] px-3 py-1.5 rounded-full border border-[var(--border)] shadow-sm">

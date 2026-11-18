@@ -386,3 +386,14 @@ CI đặt `TEST_DOCKER=1` để kiểm tra cùng bộ fixtures qua DockerRunner 
 - Mẫu dùng GNU++17. Code/input hợp lệ trong ghi chú; mẫu quay lui có thể chạm giới hạn trace. Biên dịch được không có nghĩa mọi cấu trúc dữ liệu đều có hình trực quan chuyên biệt.
 
 Kiểm tra thư viện: `python3 scripts/check-exercise-samples.py` (cần g++). Script biên dịch toàn bộ mẫu, so output và kiểm tra thêm biên/biến thể quan trọng. `npm --prefix frontend test` kiểm tra cả luồng xem/thử/khôi phục code và trường hợp bộ nhớ trình duyệt đầy.
+
+### Làm bài thi (bài lập trình)
+
+- Nút **Làm bài thi** trên thanh tiêu đề mở phòng thi. Ngân hàng đề có 40 bài lập trình (`frontend/src/data/examBank.ts`), 4 bài cho mỗi chương L1–L9, không trùng ngân hàng 104 bài tập.
+- **Tạo đề theo chương**: chọn các chương muốn kiểm tra, số bài và thời gian (gợi ý 20 phút/bài). Bài được rải đều qua các chương đã chọn, thang 10 chia đều cho các bài. Có sẵn Đề A (60 phút) và Đề B (75 phút), mỗi đề 3 bài.
+- Hai chế độ: **thi có giám sát** (bắt buộc toàn màn hình; thoát toàn màn hình, chuyển tab/ứng dụng hoặc tải lại trang bị tính là vi phạm, đủ 3 lần thì tự nộp; dán, kéo thả, chuột phải và phím tắt DevTools bị chặn) và **luyện tập** (không giám sát). Hết giờ thì tự nộp.
+- Đánh dấu bài cần xem lại; trang kết quả có điểm theo chương và gợi ý chương nên ôn; lịch sử 30 lần làm gần nhất kèm tỉ lệ điểm từng chương.
+- Output của test được sinh từ lời giải mẫu (`frontend/examReferences.ts`, chỉ dùng trong test); `exams.test.ts` biên dịch lại bằng g++ và kiểm tra mọi test.
+- Bài lập trình chấm theo test ví dụ + test ẩn qua backend (`mode: run`); điểm mỗi bài tính theo tỉ lệ test đúng. Nếu mất kết nối khi nộp, bài làm vẫn được lưu và có nút **Chấm lại**.
+- Phiên thi lưu trong `localStorage` nên tải lại trang không mất bài và đồng hồ vẫn chạy tiếp.
+- Đây là chế độ luyện thi phía trình duyệt: test ẩn nằm trong bundle và các biện pháp chống gian lận chỉ mang tính ngăn chặn, không thay thế giám sát thật.

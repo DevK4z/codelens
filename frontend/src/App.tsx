@@ -17,6 +17,8 @@ import { EXERCISE_SOLUTIONS } from './data/exerciseSolutions';
 import { SamplePreview, PreviewSample } from './components/SamplePreview';
 import { getFallbackDemoTrace } from './data/demoTraces';
 import { readSavedRun, saveRun } from './utils/savedRun';
+import { ExamMode } from './components/ExamMode';
+import { loadSession } from './engine/examGrading';
 
 function App() {
   const [savedRun, setSavedRun] = useState(readSavedRun);
@@ -47,6 +49,8 @@ function App() {
   const [showHints, setShowHints] = useState(false);
 
   const [isExerciseBankOpen, setIsExerciseBankOpen] = useState(false);
+  // Mở lại phòng thi nếu còn phiên thi chưa nộp (ví dụ sau khi tải lại trang).
+  const [isExamOpen, setIsExamOpen] = useState(() => { const s = loadSession(); return !!s && !s.submittedAt; });
   const [theme, setTheme] = useState<ThemeMode>(() => {
     try {
       const saved = localStorage.getItem('theme');
@@ -290,6 +294,7 @@ function App() {
 
   return (
     <div className="h-screen w-full flex flex-col bg-[var(--bg-primary)] overflow-hidden text-[var(--text-primary)]">
+      {isExamOpen && <ExamMode theme={theme} onExit={() => setIsExamOpen(false)} />}
       <SamplePreview sample={previewSample} onClose={() => setPreviewSample(null)} onTry={handleSelectSample} />
       <ExerciseBankModal 
         isOpen={isExerciseBankOpen} 
@@ -302,6 +307,7 @@ function App() {
         toggleTheme={toggleTheme}
         onSelectSample={setPreviewSample}
         onOpenExerciseBank={() => setIsExerciseBankOpen(true)}
+        onOpenExam={() => setIsExamOpen(true)}
         isBackendAvailable={backendAvailable}
         onCheckConnection={checkConnection}
         currentCode={code}
