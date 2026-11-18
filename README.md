@@ -332,10 +332,13 @@ Có thể dùng `scripts/check-backend.mjs` với biến `VITE_API_BASE_URL` đ�
 
 Các lệnh trên là hướng dẫn kiểm tra, không phải tuyên bố phiên bản hiện tại đã vượt qua tất cả kiểm thử.
 
-## Làm bài thi (toàn màn hình)
+## Làm bài thi (bài lập trình)
 
-- Nút **Làm bài thi** trên thanh tiêu đề mở phòng thi với 2 đề riêng (`frontend/src/data/exams.ts`), không trùng ngân hàng 104 bài: Đề A (45 phút) và Đề B (60 phút), mỗi đề 8 câu trắc nghiệm (4 điểm) + 3 bài lập trình (6 điểm).
-- Bài thi bắt buộc toàn màn hình. Thoát toàn màn hình, chuyển tab/ứng dụng hoặc tải lại trang bị tính là vi phạm; đủ 3 lần thì tự nộp. Hết giờ cũng tự nộp. Dán, kéo thả, chuột phải và phím tắt DevTools bị chặn.
+- Nút **Làm bài thi** trên thanh tiêu đề mở phòng thi. Ngân hàng đề có 40 bài lập trình (`frontend/src/data/examBank.ts`), 4 bài cho mỗi chương L1–L9, không trùng ngân hàng 104 bài tập.
+- **Tạo đề theo chương**: chọn các chương muốn kiểm tra, số bài và thời gian (gợi ý 20 phút/bài). Bài được rải đều qua các chương đã chọn, thang 10 chia đều cho các bài. Có sẵn Đề A (60 phút) và Đề B (75 phút), mỗi đề 3 bài.
+- Hai chế độ: **thi có giám sát** (bắt buộc toàn màn hình; thoát toàn màn hình, chuyển tab/ứng dụng hoặc tải lại trang bị tính là vi phạm, đủ 3 lần thì tự nộp; dán, kéo thả, chuột phải và phím tắt DevTools bị chặn) và **luyện tập** (không giám sát). Hết giờ thì tự nộp.
+- Đánh dấu bài cần xem lại; trang kết quả có điểm theo chương và gợi ý chương nên ôn; lịch sử 30 lần làm gần nhất kèm tỉ lệ điểm từng chương.
+- Output của test được sinh từ lời giải mẫu (`frontend/examReferences.ts`, chỉ dùng trong test); `exams.test.ts` biên dịch lại bằng g++ và kiểm tra mọi test.
 - Bài lập trình chấm theo test ví dụ + test ẩn qua backend (`mode: run`); điểm mỗi bài tính theo tỉ lệ test đúng. Nếu mất kết nối khi nộp, bài làm vẫn được lưu và có nút **Chấm lại**.
 - Phiên thi lưu trong `localStorage` nên tải lại trang không mất bài và đồng hồ vẫn chạy tiếp.
 - Đây là chế độ luyện thi phía trình duyệt: test ẩn nằm trong bundle và các biện pháp chống gian lận chỉ mang tính ngăn chặn, không thay thế giám sát thật.

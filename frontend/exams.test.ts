@@ -4,134 +4,172 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { EXAMS, examTotalPoints } from './src/data/exams.ts';
+import {
+  EXAM_CHAPTERS, PRESET_EXAMS, PRESET_SPECS, availableProblems, examTotalPoints, generateExamSpec, resolveExam, suggestDuration,
+} from './src/data/exams.ts';
+import { PROBLEM_BANK } from './src/data/examBank.ts';
 import { EXERCISES } from './src/data/exercises.ts';
 import { SAMPLES } from './src/data/samples.ts';
-import { normalizeOutput, outputsMatch, scoreProblem, totalScore, createSession, formatClock } from './src/engine/examGrading.ts';
+import {
+  EXAM_HISTORY_KEY, EXAM_HISTORY_LIMIT, EXAM_SESSION_KEY, chapterBreakdown, createSession, formatClock, formatPoints, historyEntry,
+  loadHistory, loadSession, normalizeOutput, outputsMatch, recordHistory, saveSession, scoreProblem, totalScore,
+} from './src/engine/examGrading.ts';
+import type { TestVerdict } from './src/engine/examGrading.ts';
+import { EXAM_REFERENCES } from './examReferences.ts';
 
-// Lời giải tham khảo chỉ nằm trong test, không đóng gói vào web.
-const REFERENCE: Record<string, string> = {
-  'A-P1': `#include <iostream>
-#include <string>
-#include <stack>
-#include <queue>
-#include <vector>
-#include <algorithm>
-#include <climits>
-using namespace std;
-long long f(unsigned long long n) { return n < 10 ? n : n % 10 + f(n / 10); }
-int main() { unsigned long long n; cin >> n; cout << f(n) << "\\n"; }`,
-  'A-P2': `#include <iostream>
-#include <string>
-#include <stack>
-#include <queue>
-#include <vector>
-#include <algorithm>
-#include <climits>
-using namespace std;
-int main() { string s; cin >> s; stack<char> st; bool ok = true;
-  for (char c : s) { if (c=='('||c=='['||c=='{') st.push(c);
-    else { char o = c==')'?'(':c==']'?'[':'{'; if (st.empty()||st.top()!=o) { ok=false; break; } st.pop(); } }
-  cout << (ok && st.empty() ? "YES" : "NO") << "\\n"; }`,
-  'A-P3': `#include <iostream>
-#include <string>
-#include <stack>
-#include <queue>
-#include <vector>
-#include <algorithm>
-#include <climits>
-using namespace std;
-struct Node { long long v; Node* next; };
-int main() { int n; cin >> n; Node *head = nullptr, *tail = nullptr;
-  for (int i = 0; i < n; i++) { long long x; cin >> x; Node* p = new Node{x, nullptr}; if (!head) head = tail = p; else { tail->next = p; tail = p; } }
-  Node* prev = nullptr; while (head) { Node* nx = head->next; head->next = prev; prev = head; head = nx; }
-  for (Node* p = prev; p; p = p->next) cout << p->v << (p->next ? " " : "\\n"); }`,
-  'B-P1': `#include <iostream>
-#include <string>
-#include <stack>
-#include <queue>
-#include <vector>
-#include <algorithm>
-#include <climits>
-using namespace std;
-int main() { int n; cin >> n; long long best = LLONG_MIN, cur = 0;
-  for (int i = 0; i < n; i++) { long long x; cin >> x; cur = max(x, cur + x); best = max(best, cur); }
-  cout << best << "\\n"; }`,
-  'B-P2': `#include <iostream>
-#include <string>
-#include <stack>
-#include <queue>
-#include <vector>
-#include <algorithm>
-#include <climits>
-using namespace std;
-int main() { int n, q; cin >> n >> q; vector<long long> a(n); for (auto& x : a) cin >> x;
-  while (q--) { long long x; cin >> x; cout << upper_bound(a.begin(), a.end(), x) - lower_bound(a.begin(), a.end(), x) << "\\n"; } }`,
-  'B-P3': `#include <iostream>
-#include <string>
-#include <stack>
-#include <queue>
-#include <vector>
-#include <algorithm>
-#include <climits>
-using namespace std;
-int main() { int n, m; cin >> n >> m; vector<string> g(n); for (auto& r : g) cin >> r; int cnt = 0;
-  for (int i = 0; i < n; i++) for (int j = 0; j < m; j++) if (g[i][j] == '1') { cnt++; queue<pair<int,int>> qu; qu.push({i,j}); g[i][j] = '0';
-    while (!qu.empty()) { auto [x, y] = qu.front(); qu.pop(); int dx[] = {1,-1,0,0}, dy[] = {0,0,1,-1};
-      for (int d = 0; d < 4; d++) { int u = x + dx[d], v = y + dy[d]; if (u>=0&&u<n&&v>=0&&v<m&&g[u][v]=='1') { g[u][v]='0'; qu.push({u,v}); } } } }
-  cout << cnt << "\\n"; }`,
-};
+function memoryStore() {
+  const data = new Map<string, string>();
+  return {
+    getItem: (k: string) => data.get(k) ?? null,
+    setItem: (k: string, v: string) => { data.set(k, v); },
+    removeItem: (k: string) => { data.delete(k); },
+  };
+}
 
-test('exams are well-formed, worth 10 points, and distinct from the exercise bank', () => {
-  assert.ok(EXAMS.length >= 2);
+const allChapters = EXAM_CHAPTERS.map(c => c.id);
+
+test('problem bank is well-formed, covers every chapter and is distinct from existing exercises', () => {
   const existing = new Set([...EXERCISES.map(e => e.title.toLowerCase()), ...SAMPLES.map(s => s.name.toLowerCase())]);
   const ids = new Set<string>();
-  for (const exam of EXAMS) {
-    assert.equal(examTotalPoints(exam), 10, exam.id);
-    assert.ok(exam.durationMinutes > 0 && exam.maxViolations > 0);
-    for (const q of exam.questions) {
-      assert.ok(!ids.has(q.id)); ids.add(q.id);
-      assert.ok(q.answer >= 0 && q.answer < q.options.length, q.id);
-      assert.equal(new Set(q.options).size, q.options.length, q.id);
-      assert.ok(q.explanation.length > 10, q.id);
-    }
-    for (const p of exam.problems) {
-      assert.ok(!ids.has(p.id)); ids.add(p.id);
-      assert.ok(!existing.has(p.title.toLowerCase()), `${p.id} trùng bài đã có`);
-      assert.ok(p.tests.some(t => !t.hidden) && p.tests.some(t => t.hidden), p.id);
-      assert.ok(REFERENCE[p.id], `missing reference for ${p.id}`);
-    }
+  for (const p of PROBLEM_BANK) {
+    assert.ok(!ids.has(p.id), `duplicate id ${p.id}`); ids.add(p.id);
+    assert.ok(allChapters.includes(p.chapter), p.id);
+    assert.ok(!existing.has(p.title.toLowerCase()), `${p.id} trùng bài đã có`);
+    assert.ok(p.tests.some(t => !t.hidden) && p.tests.some(t => t.hidden), p.id);
+    assert.ok(EXAM_REFERENCES[p.id], `missing reference for ${p.id}`);
+  }
+  for (const ch of allChapters) assert.ok(availableProblems([ch]) >= 4, `${ch} cần ít nhất 4 bài`);
+});
+
+test('preset exams resolve fully and are worth 10 points', () => {
+  assert.equal(PRESET_EXAMS.length, PRESET_SPECS.length);
+  for (const spec of PRESET_SPECS) {
+    const exam = resolveExam(spec);
+    assert.ok(exam, spec.id);
+    assert.equal(exam.problems.length, spec.problemIds.length, spec.id);
+    assert.equal(examTotalPoints(exam), 10, spec.id);
+    assert.ok(exam.durationMinutes > 0 && exam.maxViolations > 0 && exam.proctored);
   }
 });
 
-test('grading helpers', () => {
+test('generator picks only selected chapters, spreads across them and is reproducible', () => {
+  const chapters = ['L2', 'L5', 'L6'];
+  const opts = { chapters, problemCount: 6, proctored: true, seed: 42 };
+  const spec = generateExamSpec(opts);
+  assert.deepEqual(generateExamSpec(opts), spec, 'same seed → same exam');
+  const exam = resolveExam(spec);
+  assert.ok(exam);
+  assert.equal(exam.problems.length, 6);
+  assert.equal(new Set(spec.problemIds).size, 6, 'no duplicates');
+  for (const ch of chapters) assert.equal(exam.problems.filter(p => p.chapter === ch).length, 2, `2 bài cho ${ch}`);
+  assert.equal(examTotalPoints(exam), 10);
+  assert.equal(spec.durationMinutes, suggestDuration(6));
+  assert.deepEqual(exam.chapters, chapters);
+  const seen = new Set<string>();
+  for (let seed = 1; seed <= 30; seed++) generateExamSpec({ ...opts, problemCount: 3, seed }).problemIds.forEach(id => seen.add(id));
+  assert.ok(seen.size > 6, 'different seeds give different exams');
+});
+
+test('generator clamps to what the chapters contain', () => {
+  const spec = generateExamSpec({ chapters: ['L1'], problemCount: 999, proctored: false, seed: 7 });
+  assert.equal(spec.problemIds.length, availableProblems(['L1']));
+  assert.equal(spec.proctored, false);
+  const all = generateExamSpec({ chapters: allChapters, problemCount: 10, proctored: true, seed: 3 });
+  assert.equal(new Set(resolveExam(all)!.problems.map(p => p.chapter)).size, 10, '10 bài trải đủ 10 chương');
+  assert.equal(resolveExam({ ...spec, problemIds: ['nope'] }), null);
+});
+
+test('grading: exact per-problem scores add up to 10 and chapter breakdown matches', () => {
   assert.equal(normalizeOutput('1 2 \r\n3\n\n'), '1 2\n3');
   assert.ok(outputsMatch('YES\n', 'YES'));
   assert.ok(!outputsMatch('YES NO', 'YES\nNO'));
-  const exam = EXAMS[0];
+  const spec = PRESET_SPECS[0];
+  const exam = resolveExam(spec)!;
+  const s = createSession(spec, 0);
+  assert.equal(s.endsAt, spec.durationMinutes * 60_000);
+  for (const p of exam.problems) {
+    assert.equal(s.codes[p.id], p.starterCode);
+    s.codes[p.id] = `solved ${p.id}`;
+    s.results[p.id] = { code: s.codes[p.id], verdicts: p.tests.map(() => 'AC'), score: scoreProblem(p, p.tests.map(() => 'AC')) };
+  }
+  assert.equal(totalScore(exam, s), 10, '3 × 10/3 phải đúng 10, không phải 9,99');
   const p = exam.problems[0];
-  assert.equal(scoreProblem(p, p.tests.map(() => 'AC')), p.points);
-  assert.equal(scoreProblem(p, p.tests.map((_, i) => i === 0 ? 'AC' : 'WA')), Math.round(p.points / p.tests.length * 100) / 100);
-  const s = createSession(exam, 0);
-  assert.equal(s.endsAt, exam.durationMinutes * 60_000);
-  s.answers[exam.questions[0].id] = exam.questions[0].answer;
-  s.answers[exam.questions[1].id] = (exam.questions[1].answer + 1) % exam.questions[1].options.length;
-  s.codes[p.id] = 'solved';
-  s.results[p.id] = { code: 'solved', verdicts: p.tests.map(() => 'AC'), score: p.points };
-  assert.equal(totalScore(exam, s), exam.questions[0].points + p.points);
+  const partial: TestVerdict[] = p.tests.map((_, i) => (i === 0 ? 'AC' : 'WA'));
+  s.results[p.id] = { code: s.codes[p.id], verdicts: partial, score: scoreProblem(p, partial) };
+  const expected = Math.round((10 / 3 / p.tests.length + 20 / 3) * 100) / 100;
+  assert.equal(totalScore(exam, s), expected);
+  const breakdown = chapterBreakdown(exam, s);
+  assert.equal(Math.round(breakdown.reduce((a, r) => a + r.got, 0) * 100) / 100, expected);
+  assert.equal(Math.round(breakdown.reduce((a, r) => a + r.max, 0) * 100) / 100, 10);
   s.codes[p.id] = 'edited after grading';
-  assert.equal(totalScore(exam, s), exam.questions[0].points, 'stale results do not count');
+  assert.equal(totalScore(exam, s), Math.round(20 / 3 * 100) / 100, 'stale results do not count');
   assert.equal(formatClock(61_000), '01:01');
   assert.equal(formatClock(-5), '00:00');
+  assert.equal(formatPoints(10 / 3), '3,33');
+});
+
+test('sessions round-trip; sessions from older versions (with multiple choice) migrate to code-only', () => {
+  const store = memoryStore();
+  const spec = generateExamSpec({ chapters: ['L3.1'], problemCount: 2, proctored: false, seed: 5 });
+  const s = createSession(spec, 1000);
+  s.flags.push(spec.problemIds[0]);
+  assert.ok(saveSession(s, store));
+  assert.deepEqual(loadSession(store), s);
+
+  store.setItem(EXAM_SESSION_KEY, JSON.stringify({
+    version: 1, examId: 'exam-b', startedAt: 1, endsAt: 2, answers: { 'B-Q1': 1 }, codes: {}, results: {}, violations: [],
+  }));
+  const v1 = loadSession(store)!;
+  assert.equal(v1.version, 3);
+  assert.deepEqual(v1.spec, PRESET_SPECS[1]);
+  assert.equal('answers' in v1, false);
+
+  store.setItem(EXAM_SESSION_KEY, JSON.stringify({
+    version: 2, startedAt: 1, endsAt: 2, answers: {}, codes: { 'P-L5-01': 'x' }, results: {}, violations: [], flags: ['Q-L5-01'], revealed: [],
+    spec: { id: 'custom-1', title: 'Đề cũ', description: '', durationMinutes: 30, maxViolations: 3, proctored: true,
+      questionIds: ['Q-L5-01'], problemIds: ['P-L5-01', 'P-L5-02'], choicePoints: 2, problemPoints: 3 },
+  }));
+  const v2 = loadSession(store)!;
+  assert.equal(v2.spec.problemPoints, 5, 'thang 10 chia lại cho 2 bài');
+  assert.equal(examTotalPoints(resolveExam(v2.spec)!), 10);
+  assert.equal(v2.codes['P-L5-01'], 'x');
+
+  store.setItem(EXAM_SESSION_KEY, JSON.stringify({ version: 1, examId: 'unknown', startedAt: 1, endsAt: 2, codes: {}, results: {}, violations: [] }));
+  assert.equal(loadSession(store), null);
+  store.setItem(EXAM_SESSION_KEY, '{broken');
+  assert.equal(loadSession(store), null);
+});
+
+test('history upserts by attempt, keeps the latest entries and drops unusable ones', () => {
+  const store = memoryStore();
+  const spec = PRESET_SPECS[1];
+  const exam = resolveExam(spec)!;
+  const p = exam.problems[0];
+  const s = { ...createSession(spec, 0), submittedAt: 60_000 };
+  recordHistory(historyEntry(exam, s, examTotalPoints(exam)), store);
+  s.codes[p.id] = 'ok';
+  s.results[p.id] = { code: 'ok', verdicts: p.tests.map(() => 'AC'), score: p.points };
+  const list = recordHistory(historyEntry(exam, s, examTotalPoints(exam)), store);
+  assert.equal(list.length, 1, 'same attempt is updated, not duplicated');
+  assert.equal(list[0].score, Math.round(p.points * 100) / 100);
+  assert.equal(list[0].durationMs, 60_000);
+  for (let i = 1; i <= EXAM_HISTORY_LIMIT + 5; i++) {
+    recordHistory(historyEntry(exam, { ...createSession(spec, i * 1000), submittedAt: i * 1000 + 1 }, 10), store);
+  }
+  const all = loadHistory(store);
+  assert.equal(all.length, EXAM_HISTORY_LIMIT);
+  assert.ok(all.every((e, i) => i === 0 || all[i - 1].at >= e.at), 'newest first');
+  store.setItem(EXAM_HISTORY_KEY, JSON.stringify([{ id: 'x', score: 1, at: 1, byChapter: [], spec: { id: 'q', title: 't', durationMinutes: 5, problemIds: [] } }, null]));
+  assert.deepEqual(loadHistory(store), []);
 });
 
 const hasGpp = spawnSync('g++', ['--version']).status === 0;
 test('reference solutions pass every exam test case', { skip: !hasGpp && 'g++ not available' }, () => {
   const dir = mkdtempSync(join(tmpdir(), 'codelens-exam-'));
   try {
-    for (const exam of EXAMS) for (const p of exam.problems) {
+    for (const p of PROBLEM_BANK) {
       const src = join(dir, `${p.id}.cpp`), bin = join(dir, p.id);
-      writeFileSync(src, REFERENCE[p.id]);
+      writeFileSync(src, EXAM_REFERENCES[p.id]);
       execFileSync('g++', ['-std=gnu++17', '-O2', '-o', bin, src]);
       p.tests.forEach((t, i) => {
         const out = execFileSync(bin, { input: t.input }).toString();
