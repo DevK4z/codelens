@@ -199,6 +199,7 @@ API theo kiểu REST, có phiên bản `/api/v1`. Body request và response là 
 | `GET /api/v1/health` | `200 {"status":"ok","runner":"docker"}`; `503` nếu Docker/image chưa sẵn sàng hoặc LocalRunner bị truy cập qua proxy |
 | `POST /api/v1/runs` | Tạo một lần chạy: `201 Created`, header `Location: /api/v1/runs/{id}`, body là run |
 | `GET /api/v1/runs/{id}` | Đọc lại run vừa tạo: `200`; `404` nếu không có hoặc đã quá 15 phút (lưu trong bộ nhớ, không lưu source code) |
+| `POST /api/v1/judge` | Chấm một bài nộp với nhiều test (tối đa 30) trong **một** request: `200`, verdict từng test. Dùng cho phòng thi |
 
 Ví dụ tạo run:
 
@@ -221,6 +222,26 @@ Location: /api/v1/runs/1f0c…
 
 `mode` mặc định `visualize`, `standard` mặc định `gnu++17`. `status` là kết quả của lần chạy: `succeeded`, `compile_error`, `runtime_error`, `time_limit_exceeded` hoặc `step_limit_exceeded`. Lỗi biên dịch hay chương trình crash **vẫn là `201`**, vì run đã được tạo và chạy; thông báo nằm ở `error`, trace một phần (nếu có) vẫn được trả về.
 
+Chấm bài (phòng thi dùng endpoint này thay vì gửi một run cho mỗi test):
+
+```http
+POST /api/v1/judge
+Content-Type: application/json
+
+{ "language": "cpp", "standard": "gnu++17", "code": "…",
+  "tests": [ { "stdin": "21", "expected": "42" }, { "stdin": "5", "expected": "11" } ] }
+```
+
+```http
+HTTP/1.1 200 OK
+
+{ "status": "completed", "error": null, "durationMs": 812,
+  "tests": [ { "verdict": "accepted", "durationMs": 9, "stdout": "42", "stderr": "" },
+             { "verdict": "wrong_answer", "durationMs": 8, "stdout": "10", "stderr": "" } ] }
+```
+
+Code được biên dịch một lần (SandboxRunner dùng lại bản build cho các test sau) và mọi test chạy tuần tự trong cùng một suất của hàng đợi, nên cả bài chỉ tính **một** lượt vào `RATE_LIMIT_PER_MIN`. `verdict` là `accepted`, `wrong_answer`, `runtime_error`, `time_limit_exceeded` (giới hạn mỗi test `JUDGE_TIMEOUT_MS`, mặc định 5000) hoặc `finished` khi test không có `expected`. So sánh output bỏ qua khoảng trắng cuối dòng và dòng trống cuối. Lỗi biên dịch trả `status: "compile_error"`, `error` là thông báo của compiler và `tests` rỗng. Frontend tự chờ theo `Retry-After` và thử lại khi gặp `429`/`503 runner_busy`, đánh thức backend đang ngủ qua `/api/v1/health`, và quay về cách chấm từng run nếu backend chưa có endpoint này (`404`).
+
 Mã HTTP lỗi chỉ dùng khi request không được thực hiện, kèm body `application/problem+json` theo [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457), có `code` ổn định để client xử lý:
 
 | HTTP | `code` | Khi nào |
@@ -230,7 +251,7 @@ Mã HTTP lỗi chỉ dùng khi request không được thực hiện, kèm body 
 | 405 | `method_not_allowed` | Sai method; header `Allow` cho biết method đúng |
 | 413 | `body_too_large` | Body vượt 1MB |
 | 415 | `unsupported_media_type` | Không gửi `Content-Type: application/json` |
-| 422 | `invalid_run`, `mode_unavailable` | Trường sai/vượt giới hạn; `mode: "run"` khi backend không dùng Docker |
+| 422 | `invalid_run`, `invalid_judge`, `mode_unavailable` | Trường sai/vượt giới hạn; `mode: "run"` khi backend không dùng Docker |
 | 429 | `rate_limited` | Vượt rate limit; header `Retry-After` |
 | 503 | `runner_busy`, `runner_unavailable`, `local_runner_not_public` | Hàng đợi đầy (`Retry-After`), Docker chưa sẵn sàng, LocalRunner bị gọi qua proxy |
 

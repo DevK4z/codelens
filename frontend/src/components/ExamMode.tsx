@@ -9,7 +9,8 @@ import {
   suggestDuration,
 } from '../data/exams';
 import type { CodeProblem, Exam, ExamSpec } from '../data/exams';
-import { executeCode } from '../engine/api';
+import { JudgeUnsupported, executeCode, healthCheck, judgeCode } from '../engine/api';
+import type { JudgeVerdict } from '../engine/api';
 import {
   chapterBreakdown, clearHistory, clearSession, createSession, formatClock, formatPoints, historyEntry, loadHistory, loadSession,
   outputsMatch, problemScore, recordHistory, saveSession, scoreProblem, totalScore,
@@ -48,10 +49,15 @@ async function leaveFullscreen() {
 }
 
 const VERDICT_LABEL: Record<TestVerdict, string> = {
-  AC: 'Đúng', WA: 'Sai kết quả', CE: 'Lỗi biên dịch', RE: 'Lỗi khi chạy', ERR: 'Không chấm được',
+  AC: 'Đúng', WA: 'Sai kết quả', TLE: 'Quá thời gian', CE: 'Lỗi biên dịch', RE: 'Lỗi khi chạy', ERR: 'Không chấm được',
 };
 
-async function gradeProblem(problem: CodeProblem, code: string, onProgress?: (done: number) => void): Promise<ProblemResult> {
+const FROM_JUDGE: Record<JudgeVerdict, TestVerdict> = {
+  accepted: 'AC', wrong_answer: 'WA', time_limit_exceeded: 'TLE', runtime_error: 'RE', finished: 'WA',
+};
+
+// Backend chưa có /v1/judge: chạy từng test bằng /v1/runs như trước.
+async function gradeOneByOne(problem: CodeProblem, code: string, onProgress?: (text: string) => void): Promise<ProblemResult> {
   const verdicts: TestVerdict[] = [];
   let message: string | undefined;
   for (let i = 0; i < problem.tests.length; i++) {
@@ -63,16 +69,37 @@ async function gradeProblem(problem: CodeProblem, code: string, onProgress?: (do
         while (verdicts.length < problem.tests.length) verdicts.push('CE');
         break;
       }
-      if (!res.success) verdicts.push('RE');
+      if (res.timeLimitExceeded) verdicts.push('TLE');
+      else if (!res.success) verdicts.push('RE');
       else verdicts.push(outputsMatch(res.stdout || '', test.output) ? 'AC' : 'WA');
     } catch (err) {
       message = err instanceof Error ? err.message : String(err);
       while (verdicts.length < problem.tests.length) verdicts.push('ERR');
       break;
     }
-    onProgress?.(i + 1);
+    onProgress?.(`${i + 1}/${problem.tests.length} test`);
   }
   return { code, verdicts, score: scoreProblem(problem, verdicts), message };
+}
+
+/** Chấm cả bài trong một request; tự chờ và thử lại khi máy chủ giới hạn, bận hoặc đang ngủ. */
+async function gradeProblem(problem: CodeProblem, code: string, onProgress?: (text: string) => void): Promise<ProblemResult> {
+  try {
+    const res = await judgeCode(code, problem.tests.map(t => ({ stdin: t.input, expected: t.output })), {
+      onWait: (seconds, reason) => onProgress?.(seconds > 0 ? `${reason}, tự thử lại sau ${seconds} giây…` : `${reason}…`),
+    });
+    if (res.status === 'compile_error') {
+      const verdicts = problem.tests.map((): TestVerdict => 'CE');
+      return { code, verdicts, score: 0, message: res.error ?? 'Lỗi biên dịch.' };
+    }
+    const verdicts = res.tests.map(t => FROM_JUDGE[t.verdict]);
+    const firstError = res.tests.find(t => t.verdict === 'runtime_error' && t.stderr.trim());
+    return { code, verdicts, score: scoreProblem(problem, verdicts), message: firstError?.stderr.trim() || undefined };
+  } catch (err) {
+    if (err instanceof JudgeUnsupported) return gradeOneByOne(problem, code, onProgress);
+    const verdicts = problem.tests.map((): TestVerdict => 'ERR');
+    return { code, verdicts, score: 0, message: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 export function ExamMode({ theme, onExit }: ExamModeProps) {
@@ -126,7 +153,7 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
       }
       if (results[p.id]?.code === code && !results[p.id].verdicts.includes('ERR')) continue;
       setGrading(`Đang chấm ${p.title}…`);
-      results[p.id] = await gradeProblem(p, code, done => setGrading(`Đang chấm ${p.title}: ${done}/${p.tests.length} test`));
+      results[p.id] = await gradeProblem(p, code, text => setGrading(`Đang chấm ${p.title}: ${text}`));
     }
     setGrading(null);
     setSession(prev => prev && { ...prev, results, submittedAt: Date.now(), submitReason: reason });
@@ -236,6 +263,8 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
       }
       lastViolationRef.current = Date.now(); // bỏ qua blur do hộp thoại toàn màn hình
     }
+    // Đánh thức backend (Render free ngủ sau 15 phút) trong lúc thí sinh đọc đề.
+    void healthCheck().catch(() => {});
     const s = createSession(nextSpec);
     sessionRef.current = s;
     setSession(s);
@@ -260,7 +289,7 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
       const code = s.codes[p.id] ?? p.starterCode;
       if (code === p.starterCode || !results[p.id]?.verdicts.includes('ERR')) continue;
       setGrading(`Đang chấm lại ${p.title}…`);
-      results[p.id] = await gradeProblem(p, code);
+      results[p.id] = await gradeProblem(p, code, text => setGrading(`Đang chấm lại ${p.title}: ${text}`));
     }
     setGrading(null);
     setSession(prev => prev && { ...prev, results });
@@ -703,7 +732,7 @@ function ResultsView({ exam, session, grading, onRegrade, onRetake, onNew, onExi
       {grading && <p className="flex items-center gap-2 text-sm"><LoaderCircle className="animate-spin" size={16} /> {grading}</p>}
       {hasErr && !grading && (
         <div role="alert" className="p-3 rounded bg-red-500/15 text-sm flex flex-wrap items-center justify-between gap-3">
-          <span>Một số bài chưa chấm được do lỗi kết nối backend. Bài làm đã được lưu.</span>
+          <span>Một số bài chưa chấm được vì backend không phản hồi (đã tự thử lại nhiều lần). Bài làm đã được lưu — bấm Chấm lại khi máy chủ sẵn sàng.</span>
           <button onClick={onRegrade} className="px-3 py-1 rounded bg-red-500 text-white">Chấm lại</button>
         </div>
       )}
@@ -785,6 +814,25 @@ function ProblemView({ problem, index, code, onChange, theme, flagged, onToggleF
 
   const runSamples = async () => {
     setRunning(true);
+    try {
+      const res = await judgeCode(code, samples.map(t => ({ stdin: t.input, expected: t.output })), {
+        maxAttempts: 2,
+        onWait: (seconds, reason) => setRunResults([{ title: 'Đang chờ máy chủ', input: '', actual: '', error: seconds > 0 ? `${reason}, tự thử lại sau ${seconds} giây…` : `${reason}…` }]),
+      });
+      setRunResults(res.status === 'compile_error'
+        ? [{ title: 'Lỗi biên dịch', input: '', actual: '', ok: false, error: res.error ?? 'Lỗi biên dịch.' }]
+        : res.tests.map((r, i) => ({
+          title: `Ví dụ ${i + 1}`, input: samples[i].input, expected: samples[i].output, actual: r.stdout, ok: r.verdict === 'accepted',
+          error: r.verdict === 'time_limit_exceeded' ? 'Chương trình chạy quá thời gian.' : r.verdict === 'runtime_error' ? r.stderr || 'Lỗi khi chạy' : undefined,
+        })));
+    } catch (err) {
+      if (err instanceof JudgeUnsupported) await runSamplesOneByOne();
+      else setRunResults([{ title: 'Không chạy được', input: '', actual: '', ok: false, error: err instanceof Error ? err.message : String(err) }]);
+    }
+    setRunning(false);
+  };
+
+  const runSamplesOneByOne = async () => {
     const out: typeof runResults = [];
     for (let i = 0; i < samples.length; i++) {
       const t = samples[i];
@@ -799,7 +847,6 @@ function ProblemView({ problem, index, code, onChange, theme, flagged, onToggleF
       }
     }
     setRunResults(out);
-    setRunning(false);
   };
 
   const runCustom = async () => {

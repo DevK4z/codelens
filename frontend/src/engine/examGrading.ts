@@ -1,7 +1,7 @@
 import { PRESET_SPECS, chapterRank, resolveExam, roundPoints } from '../data/exams.ts';
 import type { CodeProblem, Exam, ExamSpec } from '../data/exams.ts';
 
-export type TestVerdict = 'AC' | 'WA' | 'CE' | 'RE' | 'ERR';
+export type TestVerdict = 'AC' | 'WA' | 'TLE' | 'CE' | 'RE' | 'ERR';
 
 export interface ProblemResult {
   code: string; // code đã chấm, để biết có cần chấm lại không

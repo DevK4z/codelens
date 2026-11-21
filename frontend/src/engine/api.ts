@@ -120,3 +120,91 @@ export async function healthCheck({ deadlineMs = 180000, retryDelayMs = 5000 } =
     await sleep(retryDelayMs);
   }
 }
+
+// ---------------- Chấm bài thi ----------------
+
+export type JudgeVerdict = 'accepted' | 'wrong_answer' | 'runtime_error' | 'time_limit_exceeded' | 'finished';
+
+export interface JudgeTestResult {
+  verdict: JudgeVerdict;
+  durationMs: number;
+  stdout: string;
+  stderr: string;
+}
+
+export interface JudgeResult {
+  status: 'completed' | 'compile_error';
+  error: string | null;
+  durationMs: number;
+  tests: JudgeTestResult[];
+}
+
+/** The backend was deployed before POST /v1/judge existed; callers fall back to one run per test. */
+export class JudgeUnsupported extends Error { name = 'JudgeUnsupported'; }
+
+export interface JudgeOptions {
+  standard?: 'gnu++17' | 'gnu++20';
+  maxAttempts?: number;
+  /** Called before each wait so the UI can say why grading paused. */
+  onWait?: (seconds: number, reason: string) => void;
+  wait?: (ms: number) => Promise<unknown>;
+}
+
+const VERDICTS = new Set<JudgeVerdict>(['accepted', 'wrong_answer', 'runtime_error', 'time_limit_exceeded', 'finished']);
+// Codes that mean "try again shortly"; anything else (bad request, runner not public) will not improve.
+const RETRYABLE = new Set(['rate_limited', 'runner_busy', 'runner_unavailable']);
+const MAX_RETRY_WAIT_S = 65;
+
+function isJudgeResult(body: any, count: number): body is JudgeResult {
+  if (!body || (body.status !== 'completed' && body.status !== 'compile_error') || !Array.isArray(body.tests)) return false;
+  if (body.status === 'compile_error') return typeof body.error === 'string';
+  return body.tests.length === count && body.tests.every((t: any) => t && VERDICTS.has(t.verdict) && typeof t.stdout === 'string');
+}
+
+/**
+ * Grades code against every test case in one request (compiled once on the server, one rate-limit
+ * hit). Waits and retries when the server is rate limiting, busy or asleep.
+ */
+export async function judgeCode(code: string, tests: { stdin: string; expected?: string }[], opts: JudgeOptions = {}): Promise<JudgeResult> {
+  assertApiConfigured();
+  const { standard = 'gnu++17', maxAttempts = 4, onWait, wait = sleep } = opts;
+  const post = () => fetch(`${API_BASE}/v1/judge`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ code, language: 'cpp', standard, tests }),
+    // Every test of a submission runs inside this one request on a small CPU share.
+    signal: AbortSignal.timeout(180000),
+  });
+  const giveUp = (reason: string) => new Error(`${reason} Bài làm vẫn được lưu — hãy bấm “Chấm lại” sau ít phút.`);
+
+  for (let attempt = 1; ; attempt++) {
+    let res: Response | undefined;
+    let reason = '';
+    try { res = await post(); }
+    catch (err: any) { reason = err?.name === 'TimeoutError' ? 'Hết thời gian chờ backend chấm bài.' : 'Không kết nối được đến backend.'; }
+    if (res && isWaking(res)) { res = undefined; reason = 'Backend đang khởi động.'; }
+
+    if (res) {
+      if (res.ok) {
+        const body = isJson(res) ? await res.json().catch(() => null) : null;
+        if (!isJudgeResult(body, tests.length)) throw new Error('Phản hồi chấm bài của backend không đúng định dạng.');
+        return body;
+      }
+      const problem = isJson(res) ? await res.clone().json().catch(() => null) : null;
+      if (res.status === 404 || res.status === 405) throw new JudgeUnsupported('Backend chưa hỗ trợ chấm gộp /v1/judge.');
+      const message = await problemMessage(res);
+      const retryable = res.status === 429 || (res.status === 503 && (!problem || RETRYABLE.has(problem.code)));
+      if (!retryable) throw new Error(message);
+      if (attempt >= maxAttempts) throw giveUp(message);
+      const header = Number(res.headers.get('retry-after'));
+      const seconds = Math.min(MAX_RETRY_WAIT_S, Math.max(1, Number.isFinite(header) && header > 0 ? header : 5 * attempt));
+      onWait?.(seconds, res.status === 429 ? 'Đã chạm giới hạn số lần chấm mỗi phút' : 'Máy chủ đang bận chấm bài khác');
+      await wait(seconds * 1000);
+      continue;
+    }
+
+    if (attempt >= maxAttempts) throw giveUp(reason);
+    onWait?.(0, 'Đang đánh thức backend');
+    try { await healthCheck(); }
+    catch (err: any) { throw err instanceof ApiUnavailable ? err : giveUp(err?.message || reason); }
+  }
+}
