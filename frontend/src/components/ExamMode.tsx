@@ -17,6 +17,7 @@ import {
 } from '../engine/examGrading';
 import type { ChapterScore, ExamHistoryEntry, ExamSession, ProblemResult, TestVerdict } from '../engine/examGrading';
 import type { ThemeMode } from '../engine/types';
+import { InsertGuard, TabLock, devtoolsLikelyOpen, hasExtendedScreen } from '../engine/proctoring';
 
 interface ExamModeProps {
   theme: ThemeMode;
@@ -118,6 +119,13 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
   const [history, setHistory] = useState<ExamHistoryEntry[]>(() => loadHistory());
+  // Phiên thi chỉ chạy ở một tab: tab mở sau bị khóa và không được ghi đè bài làm.
+  const [lock, setLock] = useState<'owner' | 'checking' | 'locked'>(() => {
+    const s = loadSession();
+    return s && !s.submittedAt ? 'checking' : 'owner';
+  });
+  const [editorRevision, setEditorRevision] = useState(0);
+  const guardsRef = useRef(new Map<string, InsertGuard>());
 
   const sessionRef = useRef(session);
   sessionRef.current = session;
@@ -125,8 +133,10 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
   const lastViolationRef = useRef(0);
 
   const running = !!session && !!exam && !session.submittedAt;
+  const owner = lock === 'owner';
+  const watching = running && proctored && owner;
 
-  useEffect(() => { if (session) saveSession(session); }, [session]);
+  useEffect(() => { if (session && owner) saveSession(session); }, [session, owner]);
 
   // Ghi lịch sử khi đã nộp và chấm xong (cập nhật lại nếu chấm lại).
   useEffect(() => {
@@ -184,25 +194,38 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
   // Tiếp tục phiên thi có giám sát sau khi tải lại trang: tính là rời trang thi.
   const resumedRef = useRef(false);
   useEffect(() => {
-    if (resumedRef.current) return;
+    if (resumedRef.current || !owner) return;
     resumedRef.current = true;
     if (session && !session.submittedAt && session.spec.proctored && !fullscreenElement()) addViolation('Tải lại hoặc rời trang thi');
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [owner]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const addViolationRef = useRef(addViolation);
+  addViolationRef.current = addViolation;
+  useEffect(() => {
+    if (!running) return;
+    const tabLock = new TabLock();
+    tabLock.acquire({
+      onOwned: () => setLock('owner'),
+      onLocked: () => setLock('locked'),
+      onIntruder: () => addViolationRef.current('Mở bài thi ở một tab khác'),
+    });
+    return () => tabLock.release();
+  }, [running]);
 
   // Đồng hồ + tự nộp khi hết giờ.
   useEffect(() => {
-    if (!running) return;
+    if (!running || !owner) return;
     const id = window.setInterval(() => {
       const t = Date.now();
       setNow(t);
       if (sessionRef.current && t >= sessionRef.current.endsAt) void submit('timeout');
     }, 500);
     return () => window.clearInterval(id);
-  }, [running, submit]);
+  }, [running, owner, submit]);
 
   // Giám sát (chỉ khi thi có giám sát): thoát toàn màn hình, chuyển tab, rời cửa sổ, phím tắt, dán, chuột phải.
   useEffect(() => {
-    if (!running || !proctored) return;
+    if (!watching) return;
     const onFs = () => {
       if (!fullscreenElement() && !submittingRef.current) {
         setNeedFullscreen(true);
@@ -217,8 +240,28 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
       const blocked = k === 'f12' || (mod && e.shiftKey && ['i', 'j', 'c'].includes(k)) || (mod && e.altKey && ['i', 'j', 'c'].includes(k)) ||
         (mod && ['u', 'p', 's', 'o'].includes(k));
       if (blocked) { e.preventDefault(); e.stopPropagation(); setWarning('Phím tắt này bị khóa trong khi thi.'); }
+      // Phím chụp màn hình của macOS thường bị hệ điều hành giữ lại; bắt được thì vẫn tính.
+      if (e.metaKey && e.shiftKey && ['3', '4', '5'].includes(k)) addViolation('Dùng phím tắt chụp màn hình');
     };
+    const onKeyUp = (e: KeyboardEvent) => { if (e.key === 'PrintScreen') addViolation('Nhấn phím chụp màn hình (PrintScreen)'); };
     const block = (e: Event) => { e.preventDefault(); e.stopPropagation(); setWarning('Không được dán hoặc kéo thả nội dung trong khi thi.'); };
+    const noCopy = (e: Event) => { e.preventDefault(); e.stopPropagation(); setWarning('Không được sao chép hoặc cắt nội dung trong khi thi.'); };
+    // Con trỏ rời khỏi trang thi (sang màn hình khác) quá 3 giây.
+    let leaveTimer: number | undefined;
+    const onLeave = () => { window.clearTimeout(leaveTimer); leaveTimer = window.setTimeout(() => addViolation('Con trỏ chuột rời khỏi màn hình thi quá 3 giây'), 3000); };
+    const onEnter = () => window.clearTimeout(leaveTimer);
+    // DevTools gắn vào cửa sổ và màn hình phụ: kiểm tra định kỳ, mỗi lần xuất hiện tính một vi phạm.
+    const baseRatio = window.devicePixelRatio || 1;
+    let devtoolsHits = 0, devtoolsFlagged = false, screenFlagged = hasExtendedScreen(window.screen);
+    const probe = window.setInterval(() => {
+      const open = !!fullscreenElement() && devtoolsLikelyOpen(window, baseRatio);
+      devtoolsHits = open ? devtoolsHits + 1 : 0;
+      if (!open) devtoolsFlagged = false;
+      if (devtoolsHits >= 2 && !devtoolsFlagged) { devtoolsFlagged = true; addViolation('Mở công cụ nhà phát triển (DevTools)'); }
+      const extended = hasExtendedScreen(window.screen);
+      if (extended && !screenFlagged) addViolation('Kết nối thêm màn hình phụ');
+      screenFlagged = extended;
+    }, 1000);
     const noMenu = (e: Event) => e.preventDefault();
     const beforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
     document.addEventListener('fullscreenchange', onFs);
@@ -226,7 +269,12 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('blur', onBlur);
     window.addEventListener('keydown', onKey, true);
+    window.addEventListener('keyup', onKeyUp, true);
     window.addEventListener('paste', block, true);
+    window.addEventListener('copy', noCopy, true);
+    window.addEventListener('cut', noCopy, true);
+    document.documentElement.addEventListener('mouseleave', onLeave);
+    document.documentElement.addEventListener('mouseenter', onEnter);
     window.addEventListener('drop', block, true);
     window.addEventListener('contextmenu', noMenu, true);
     window.addEventListener('beforeunload', beforeUnload);
@@ -236,12 +284,26 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('blur', onBlur);
       window.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('keyup', onKeyUp, true);
       window.removeEventListener('paste', block, true);
+      window.removeEventListener('copy', noCopy, true);
+      window.removeEventListener('cut', noCopy, true);
+      document.documentElement.removeEventListener('mouseleave', onLeave);
+      document.documentElement.removeEventListener('mouseenter', onEnter);
+      window.clearTimeout(leaveTimer);
+      window.clearInterval(probe);
       window.removeEventListener('drop', block, true);
       window.removeEventListener('contextmenu', noMenu, true);
       window.removeEventListener('beforeunload', beforeUnload);
     };
-  }, [running, proctored, addViolation]);
+  }, [watching, addViolation]);
+
+  // Ở ngoài toàn màn hình: cứ mỗi 15 giây chưa quay lại thì thêm một vi phạm.
+  useEffect(() => {
+    if (!watching || !needFullscreen) return;
+    const id = window.setInterval(() => addViolation('Chưa quay lại toàn màn hình sau 15 giây'), 15_000);
+    return () => window.clearInterval(id);
+  }, [watching, needFullscreen, addViolation]);
 
   useEffect(() => {
     if (!warning) return;
@@ -255,6 +317,10 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
       setStartError('Đề này không còn bài nào trong ngân hàng.');
       return;
     }
+    if (nextSpec.proctored && hasExtendedScreen(window.screen)) {
+      setStartError('Máy đang dùng nhiều màn hình. Hãy ngắt màn hình phụ (hoặc chuyển sang chế độ chỉ một màn hình) rồi bắt đầu lại.');
+      return;
+    }
     if (nextSpec.proctored) {
       const ok = await enterFullscreen();
       if (!ok) {
@@ -263,8 +329,19 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
       }
       lastViolationRef.current = Date.now(); // bỏ qua blur do hộp thoại toàn màn hình
     }
+    const otherTab = await new Promise<boolean>(resolve => {
+      const probe = new TabLock();
+      probe.acquire({ onOwned: () => { probe.release(); resolve(false); }, onLocked: () => { probe.release(); resolve(true); }, onIntruder: () => {} });
+    });
+    if (otherTab) {
+      await leaveFullscreen();
+      setStartError('Đang có một bài thi chạy ở tab khác. Hãy làm tiếp ở tab đó hoặc đóng nó trước.');
+      return;
+    }
     // Đánh thức backend (Render free ngủ sau 15 phút) trong lúc thí sinh đọc đề.
     void healthCheck().catch(() => {});
+    guardsRef.current.clear();
+    setLock('owner');
     const s = createSession(nextSpec);
     sessionRef.current = s;
     setSession(s);
@@ -297,6 +374,21 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
 
   const shell = 'fixed inset-0 z-[100] flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]';
 
+  if (running && lock !== 'owner') {
+    return (
+      <div className={`${shell} items-center justify-center p-4`} role="dialog" aria-label="Phiên thi">
+        {lock === 'checking'
+          ? <p className="flex items-center gap-2"><LoaderCircle className="animate-spin" /> Đang kiểm tra phiên thi…</p>
+          : <div className="max-w-md rounded-lg border border-red-500/50 bg-[var(--bg-panel)] p-6 flex flex-col gap-4 text-center">
+              <ShieldAlert size={40} className="mx-auto text-red-500" />
+              <h3 className="text-lg font-bold">Bài thi đang mở ở tab khác</h3>
+              <p className="text-sm text-[var(--text-secondary)]">Mỗi bài thi chỉ được làm trong một tab. Việc mở thêm tab đã được ghi nhận là vi phạm ở tab đang thi. Hãy đóng tab này.</p>
+              <button onClick={onExit} className="px-4 py-2 rounded border border-[var(--border)]">Quay về CodeLens</button>
+            </div>}
+      </div>
+    );
+  }
+
   // ---------- Chọn / tạo đề ----------
   if (!session || !exam) {
     return (
@@ -323,11 +415,25 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
   const remaining = session.endsAt - now;
   const touchedCount = exam.problems.filter(p => (session.codes[p.id] ?? p.starterCode) !== p.starterCode).length;
   const flags = new Set(session.flags);
+  const changeCode = (p: CodeProblem, i: number, code: string) => {
+    if (proctored) {
+      let guard = guardsRef.current.get(p.id);
+      if (!guard) { guard = new InsertGuard(sessionRef.current?.codes[p.id] ?? p.starterCode); guardsRef.current.set(p.id, guard); }
+      const inserted = guard.check(code);
+      if (inserted > 0) {
+        const kept = guard.accepted;
+        update(s => ({ ...s, codes: { ...s.codes, [p.id]: kept } }));
+        setEditorRevision(r => r + 1); // dựng lại editor với code trước lần chèn
+        addViolation(`Chèn một khối ${inserted} ký tự vào bài ${i + 1} (nghi dán code từ nguồn ngoài) — đã hoàn tác`);
+        return;
+      }
+    }
+    update(s => ({ ...s, codes: { ...s.codes, [p.id]: code } }));
+  };
   const toggleFlag = (id: string) => update(s => ({ ...s, flags: s.flags.includes(id) ? s.flags.filter(x => x !== id) : [...s.flags, id] }));
 
   return (
-    <div className={shell} role="dialog" aria-label={`Đang thi: ${exam.title}`}
-      onCopy={proctored ? e => { if (!(e.target as HTMLElement).closest?.('.monaco-editor')) e.preventDefault(); } : undefined}>
+    <div className={shell} role="dialog" aria-label={`Đang thi: ${exam.title}`}>
       <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 border-b border-[var(--border)] bg-[var(--bg-panel)]">
         <strong className="truncate">{exam.title}</strong>
         <div className="flex items-center gap-4 text-sm">
@@ -369,7 +475,7 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
           <ProblemView key={problem.id} problem={problem} index={index} theme={theme}
             flagged={flags.has(problem.id)} onToggleFlag={() => toggleFlag(problem.id)}
             code={session.codes[problem.id] ?? problem.starterCode}
-            onChange={code => update(s => ({ ...s, codes: { ...s.codes, [problem.id]: code } }))} />
+            editorRevision={editorRevision} onChange={code => changeCode(problem, index, code)} />
         </main>
       </div>
 
@@ -420,10 +526,12 @@ interface BuilderPrefs {
   problemCount: number;
   proctored: boolean;
   durationMinutes: number | null; // null: dùng thời gian gợi ý
+  maxViolations: number;
 }
 
 const PREFS_KEY = 'codelens.exam-builder.v2';
-const DEFAULT_PREFS: BuilderPrefs = { chapters: EXAM_CHAPTERS.map(c => c.id), problemCount: 3, proctored: true, durationMinutes: null };
+const VIOLATION_CHOICES = [1, 2, 3, 5];
+const DEFAULT_PREFS: BuilderPrefs = { chapters: EXAM_CHAPTERS.map(c => c.id), problemCount: 3, proctored: true, durationMinutes: null, maxViolations: 3 };
 
 function loadPrefs(): BuilderPrefs {
   try {
@@ -435,6 +543,7 @@ function loadPrefs(): BuilderPrefs {
       problemCount: typeof p.problemCount === 'number' ? p.problemCount : DEFAULT_PREFS.problemCount,
       proctored: typeof p.proctored === 'boolean' ? p.proctored : DEFAULT_PREFS.proctored,
       durationMinutes: typeof p.durationMinutes === 'number' ? p.durationMinutes : null,
+      maxViolations: typeof p.maxViolations === 'number' && VIOLATION_CHOICES.includes(p.maxViolations) ? p.maxViolations : DEFAULT_PREFS.maxViolations,
     };
   } catch { return DEFAULT_PREFS; }
 }
@@ -476,7 +585,7 @@ function ExamLobby({ onStart, onExit, startError, history, onClearHistory }: {
 
   const generate = () => {
     if (!canGenerate) return;
-    setDraft(generateExamSpec({ chapters: prefs.chapters, problemCount: count, durationMinutes: duration, proctored: prefs.proctored }));
+    setDraft(generateExamSpec({ chapters: prefs.chapters, problemCount: count, durationMinutes: duration, proctored: prefs.proctored, maxViolations: prefs.maxViolations }));
   };
 
   const toggleChapter = (id: string) => change({
@@ -569,6 +678,16 @@ function ExamLobby({ onStart, onExit, startError, history, onClearHistory }: {
             </label>
           ))}
         </div>
+
+        {prefs.proctored && (
+          <label className="flex flex-wrap items-center gap-2 text-sm">
+            <ShieldAlert size={16} className="text-yellow-500" /> Tự động nộp bài khi vi phạm
+            <select value={prefs.maxViolations} onChange={e => change({ maxViolations: Number(e.target.value) })}
+              className="px-2 py-1 rounded border border-[var(--border)] bg-[var(--bg-primary)]">
+              {VIOLATION_CHOICES.map(n => <option key={n} value={n}>{n === 1 ? '1 lần (nghiêm ngặt nhất)' : `${n} lần`}</option>)}
+            </select>
+          </label>
+        )}
 
         <div className="flex flex-wrap items-center gap-3">
           <button onClick={generate} disabled={!canGenerate}
@@ -675,10 +794,10 @@ function ProctorRules({ maxViolations }: { maxViolations: number }) {
     <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 p-3 text-sm flex flex-col gap-2">
       <strong className="flex items-center gap-2"><ShieldAlert size={18} className="text-yellow-500" /> Quy chế thi có giám sát</strong>
       <ul className="list-disc pl-5 flex flex-col gap-1 text-[var(--text-secondary)]">
-        <li>Bài thi chạy <strong>toàn màn hình</strong> suốt thời gian làm bài.</li>
-        <li>Thoát toàn màn hình, chuyển tab, chuyển ứng dụng hoặc tải lại trang đều bị ghi nhận là <strong>vi phạm</strong>.</li>
+        <li>Bài thi chạy <strong>toàn màn hình</strong>, chỉ <strong>một màn hình</strong> và chỉ trong <strong>một tab</strong>.</li>
+        <li>Bị tính <strong>vi phạm</strong>: thoát toàn màn hình (thêm một lần cho mỗi 15 giây chưa quay lại), chuyển tab/ứng dụng, tải lại trang, mở DevTools, cắm thêm màn hình hoặc rê chuột ra ngoài màn hình thi quá 3 giây, mở bài thi ở tab khác, chụp màn hình.</li>
+        <li>Không được dán, sao chép, cắt, kéo thả, mở chuột phải. Chèn một khối code lớn bất thường vào editor (ví dụ dán qua đường vòng) bị tính vi phạm và tự hoàn tác.</li>
         <li>Đủ {maxViolations} lần vi phạm, bài thi bị <strong>nộp tự động</strong>. Hết giờ cũng tự động nộp.</li>
-        <li>Không được dán (paste), kéo thả nội dung, mở chuột phải hay công cụ nhà phát triển.</li>
         <li>Bài được chấm bằng test ẩn trên backend — cần kết nối backend khi nộp bài.</li>
       </ul>
     </div>
@@ -803,9 +922,9 @@ function FlagButton({ flagged, onToggle }: { flagged: boolean; onToggle: () => v
   );
 }
 
-function ProblemView({ problem, index, code, onChange, theme, flagged, onToggleFlag }: {
+function ProblemView({ problem, index, code, onChange, theme, flagged, onToggleFlag, editorRevision }: {
   problem: CodeProblem; index: number; code: string; onChange: (code: string) => void; theme: ThemeMode;
-  flagged: boolean; onToggleFlag: () => void;
+  flagged: boolean; onToggleFlag: () => void; editorRevision: number;
 }) {
   const samples = problem.tests.filter(t => !t.hidden);
   const [running, setRunning] = useState(false);
@@ -882,7 +1001,7 @@ function ProblemView({ problem, index, code, onChange, theme, flagged, onToggleF
       </section>
       <section className="flex-1 min-h-0 flex flex-col">
         <div className="flex-1 min-h-[300px]">
-          <CodeEditor code={code} onChange={onChange} theme={theme} />
+          <CodeEditor key={editorRevision} code={code} onChange={onChange} theme={theme} />
         </div>
         <div className="border-t border-[var(--border)] bg-[var(--bg-panel)] p-3 flex flex-col gap-2 max-h-[45%] overflow-auto text-sm">
           <div className="flex flex-wrap items-center gap-2">
