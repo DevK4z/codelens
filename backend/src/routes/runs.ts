@@ -8,7 +8,8 @@ import { BusyError, createGate, isDirectLocal, LOCAL_RUNNER_PUBLIC_ERROR } from 
 import { ApiError, methodNotAllowed } from '../problem.js';
 import type { Run, RunStatus } from '../types.js';
 
-const gate = createGate(Number(process.env.MAX_CONCURRENT_RUNS || 2), Number(process.env.MAX_QUEUED_RUNS || 8));
+// Shared by every route that runs programs, so judging and single runs queue for the same slots.
+export const gate = createGate(Number(process.env.MAX_CONCURRENT_RUNS || 2), Number(process.env.MAX_QUEUED_RUNS || 8));
 
 // Runs stay readable for a short while so GET /runs/{id} works; nothing is persisted and the source is not kept.
 const RUN_TTL_MS = 15 * 60_000;

@@ -31,5 +31,9 @@ services:
         value: "1"
       - key: MAX_QUEUED_RUNS
         value: "8"
+      # One exam submission (all of its tests) is a single POST /api/v1/judge, so this is per submission.
       - key: RATE_LIMIT_PER_MIN
         value: "20"
+      # Per-test limit when judging exam submissions: native runs, unlike GDB stepping above.
+      - key: JUDGE_TIMEOUT_MS
+        value: "5000"

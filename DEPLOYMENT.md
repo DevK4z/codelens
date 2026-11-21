@@ -81,10 +81,12 @@ NODE_ENV=production
 RUNNER=docker
 # Đổi thành URL frontend của bạn (VD: https://devk4z.github.io)
 CORS_ORIGINS=https://devk4z.github.io
-# Giới hạn chống lạm dụng cho POST /api/v1/runs
+# Giới hạn chống lạm dụng cho POST /api/v1/runs và /api/v1/judge (một lần chấm cả bài = một lượt)
 RATE_LIMIT_PER_MIN=20
 MAX_CONCURRENT_RUNS=2
 MAX_QUEUED_RUNS=8
+# Giới hạn thời gian mỗi test khi chấm bài thi (ms)
+JUDGE_TIMEOUT_MS=5000
 ```
 
 > **Bắt buộc runner cô lập khi public backend**: `RUNNER=docker` trên VPS, `RUNNER=sandbox` trên Render (đã đặt sẵn trong image). `LocalRunner` chạy code thẳng trên máy chủ, không cách ly, nên nó từ chối mọi request đi qua proxy và `/api/v1/health` trả 503. Deploy Pages sẽ dừng ở bước kiểm tra backend thay vì public một runner không sandbox.

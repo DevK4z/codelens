@@ -3,6 +3,7 @@ import cors from 'cors';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createRunsRouter } from './routes/runs.js';
+import { createJudgeRouter } from './routes/judge.js';
 import { legacyExecute } from './routes/execute.js';
 import { ApiError, methodNotAllowed, notFound, problemHandler } from './problem.js';
 import { isDirectLocal, LOCAL_RUNNER_PUBLIC_ERROR, rateLimit } from './guard.js';
@@ -48,6 +49,8 @@ export function createApp() {
     .get(async (req, res) => { res.set('Cache-Control', 'no-store').json(await checkHealth(req)); })
     .all(methodNotAllowed('GET'));
   app.use('/api/v1/runs', createRunsRouter(limiter));
+  // A whole submission (every test case) costs one hit of the same budget.
+  app.use('/api/v1/judge', createJudgeRouter(limiter));
 
   // Deprecated aliases with the pre-v1 response shapes; see routes/execute.ts.
   app.get('/api/health', async (req, res) => {
