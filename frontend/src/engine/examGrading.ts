@@ -156,7 +156,13 @@ export interface ExamHistoryEntry {
   durationMs: number;
   byChapter: ChapterScore[];
   spec: ExamSpec; // để "làm lại đề này"
+  /** Code đã nộp và kết quả từng test, để xem lại (không có ở các lần làm trước khi có tính năng này). */
+  codes?: Record<string, string>;
+  verdicts?: Record<string, TestVerdict[]>;
 }
+
+/** Giới hạn mỗi bài để lịch sử 30 lần làm vẫn vừa localStorage. */
+export const HISTORY_CODE_LIMIT = 20_000;
 
 export function historyEntry(exam: Exam, session: ExamSession, max: number): ExamHistoryEntry {
   const at = session.submittedAt ?? Date.now();
@@ -170,6 +176,11 @@ export function historyEntry(exam: Exam, session: ExamSession, max: number): Exa
     durationMs: at - session.startedAt,
     byChapter: chapterBreakdown(exam, session),
     spec: session.spec,
+    codes: Object.fromEntries(exam.problems.map(p => [p.id, (session.codes[p.id] ?? p.starterCode).slice(0, HISTORY_CODE_LIMIT)])),
+    verdicts: Object.fromEntries(exam.problems.flatMap(p => {
+      const r = session.results[p.id];
+      return r && r.code === (session.codes[p.id] ?? p.starterCode) ? [[p.id, r.verdicts]] : [];
+    })),
   };
 }
 
@@ -180,11 +191,30 @@ export function loadHistory(store = storage()): ExamHistoryEntry[] {
     if (!Array.isArray(list)) return [];
     return list.flatMap((e: Partial<ExamHistoryEntry> | null) => {
       const spec = e && normalizeSpec(e.spec);
-      return e && spec && typeof e.id === 'string' && typeof e.score === 'number' && typeof e.at === 'number' && Array.isArray(e.byChapter)
-        ? [{ ...(e as ExamHistoryEntry), spec }]
-        : [];
+      if (!e || !spec || typeof e.id !== 'string' || typeof e.score !== 'number' || typeof e.at !== 'number' || !Array.isArray(e.byChapter)) return [];
+      const entry: ExamHistoryEntry = { ...(e as ExamHistoryEntry), spec };
+      const codes = stringRecord(e.codes);
+      const verdicts = verdictRecord(e.verdicts);
+      if (codes) entry.codes = codes; else delete entry.codes;
+      if (verdicts) entry.verdicts = verdicts; else delete entry.verdicts;
+      return [entry];
     });
   } catch { return []; }
+}
+
+const VERDICT_SET = new Set<TestVerdict>(['AC', 'WA', 'TLE', 'CE', 'RE', 'ERR']);
+
+function stringRecord(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const entries = Object.entries(value as Record<string, unknown>).filter((kv): kv is [string, string] => typeof kv[1] === 'string');
+  return Object.fromEntries(entries);
+}
+
+function verdictRecord(value: unknown): Record<string, TestVerdict[]> | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter((kv): kv is [string, TestVerdict[]] => Array.isArray(kv[1]) && kv[1].every(v => VERDICT_SET.has(v as TestVerdict)));
+  return Object.fromEntries(entries);
 }
 
 /** Thêm hoặc cập nhật (theo id) một lần làm bài; giữ tối đa EXAM_HISTORY_LIMIT lần gần nhất. */
@@ -192,7 +222,12 @@ export function recordHistory(entry: ExamHistoryEntry, store = storage()): ExamH
   const list = [entry, ...loadHistory(store).filter(e => e.id !== entry.id)]
     .sort((a, b) => b.at - a.at)
     .slice(0, EXAM_HISTORY_LIMIT);
-  try { store?.setItem(EXAM_HISTORY_KEY, JSON.stringify(list)); } catch { /* Storage may be blocked or full. */ }
+  // Bộ nhớ đầy: bỏ dần code của các lần làm cũ nhất (vẫn giữ điểm) rồi thử lại.
+  for (let keep = list.length; keep >= 0; keep--) {
+    const trimmed = list.map((e, i) => (i < keep ? e : { ...e, codes: undefined }));
+    try { store?.setItem(EXAM_HISTORY_KEY, JSON.stringify(trimmed)); return trimmed; }
+    catch { /* Storage may be blocked or full. */ }
+  }
   return list;
 }
 

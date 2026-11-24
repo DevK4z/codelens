@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowLeft, BookOpen, ClipboardList, Clock, Dices, Flag, History, LoaderCircle, Maximize, Play, RotateCcw, Send, ShieldAlert,
+  ArrowLeft, BookOpen, ClipboardList, Clock, Dices, Eye, Flag, History, LoaderCircle, Maximize, Play, RotateCcw, Send, ShieldAlert,
   Sparkles, Trash2, TriangleAlert,
 } from 'lucide-react';
 import { CodeEditor } from './CodeEditor';
+import { ExamReview } from './ExamReview';
 import {
   EXAM_CHAPTERS, PRESET_EXAMS, PRESET_SPECS, availableProblems, chapterTitle, examTotalPoints, generateExamSpec, resolveExam,
   suggestDuration,
@@ -49,9 +50,6 @@ async function leaveFullscreen() {
   } catch { /* already left */ }
 }
 
-const VERDICT_LABEL: Record<TestVerdict, string> = {
-  AC: 'Đúng', WA: 'Sai kết quả', TLE: 'Quá thời gian', CE: 'Lỗi biên dịch', RE: 'Lỗi khi chạy', ERR: 'Không chấm được',
-};
 
 const FROM_JUDGE: Record<JudgeVerdict, TestVerdict> = {
   accepted: 'AC', wrong_answer: 'WA', time_limit_exceeded: 'TLE', runtime_error: 'RE', finished: 'WA',
@@ -569,6 +567,7 @@ function ExamLobby({ onStart, onExit, startError, history, onClearHistory }: {
   history: ExamHistoryEntry[]; onClearHistory: () => void;
 }) {
   const [prefs, setPrefs] = useState<BuilderPrefs>(() => loadPrefs());
+  const [reviewId, setReviewId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ExamSpec | null>(null);
   const draftExam = useMemo(() => (draft ? resolveExam(draft) : null), [draft]);
 
@@ -768,17 +767,30 @@ function ExamLobby({ onStart, onExit, startError, history, onClearHistory }: {
               </thead>
               <tbody>
                 {history.map(h => (
-                  <tr key={h.id} className="border-t border-[var(--border)]">
+                  <Fragment key={h.id}>
+                  <tr className="border-t border-[var(--border)]">
                     <td className="py-1.5 pr-3 whitespace-nowrap">{new Date(h.at).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}</td>
                     <td className="py-1.5 pr-3">{h.title}{!h.proctored && <span className="ml-1 text-xs text-blue-500">(luyện tập)</span>}</td>
                     <td className="py-1.5 pr-3 font-semibold whitespace-nowrap">{formatPoints(h.score)}/{formatPoints(h.max)}</td>
                     <td className="py-1.5 pr-3 whitespace-nowrap">{formatClock(h.durationMs)}</td>
-                    <td className="py-1.5 text-right">
+                    <td className="py-1.5 text-right whitespace-nowrap">
+                      <button onClick={() => setReviewId(reviewId === h.id ? null : h.id)} aria-expanded={reviewId === h.id}
+                        className="inline-flex items-center gap-1 text-xs px-2 py-1 mr-1.5 rounded border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)]/10">
+                        <Eye size={12} /> {reviewId === h.id ? 'Đóng' : 'Xem lại'}
+                      </button>
                       <button onClick={() => onStart(h.spec)} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-[var(--border)] hover:bg-[var(--bg-secondary)]">
                         <RotateCcw size={12} /> Làm lại
                       </button>
                     </td>
                   </tr>
+                  {reviewId === h.id && (
+                    <tr>
+                      <td colSpan={5} className="py-3">
+                        <HistoryReview entry={h} />
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -786,6 +798,18 @@ function ExamLobby({ onStart, onExit, startError, history, onClearHistory }: {
         </section>
       )}
     </div>
+  );
+}
+
+function HistoryReview({ entry }: { entry: ExamHistoryEntry }) {
+  const exam = resolveExam(entry.spec);
+  if (!exam) return <p className="text-sm text-[var(--text-secondary)]">Đề của lần làm này không còn trong ngân hàng.</p>;
+  return (
+    <ExamReview items={exam.problems.map(p => {
+      const code = entry.codes?.[p.id];
+      const verdicts = entry.verdicts?.[p.id];
+      return { problem: p, code, verdicts, score: verdicts ? scoreProblem(p, verdicts) : undefined };
+    })} />
   );
 }
 
@@ -866,27 +890,14 @@ function ResultsView({ exam, session, grading, onRegrade, onRetake, onNew, onExi
         <p className="text-sm text-orange-500">Nên ôn lại: {weak.map(r => `${r.chapter} (${chapterTitle(r.chapter)})`).join(', ')} — có thể mở Ngân hàng bài tập của chương đó để luyện thêm.</p>
       )}
 
-      <section className="flex flex-col gap-3">
-        {exam.problems.map((p, i) => {
+      <section className="flex flex-col gap-3" aria-label="Xem lại bài làm">
+        <h3 className="font-semibold">Xem lại bài làm</h3>
+        <ExamReview items={exam.problems.map(p => {
+          const code = session.codes[p.id] ?? p.starterCode;
           const r = session.results[p.id];
-          return (
-            <div key={p.id} className="rounded border border-[var(--border)] p-3 text-sm flex flex-col gap-2">
-              <div className="flex justify-between gap-2">
-                <strong>Bài {i + 1}. {p.title} <span className="text-xs font-normal text-[var(--text-secondary)]">[{p.chapter}]</span></strong>
-                <span className="whitespace-nowrap">{formatPoints(problemScore(p, session))}/{formatPoints(p.points)} điểm</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {p.tests.map((t, j) => {
-                  const v = r?.verdicts[j];
-                  return <span key={j} className={`px-2 py-0.5 rounded text-xs ${v === 'AC' ? 'bg-green-500/15 text-green-500' : 'bg-red-500/15 text-red-500'}`}>
-                    {t.hidden ? 'Test ẩn' : 'Test ví dụ'} {j + 1}: {v ? VERDICT_LABEL[v] : '—'}
-                  </span>;
-                })}
-              </div>
-              {r?.message && <pre className="whitespace-pre-wrap break-words text-xs text-[var(--text-secondary)] max-h-40 overflow-auto">{r.message}</pre>}
-            </div>
-          );
-        })}
+          const fresh = r && r.code === code;
+          return { problem: p, code, verdicts: fresh ? r.verdicts : undefined, score: problemScore(p, session), message: fresh ? r.message : undefined };
+        })} />
       </section>
 
       {session.violations.length > 0 && (

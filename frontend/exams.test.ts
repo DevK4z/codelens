@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -15,7 +15,9 @@ import {
   loadHistory, loadSession, normalizeOutput, outputsMatch, recordHistory, saveSession, scoreProblem, totalScore,
 } from './src/engine/examGrading.ts';
 import type { TestVerdict } from './src/engine/examGrading.ts';
-import { EXAM_REFERENCES } from './examReferences.ts';
+import { SOLUTION_NOTES } from './src/data/examSolutions.ts';
+
+const solutionFile = (id: string) => join(import.meta.dirname, 'src/data/solutions', `${id}.cpp`);
 
 function memoryStore() {
   const data = new Map<string, string>();
@@ -36,7 +38,9 @@ test('problem bank is well-formed, covers every chapter and is distinct from exi
     assert.ok(allChapters.includes(p.chapter), p.id);
     assert.ok(!existing.has(p.title.toLowerCase()), `${p.id} trùng bài đã có`);
     assert.ok(p.tests.some(t => !t.hidden) && p.tests.some(t => t.hidden), p.id);
-    assert.ok(EXAM_REFERENCES[p.id], `missing reference for ${p.id}`);
+    assert.ok(existsSync(solutionFile(p.id)), `missing solution file for ${p.id}`);
+    const note = SOLUTION_NOTES[p.id];
+    assert.ok(note && note.idea.length > 20 && note.time.startsWith('O(') && note.space.startsWith('O('), `missing solution note for ${p.id}`);
   }
   for (const ch of allChapters) assert.ok(availableProblems([ch]) >= 4, `${ch} cần ít nhất 4 bài`);
 });
@@ -153,6 +157,9 @@ test('history upserts by attempt, keeps the latest entries and drops unusable on
   assert.equal(list.length, 1, 'same attempt is updated, not duplicated');
   assert.equal(list[0].score, Math.round(p.points * 100) / 100);
   assert.equal(list[0].durationMs, 60_000);
+  assert.equal(list[0].codes?.[p.id], 'ok', 'submitted code is kept for review');
+  assert.deepEqual(list[0].verdicts?.[p.id], p.tests.map(() => 'AC'));
+  assert.equal(list[0].verdicts?.[exam.problems[1].id], undefined, 'ungraded problems have no verdicts');
   for (let i = 1; i <= EXAM_HISTORY_LIMIT + 5; i++) {
     recordHistory(historyEntry(exam, { ...createSession(spec, i * 1000), submittedAt: i * 1000 + 1 }, 10), store);
   }
@@ -164,17 +171,44 @@ test('history upserts by attempt, keeps the latest entries and drops unusable on
 });
 
 const hasGpp = spawnSync('g++', ['--version']).status === 0;
-test('reference solutions pass every exam test case', { skip: !hasGpp && 'g++ not available' }, () => {
+test('the optimal solutions shown to learners compile cleanly and pass every test case', { skip: !hasGpp && 'g++ not available' }, () => {
   const dir = mkdtempSync(join(tmpdir(), 'codelens-exam-'));
   try {
     for (const p of PROBLEM_BANK) {
-      const src = join(dir, `${p.id}.cpp`), bin = join(dir, p.id);
-      writeFileSync(src, EXAM_REFERENCES[p.id]);
-      execFileSync('g++', ['-std=gnu++17', '-O2', '-o', bin, src]);
+      const bin = join(dir, p.id);
+      // -Werror on top of -Wall -Wextra: code we present as a model answer must not carry warnings.
+      execFileSync('g++', ['-std=gnu++17', '-O2', '-Wall', '-Wextra', '-Werror', '-o', bin, solutionFile(p.id)]);
+      assert.doesNotMatch(readFileSync(solutionFile(p.id), 'utf8'), /bits\/stdc\+\+/, `${p.id} should use standard headers`);
       p.tests.forEach((t, i) => {
         const out = execFileSync(bin, { input: t.input }).toString();
         assert.ok(outputsMatch(out, t.output), `${p.id} test ${i + 1}: got ${JSON.stringify(out)} want ${JSON.stringify(t.output)}`);
       });
     }
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('history keeps code for review, sanitises stored data and survives a full storage', () => {
+  const spec = PRESET_SPECS[0];
+  const exam = resolveExam(spec)!;
+  const s = { ...createSession(spec, 0), submittedAt: 1000 };
+  s.codes[exam.problems[0].id] = 'x'.repeat(30_000);
+  const entry = historyEntry(exam, s, 10);
+  assert.equal(entry.codes?.[exam.problems[0].id].length, 20_000, 'long code is capped');
+  assert.equal(entry.codes?.[exam.problems[1].id], exam.problems[1].starterCode);
+
+  const store = memoryStore();
+  store.setItem(EXAM_HISTORY_KEY, JSON.stringify([{ ...entry, codes: { a: 'ok', b: 42 }, verdicts: { a: ['AC', 'NOPE'], b: ['WA'] } }]));
+  const [loaded] = loadHistory(store);
+  assert.deepEqual(loaded.codes, { a: 'ok' });
+  assert.deepEqual(loaded.verdicts, { b: ['WA'] });
+
+  // A store that only accepts small payloads: older entries lose their code, scores are kept.
+  const tight = memoryStore();
+  const setItem = tight.setItem;
+  tight.setItem = (k: string, v: string) => { if (v.length > 60_000) throw new Error('QuotaExceededError'); setItem(k, v); };
+  for (let i = 0; i < 5; i++) recordHistory(historyEntry(exam, { ...s, startedAt: i, submittedAt: 10 + i }, 10), tight);
+  const kept = loadHistory(tight);
+  assert.equal(kept.length, 5, 'every attempt is still listed');
+  assert.ok(kept[0].codes, 'the newest attempt keeps its code');
+  assert.equal(kept[4].codes, undefined, 'the oldest attempt dropped its code');
 });
