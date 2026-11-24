@@ -355,7 +355,7 @@ Các lệnh trên là hướng dẫn kiểm tra, không phải tuyên bố phiê
 
 ## Làm bài thi (bài lập trình)
 
-- Nút **Làm bài thi** trên thanh tiêu đề mở phòng thi. Ngân hàng đề có 40 bài lập trình (`frontend/src/data/examBank.ts`), 4 bài cho mỗi chương L1–L9, không trùng ngân hàng 104 bài tập.
+- Nút **Làm bài thi** trên thanh tiêu đề mở phòng thi. Ngân hàng đề có 70 bài lập trình (`frontend/src/data/examBank.ts`), 7 bài cho mỗi chương L1–L9, không trùng ngân hàng 104 bài tập.
 - **Tạo đề theo chương**: chọn các chương muốn kiểm tra, số bài và thời gian (gợi ý 20 phút/bài). Bài được rải đều qua các chương đã chọn, thang 10 chia đều cho các bài. Có sẵn Đề A (60 phút) và Đề B (75 phút), mỗi đề 3 bài.
 - Hai chế độ: **thi có giám sát** và **luyện tập** (không giám sát). Hết giờ thì tự nộp.
 - Thi có giám sát: bắt buộc toàn màn hình, một màn hình, một tab. Bị tính vi phạm: thoát toàn màn hình (cộng thêm mỗi 15 giây chưa quay lại), chuyển tab/ứng dụng, tải lại trang, mở DevTools gắn trong cửa sổ, cắm thêm màn hình hoặc rê chuột ra ngoài màn hình thi quá 3 giây, mở bài thi ở tab thứ hai (tab đó bị khóa, không ghi đè bài làm), phím chụp màn hình. Dán, sao chép, cắt, kéo thả, chuột phải và phím tắt DevTools bị chặn; chèn một khối code lớn bất thường (≥ 60 ký tự không có sẵn trong bài) bị tính vi phạm và tự hoàn tác, còn hoàn tác/nhân đôi dòng/format lại thì không. Khi tạo đề có thể chọn tự nộp sau 1, 2, 3 hoặc 5 lần vi phạm. Logic phát hiện nằm ở `frontend/src/engine/proctoring.ts`.
