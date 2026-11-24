@@ -42,7 +42,7 @@ test('problem bank is well-formed, covers every chapter and is distinct from exi
     const note = SOLUTION_NOTES[p.id];
     assert.ok(note && note.idea.length > 20 && note.time.startsWith('O(') && note.space.startsWith('O('), `missing solution note for ${p.id}`);
   }
-  for (const ch of allChapters) assert.ok(availableProblems([ch]) >= 4, `${ch} cần ít nhất 4 bài`);
+  for (const ch of allChapters) assert.ok(availableProblems([ch]) >= 7, `${ch} cần ít nhất 7 bài`);
 });
 
 test('preset exams resolve fully and are worth 10 points', () => {
