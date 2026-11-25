@@ -5,7 +5,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  EXAM_CHAPTERS, PRESET_EXAMS, PRESET_SPECS, availableProblems, examTotalPoints, generateExamSpec, resolveExam, suggestDuration,
+  DIFFICULTIES, EXAM_CHAPTERS, EXTRA_CHAPTER_IDS, LECTURE_CHAPTER_IDS, PRESET_EXAMS, PRESET_SPECS, availableProblems, examTotalPoints,
+  generateExamSpec, isDifficulty, resolveExam, suggestDuration,
 } from './src/data/exams.ts';
 import { PROBLEM_BANK } from './src/data/examBank.ts';
 import { EXERCISES } from './src/data/exercises.ts';
@@ -36,6 +37,7 @@ test('problem bank is well-formed, covers every chapter and is distinct from exi
   for (const p of PROBLEM_BANK) {
     assert.ok(!ids.has(p.id), `duplicate id ${p.id}`); ids.add(p.id);
     assert.ok(allChapters.includes(p.chapter), p.id);
+    assert.ok(isDifficulty(p.difficulty), `${p.id} cần độ khó hợp lệ`);
     assert.ok(!existing.has(p.title.toLowerCase()), `${p.id} trùng bài đã có`);
     assert.ok(p.tests.some(t => !t.hidden) && p.tests.some(t => t.hidden), p.id);
     assert.ok(existsSync(solutionFile(p.id)), `missing solution file for ${p.id}`);
@@ -43,6 +45,34 @@ test('problem bank is well-formed, covers every chapter and is distinct from exi
     assert.ok(note && note.idea.length > 20 && note.time.startsWith('O(') && note.space.startsWith('O('), `missing solution note for ${p.id}`);
   }
   for (const ch of allChapters) assert.ok(availableProblems([ch]) >= 7, `${ch} cần ít nhất 7 bài`);
+  for (const ch of LECTURE_CHAPTER_IDS) assert.ok(availableProblems([ch]) >= 10, `${ch} cần ít nhất 10 bài`);
+  assert.deepEqual(EXTRA_CHAPTER_IDS, ['MR1', 'MR2', 'MR3']);
+  // Mỗi chương có cả bài dễ và bài trung bình; toàn ngân hàng có đủ bài khó để ra đề toàn bài khó.
+  for (const ch of allChapters) for (const d of ['easy', 'medium'] as const) {
+    assert.ok(availableProblems([ch], [d]) >= 1, `${ch} cần ít nhất một bài ${d}`);
+  }
+  assert.ok(availableProblems(allChapters, ['hard']) >= 15, 'cần ít nhất 15 bài khó');
+  assert.equal(PROBLEM_BANK.length, 121);
+});
+
+test('generator filters by difficulty and keeps the spread across chapters', () => {
+  assert.equal(availableProblems(allChapters, []), PROBLEM_BANK.length, 'không lọc = mọi độ khó');
+  assert.equal(availableProblems(allChapters, DIFFICULTIES.map(d => d.id)), PROBLEM_BANK.length);
+  const hard = generateExamSpec({ chapters: allChapters, difficulties: ['hard'], problemCount: 5, proctored: true, seed: 11 });
+  const exam = resolveExam(hard)!;
+  assert.equal(exam.problems.length, 5);
+  assert.ok(exam.problems.every(p => p.difficulty === 'hard'));
+  assert.equal(new Set(exam.problems.map(p => p.chapter)).size, 5, '5 bài khó từ 5 chương khác nhau');
+  assert.match(hard.title, /Khó$/);
+  const all = generateExamSpec({ chapters: ['L1'], difficulties: ['easy', 'medium', 'hard'], problemCount: 2, proctored: false, seed: 1 });
+  assert.doesNotMatch(all.title, /Dễ|Khó/, 'chọn cả ba độ khó thì tên đề không ghi độ khó');
+  // L1 không có bài khó: lọc ra 0 bài.
+  const none = generateExamSpec({ chapters: ['L1'], difficulties: ['hard'], problemCount: 3, proctored: true, seed: 2 });
+  assert.equal(none.problemIds.length, availableProblems(['L1'], ['hard']));
+  const easyMr = generateExamSpec({ chapters: EXTRA_CHAPTER_IDS, difficulties: ['easy'], problemCount: 99, proctored: true, seed: 4 });
+  assert.equal(easyMr.problemIds.length, availableProblems(EXTRA_CHAPTER_IDS, ['easy']));
+  assert.equal(generateExamSpec({ chapters: LECTURE_CHAPTER_IDS, problemCount: 3, proctored: true, seed: 5 }).title, 'Đề thi — tổng hợp L1–L9');
+  assert.equal(generateExamSpec({ chapters: allChapters, problemCount: 3, proctored: true, seed: 5 }).title, 'Đề thi — tổng hợp');
 });
 
 test('preset exams resolve fully and are worth 10 points', () => {
@@ -78,8 +108,8 @@ test('generator clamps to what the chapters contain', () => {
   const spec = generateExamSpec({ chapters: ['L1'], problemCount: 999, proctored: false, seed: 7 });
   assert.equal(spec.problemIds.length, availableProblems(['L1']));
   assert.equal(spec.proctored, false);
-  const all = generateExamSpec({ chapters: allChapters, problemCount: 10, proctored: true, seed: 3 });
-  assert.equal(new Set(resolveExam(all)!.problems.map(p => p.chapter)).size, 10, '10 bài trải đủ 10 chương');
+  const all = generateExamSpec({ chapters: allChapters, problemCount: allChapters.length, proctored: true, seed: 3 });
+  assert.equal(new Set(resolveExam(all)!.problems.map(p => p.chapter)).size, allChapters.length, 'mỗi chương một bài');
   assert.equal(resolveExam({ ...spec, problemIds: ['nope'] }), null);
 });
 
