@@ -4,12 +4,13 @@ import {
   Sparkles, Trash2, TriangleAlert,
 } from 'lucide-react';
 import { CodeEditor } from './CodeEditor';
+import { DifficultyBadge } from './DifficultyBadge';
 import { ExamReview } from './ExamReview';
 import {
-  EXAM_CHAPTERS, PRESET_EXAMS, PRESET_SPECS, availableProblems, chapterTitle, examTotalPoints, generateExamSpec, resolveExam,
-  suggestDuration,
+  DIFFICULTIES, EXAM_CHAPTERS, EXTRA_CHAPTER_IDS, LECTURE_CHAPTER_IDS, PRESET_EXAMS, PRESET_SPECS, availableProblems, chapterTitle,
+  difficultyLabel, examTotalPoints, generateExamSpec, isDifficulty, resolveExam, suggestDuration,
 } from '../data/exams';
-import type { CodeProblem, Exam, ExamSpec } from '../data/exams';
+import type { CodeProblem, Difficulty, Exam, ExamSpec } from '../data/exams';
 import { JudgeUnsupported, executeCode, healthCheck, judgeCode } from '../engine/api';
 import type { JudgeVerdict } from '../engine/api';
 import {
@@ -458,7 +459,7 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
             {exam.problems.map((p, i) => {
               const touched = (session.codes[p.id] ?? p.starterCode) !== p.starterCode;
               return (
-                <button key={p.id} onClick={() => setCurrent(i)} aria-current={index === i} title={`${p.chapter} · ${chapterTitle(p.chapter)}`}
+                <button key={p.id} onClick={() => setCurrent(i)} aria-current={index === i} title={`${p.chapter} · ${chapterTitle(p.chapter)} · ${difficultyLabel(p.difficulty)}`}
                   className={`relative px-2 py-1.5 rounded border text-left text-xs whitespace-nowrap md:whitespace-normal ${index === i ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]' : 'border-[var(--border)]'} ${touched ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-panel)]'}`}>
                   Bài {i + 1}. {p.title}
                   {flags.has(p.id) && <Flag size={10} className="absolute -top-1 -right-1 text-orange-500 fill-orange-500" aria-label="đã đánh dấu" />}
@@ -521,6 +522,7 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
 
 interface BuilderPrefs {
   chapters: string[];
+  difficulties: Difficulty[];
   problemCount: number;
   proctored: boolean;
   durationMinutes: number | null; // null: dùng thời gian gợi ý
@@ -529,7 +531,10 @@ interface BuilderPrefs {
 
 const PREFS_KEY = 'codelens.exam-builder.v2';
 const VIOLATION_CHOICES = [1, 2, 3, 5];
-const DEFAULT_PREFS: BuilderPrefs = { chapters: EXAM_CHAPTERS.map(c => c.id), problemCount: 3, proctored: true, durationMinutes: null, maxViolations: 3 };
+const ALL_DIFFICULTIES = DIFFICULTIES.map(d => d.id);
+const DEFAULT_PREFS: BuilderPrefs = {
+  chapters: EXAM_CHAPTERS.map(c => c.id), difficulties: ALL_DIFFICULTIES, problemCount: 3, proctored: true, durationMinutes: null, maxViolations: 3,
+};
 
 function loadPrefs(): BuilderPrefs {
   try {
@@ -538,6 +543,7 @@ function loadPrefs(): BuilderPrefs {
     const p = JSON.parse(raw) as Partial<BuilderPrefs>;
     return {
       chapters: Array.isArray(p.chapters) ? p.chapters.filter(id => EXAM_CHAPTERS.some(c => c.id === id)) : DEFAULT_PREFS.chapters,
+      difficulties: Array.isArray(p.difficulties) ? p.difficulties.filter(isDifficulty) : DEFAULT_PREFS.difficulties,
       problemCount: typeof p.problemCount === 'number' ? p.problemCount : DEFAULT_PREFS.problemCount,
       proctored: typeof p.proctored === 'boolean' ? p.proctored : DEFAULT_PREFS.proctored,
       durationMinutes: typeof p.durationMinutes === 'number' ? p.durationMinutes : null,
@@ -552,9 +558,16 @@ function savePrefs(p: BuilderPrefs) {
 
 const CHAPTER_GROUPS: { label: string; ids: string[] }[] = [
   { label: 'Tất cả', ids: EXAM_CHAPTERS.map(c => c.id) },
+  { label: 'Bài giảng (L1–L9)', ids: LECTURE_CHAPTER_IDS },
   { label: 'Giữa kỳ (L1–L5)', ids: ['L1', 'L2', 'L3.1', 'L3.2', 'L4', 'L5'] },
   { label: 'Cuối kỳ (L6–L9)', ids: ['L6', 'L7', 'L8', 'L9'] },
+  { label: 'Mở rộng', ids: EXTRA_CHAPTER_IDS },
   { label: 'Bỏ chọn', ids: [] },
+];
+
+const CHAPTER_SECTIONS = [
+  { label: 'Theo bài giảng', chapters: EXAM_CHAPTERS.filter(c => !c.extra) },
+  { label: 'Mở rộng (ngoài bài giảng)', chapters: EXAM_CHAPTERS.filter(c => c.extra) },
 ];
 
 const clampInt = (v: string, min: number, max: number) => {
@@ -576,19 +589,26 @@ function ExamLobby({ onStart, onExit, startError, history, onClearHistory }: {
     setDraft(null);
   };
 
-  const avail = availableProblems(prefs.chapters);
+  const levels = prefs.difficulties;
+  const avail = levels.length ? availableProblems(prefs.chapters, levels) : 0;
   const count = Math.min(prefs.problemCount, avail);
   const suggested = suggestDuration(count);
   const duration = prefs.durationMinutes ?? suggested;
-  const canGenerate = prefs.chapters.length > 0 && count > 0;
+  const canGenerate = prefs.chapters.length > 0 && levels.length > 0 && count > 0;
 
   const generate = () => {
     if (!canGenerate) return;
-    setDraft(generateExamSpec({ chapters: prefs.chapters, problemCount: count, durationMinutes: duration, proctored: prefs.proctored, maxViolations: prefs.maxViolations }));
+    setDraft(generateExamSpec({
+      chapters: prefs.chapters, difficulties: levels, problemCount: count, durationMinutes: duration, proctored: prefs.proctored, maxViolations: prefs.maxViolations,
+    }));
   };
 
   const toggleChapter = (id: string) => change({
     chapters: prefs.chapters.includes(id) ? prefs.chapters.filter(c => c !== id) : [...prefs.chapters, id],
+  });
+
+  const toggleDifficulty = (d: Difficulty) => change({
+    difficulties: ALL_DIFFICULTIES.filter(x => (x === d ? !levels.includes(d) : levels.includes(x))),
   });
 
   // Thống kê theo chương gộp từ lịch sử.
@@ -631,20 +651,42 @@ function ExamLobby({ onStart, onExit, startError, history, onClearHistory }: {
                 className="px-2.5 py-1 rounded-full border border-[var(--border)] hover:bg-[var(--bg-secondary)] text-xs">{g.label}</button>
             ))}
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {EXAM_CHAPTERS.map(c => {
-              const on = prefs.chapters.includes(c.id);
-              return (
-                <label key={c.id} className={`flex items-start gap-2 p-2.5 rounded border cursor-pointer text-sm ${on ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--border)] hover:bg-[var(--bg-secondary)]'}`}>
-                  <input type="checkbox" checked={on} onChange={() => toggleChapter(c.id)} className="mt-0.5 accent-[var(--accent)]" />
-                  <span className="flex flex-col">
-                    <span><strong>{c.id}</strong> · {c.title}</span>
-                    <span className="text-xs text-[var(--text-secondary)]">{availableProblems([c.id])} bài</span>
-                  </span>
-                </label>
-              );
-            })}
-          </div>
+          {CHAPTER_SECTIONS.map(section => (
+            <div key={section.label} className="flex flex-col gap-1.5">
+              <p className="text-xs font-medium uppercase tracking-wide text-[var(--text-secondary)]">{section.label}</p>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {section.chapters.map(c => {
+                  const on = prefs.chapters.includes(c.id);
+                  const total = availableProblems([c.id]);
+                  const matched = levels.length ? availableProblems([c.id], levels) : 0;
+                  return (
+                    <label key={c.id} className={`flex items-start gap-2 p-2.5 rounded border cursor-pointer text-sm ${on ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--border)] hover:bg-[var(--bg-secondary)]'}`}>
+                      <input type="checkbox" checked={on} onChange={() => toggleChapter(c.id)} className="mt-0.5 accent-[var(--accent)]" />
+                      <span className="flex flex-col">
+                        <span><strong>{c.id}</strong> · {c.title}</span>
+                        <span className="text-xs text-[var(--text-secondary)]">
+                          {matched === total ? `${total} bài` : `${matched}/${total} bài đúng độ khó đã chọn`}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-sm" role="group" aria-label="Độ khó">
+          <span className="font-medium mr-1">Độ khó:</span>
+          {DIFFICULTIES.map(d => {
+            const on = levels.includes(d.id);
+            return (
+              <button key={d.id} onClick={() => toggleDifficulty(d.id)} aria-pressed={on}
+                className={`px-3 py-1 rounded-full border text-xs ${on ? 'border-[var(--accent)] bg-[var(--accent)]/10 font-medium' : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}>
+                {d.label} <span className="text-[var(--text-secondary)]">({availableProblems(prefs.chapters, [d.id])})</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm">
@@ -693,7 +735,13 @@ function ExamLobby({ onStart, onExit, startError, history, onClearHistory }: {
             className="flex items-center gap-2 px-4 py-2 rounded bg-[var(--accent)] text-white font-medium hover:opacity-90 disabled:opacity-40">
             <Dices size={16} /> {draft ? 'Đổi đề khác' : 'Tạo đề'}
           </button>
-          {!canGenerate && <span className="text-xs text-[var(--text-secondary)]">Chọn ít nhất một chương.</span>}
+          {!canGenerate && (
+            <span className="text-xs text-[var(--text-secondary)]">
+              {prefs.chapters.length === 0 ? 'Chọn ít nhất một chương.'
+                : levels.length === 0 ? 'Chọn ít nhất một độ khó.'
+                  : 'Các chương đã chọn không có bài nào ở độ khó này.'}
+            </span>
+          )}
         </div>
 
         {draft && draftExam && (
@@ -707,11 +755,11 @@ function ExamLobby({ onStart, onExit, startError, history, onClearHistory }: {
             </div>
             <ol className="list-decimal pl-5 flex flex-col gap-0.5">
               {draftExam.problems.map(p => (
-                <li key={p.id}>{p.title} <span className="text-xs text-[var(--text-secondary)]">— {p.chapter} {chapterTitle(p.chapter)}</span></li>
+                <li key={p.id}>{p.title} <DifficultyBadge level={p.difficulty} /> <span className="text-xs text-[var(--text-secondary)]">— {p.chapter} {chapterTitle(p.chapter)}</span></li>
               ))}
             </ol>
             {count < prefs.problemCount && (
-              <p className="text-xs text-orange-500">Các chương đã chọn chỉ có {avail} bài nên đề được rút gọn.</p>
+              <p className="text-xs text-orange-500">Các chương và độ khó đã chọn chỉ có {avail} bài nên đề được rút gọn.</p>
             )}
             {draftExam.proctored && <ProctorRules maxViolations={draftExam.maxViolations} />}
             <button onClick={() => onStart(draft)} className="self-start flex items-center gap-2 px-4 py-2 rounded bg-green-600 text-white font-medium hover:bg-green-700">
@@ -995,7 +1043,10 @@ function ProblemView({ problem, index, code, onChange, theme, flagged, onToggleF
     <div className="h-full flex flex-col lg:flex-row min-h-0">
       <section className="lg:w-[42%] shrink-0 overflow-auto p-4 md:p-6 flex flex-col gap-3 text-sm border-b lg:border-b-0 lg:border-r border-[var(--border)] select-none">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[var(--text-secondary)]">Bài {index + 1} · {formatPoints(problem.points)} điểm · {problem.tests.length} test (có test ẩn) · {problem.chapter} {chapterTitle(problem.chapter)}</p>
+          <p className="text-[var(--text-secondary)] flex flex-wrap items-center gap-x-1.5 gap-y-1">
+            <DifficultyBadge level={problem.difficulty} />
+            <span>Bài {index + 1} · {formatPoints(problem.points)} điểm · {problem.tests.length} test (có test ẩn) · {problem.chapter} {chapterTitle(problem.chapter)}</span>
+          </p>
           <FlagButton flagged={flagged} onToggle={onToggleFlag} />
         </div>
         <h3 className="text-lg font-semibold">{problem.title}</h3>

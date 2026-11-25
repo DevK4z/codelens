@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CircleCheck, CircleX, Code2, Lightbulb, LoaderCircle } from 'lucide-react';
+import { DifficultyBadge } from './DifficultyBadge';
 import { HighlightedCode } from './HighlightedCode';
 import { chapterTitle } from '../data/exams';
 import type { CodeProblem } from '../data/exams';
@@ -69,7 +70,9 @@ function ReviewCard({ index, item, solution, loadError }: {
             {verdicts && (allPassed ? <CircleCheck size={18} className="text-green-500" /> : <CircleX size={18} className="text-red-500" />)}
             Bài {index + 1}. {problem.title}
           </h4>
-          <p className="text-xs text-[var(--text-secondary)]">{problem.chapter} · {chapterTitle(problem.chapter)}</p>
+          <p className="text-xs text-[var(--text-secondary)] flex flex-wrap items-center gap-1.5">
+            <DifficultyBadge level={problem.difficulty} /> {problem.chapter} · {chapterTitle(problem.chapter)}
+          </p>
         </div>
         <div className="text-right text-xs text-[var(--text-secondary)]">
           {score !== undefined && <div className="text-base font-semibold text-[var(--text-primary)]">{formatPoints(score)}/{formatPoints(problem.points)} điểm</div>}

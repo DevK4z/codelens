@@ -85,3 +85,27 @@ test('solutions are not loaded while an exam is in progress', async () => {
   assert.equal(loads, 0);
   assert.equal(document.body.textContent?.includes('LOI GIAI'), false);
 });
+
+test('the lobby lists the extended chapters and generates exams for the chosen difficulty', async () => {
+  cleanup(); localStorage.clear();
+  render(React.createElement(ExamMode, { theme: 'dark', onExit: () => {} }));
+  const builder = await waitFor(() => screen.getByRole('region', { name: 'Tạo đề theo chương' }));
+  for (const id of ['MR1', 'MR2', 'MR3']) assert.ok(within(builder).getByText(id), `${id} có trong danh sách chương`);
+  assert.ok(within(builder).getByText('Mở rộng (ngoài bài giảng)'));
+
+  const chip = (label: string) => within(builder).getByRole('button', { name: new RegExp(`^${label} \\(`) });
+  fireEvent.click(chip('Dễ'));
+  fireEvent.click(chip('Trung bình'));
+  assert.equal(chip('Khó').getAttribute('aria-pressed'), 'true');
+  assert.equal(chip('Dễ').getAttribute('aria-pressed'), 'false');
+  fireEvent.click(within(builder).getByRole('button', { name: /Tạo đề/ }));
+  const draft = within(builder).getByLabelText('Đề vừa tạo');
+  const items = [...draft.querySelectorAll('ol > li')];   // danh sách bài (không tính nội quy phòng thi)
+  assert.equal(items.length, 3);
+  for (const li of items) assert.ok(li.textContent?.includes('Khó'), li.textContent ?? '');
+  assert.ok(draft.textContent?.includes('· Khó'), 'tên đề ghi độ khó');
+
+  fireEvent.click(chip('Khó'));
+  assert.ok(within(builder).getByText('Chọn ít nhất một độ khó.'));
+  assert.equal((within(builder).getByRole('button', { name: /Tạo đề/ }) as HTMLButtonElement).disabled, true);
+});

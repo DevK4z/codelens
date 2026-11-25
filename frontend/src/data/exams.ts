@@ -1,13 +1,15 @@
-// Chế độ "Làm bài thi" (chỉ bài lập trình): kiểu dữ liệu, danh sách chương, đề có sẵn và trình tạo đề
-// theo chương. Nội dung bài nằm trong examBank.ts.
+// Chế độ "Làm bài thi" (chỉ bài lập trình): kiểu dữ liệu, danh sách chương, độ khó, đề có sẵn và trình
+// tạo đề theo chương và độ khó. Nội dung bài nằm trong examBank.ts.
 import { PROBLEM_BANK } from './examBank.ts';
 
 export interface ExamChapter {
   id: string;
   title: string;
+  /** true: chương mở rộng, không có trong bài giảng. */
+  extra?: boolean;
 }
 
-/** Các chương khớp với bài giảng (cùng mã chương với ngân hàng bài tập). */
+/** L1–L9 khớp với bài giảng (cùng mã chương với ngân hàng bài tập); MR1–MR3 là phần mở rộng. */
 export const EXAM_CHAPTERS: ExamChapter[] = [
   { id: 'L1', title: 'Giới thiệu & độ phức tạp' },
   { id: 'L2', title: 'Đệ quy & quay lui' },
@@ -19,7 +21,29 @@ export const EXAM_CHAPTERS: ExamChapter[] = [
   { id: 'L7', title: 'Sắp xếp cơ bản' },
   { id: 'L8', title: 'Merge Sort & Quick Sort' },
   { id: 'L9', title: 'Tìm kiếm & bảng băm' },
+  { id: 'MR1', title: 'Xâu ký tự', extra: true },
+  { id: 'MR2', title: 'Heap & hàng đợi ưu tiên', extra: true },
+  { id: 'MR3', title: 'Đồ thị', extra: true },
 ];
+
+export const LECTURE_CHAPTER_IDS = EXAM_CHAPTERS.filter(c => !c.extra).map(c => c.id);
+export const EXTRA_CHAPTER_IDS = EXAM_CHAPTERS.filter(c => c.extra).map(c => c.id);
+
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
+export const DIFFICULTIES: { id: Difficulty; label: string }[] = [
+  { id: 'easy', label: 'Dễ' },
+  { id: 'medium', label: 'Trung bình' },
+  { id: 'hard', label: 'Khó' },
+];
+
+export function difficultyLabel(d: Difficulty): string {
+  return DIFFICULTIES.find(x => x.id === d)?.label ?? d;
+}
+
+export function isDifficulty(v: unknown): v is Difficulty {
+  return v === 'easy' || v === 'medium' || v === 'hard';
+}
 
 export function chapterTitle(id: string): string {
   return EXAM_CHAPTERS.find(c => c.id === id)?.title ?? id;
@@ -39,6 +63,7 @@ export interface ExamTestCase {
 export interface BankProblem {
   id: string;
   chapter: string;
+  difficulty: Difficulty;
   title: string;
   statement: string;
   inputFormat: string;
@@ -138,9 +163,15 @@ export function examTotalPoints(exam: Exam): number {
 
 // ---------------- Trình tạo đề ----------------
 
-export function availableProblems(chapters: string[]): number {
+/** Bài thuộc các chương đã chọn; difficulties rỗng hoặc không truyền nghĩa là mọi độ khó. */
+function matching(chapters: string[], difficulties?: Difficulty[]): BankProblem[] {
   const set = new Set(chapters);
-  return PROBLEM_BANK.filter(p => set.has(p.chapter)).length;
+  const levels = difficulties && difficulties.length ? new Set(difficulties) : null;
+  return PROBLEM_BANK.filter(p => set.has(p.chapter) && (!levels || levels.has(p.difficulty)));
+}
+
+export function availableProblems(chapters: string[], difficulties?: Difficulty[]): number {
+  return matching(chapters, difficulties).length;
 }
 
 /** Thời gian gợi ý: 20 phút/bài, tối thiểu 15 phút. */
@@ -170,8 +201,9 @@ function shuffled<T>(items: T[], rnd: () => number): T[] {
 }
 
 /** Lấy count bài, chia đều lần lượt qua các chương (chương hết bài thì nhường cho chương khác). */
-function pickSpread(chapters: string[], count: number, rnd: () => number): BankProblem[] {
-  const groups = shuffled(chapters, rnd).map(ch => shuffled(PROBLEM_BANK.filter(p => p.chapter === ch), rnd)).filter(g => g.length > 0);
+function pickSpread(chapters: string[], difficulties: Difficulty[], count: number, rnd: () => number): BankProblem[] {
+  const pool = matching(chapters, difficulties);
+  const groups = shuffled(chapters, rnd).map(ch => shuffled(pool.filter(p => p.chapter === ch), rnd)).filter(g => g.length > 0);
   const out: BankProblem[] = [];
   while (out.length < count && groups.some(g => g.length > 0)) {
     for (const g of groups) {
@@ -185,6 +217,8 @@ function pickSpread(chapters: string[], count: number, rnd: () => number): BankP
 
 export interface GenerateOptions {
   chapters: string[];
+  /** Rỗng hoặc không truyền: mọi độ khó. */
+  difficulties?: Difficulty[];
   problemCount: number;
   durationMinutes?: number;
   proctored: boolean;
@@ -197,11 +231,16 @@ export function generateExamSpec(opts: GenerateOptions): ExamSpec {
   const rnd = seededRandom(seed);
   const chapters = [...new Set(opts.chapters)].filter(ch => EXAM_CHAPTERS.some(c => c.id === ch))
     .sort((a, b) => chapterRank(a) - chapterRank(b));
-  const problems = pickSpread(chapters, Math.max(0, Math.floor(opts.problemCount)), rnd);
-  const scope = chapters.length === EXAM_CHAPTERS.length ? 'tổng hợp L1–L9' : chapters.join(', ');
+  const levels = DIFFICULTIES.map(d => d.id).filter(d => opts.difficulties?.includes(d));
+  const problems = pickSpread(chapters, levels, Math.max(0, Math.floor(opts.problemCount)), rnd);
+  const scope = chapters.length === EXAM_CHAPTERS.length ? 'tổng hợp'
+    : chapters.join(',') === LECTURE_CHAPTER_IDS.join(',') ? 'tổng hợp L1–L9'
+      : chapters.join(', ');
+  // Chỉ ghi độ khó vào tên đề khi có lọc (chọn cả ba cũng như không lọc).
+  const level = levels.length > 0 && levels.length < DIFFICULTIES.length ? ` · ${levels.map(difficultyLabel).join(', ')}` : '';
   return {
     id: `custom-${seed}`,
-    title: `${opts.proctored ? 'Đề thi' : 'Luyện tập'} — ${scope}`,
+    title: `${opts.proctored ? 'Đề thi' : 'Luyện tập'} — ${scope}${level}`,
     description: `${problems.length} bài lập trình · ${chapters.map(chapterTitle).join(', ')}`,
     durationMinutes: Math.max(1, Math.round(opts.durationMinutes ?? suggestDuration(problems.length))),
     maxViolations: opts.maxViolations ?? 3,
