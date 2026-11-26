@@ -64,6 +64,9 @@ function ReviewCard({ index, item, solution, loadError }: {
   const untouched = code !== undefined && isStarterCode(code);
   const passed = verdicts?.filter(v => v === 'AC').length ?? 0;
   const allPassed = !!verdicts && verdicts.length > 0 && passed === verdicts.length;
+  // Làm bằng Python thì mở sẵn lời giải Python; các ngôn ngữ khác xem bản C++.
+  const [solutionLang, setSolutionLang] = useState<'cpp' | 'python'>(language === 'python' ? 'python' : 'cpp');
+  const shownLang = solutionLang === 'python' && solution?.python ? 'python' : 'cpp';
 
   return (
     <article className="rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] p-4 flex flex-col gap-3 text-sm" aria-label={`Xem lại bài ${index + 1}`}>
@@ -102,11 +105,23 @@ function ReviewCard({ index, item, solution, loadError }: {
             ? <p className="text-xs text-[var(--text-secondary)] rounded border border-dashed border-[var(--border)] p-3">Lần làm này được lưu trước khi có tính năng xem lại nên không có code.</p>
             : untouched
               ? <p className="text-xs text-[var(--text-secondary)] rounded border border-dashed border-[var(--border)] p-3">Bạn chưa viết bài này.</p>
-              : <HighlightedCode code={code} label={`Code của bạn cho bài ${index + 1}`} />}
+              : <HighlightedCode code={code} language={language} label={`Code của bạn cho bài ${index + 1}`} />}
         </section>
 
         <section className="flex flex-col gap-2 min-w-0" aria-label="Lời giải tối ưu">
-          <h5 className="font-medium flex items-center gap-1.5"><Lightbulb size={15} className="text-yellow-500" /> Lời giải tối ưu</h5>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h5 className="font-medium flex items-center gap-1.5"><Lightbulb size={15} className="text-yellow-500" /> Lời giải tối ưu</h5>
+            {solution?.python && (
+              <div className="flex rounded border border-[var(--border)] overflow-hidden text-xs" role="group" aria-label="Ngôn ngữ của lời giải">
+                {(['cpp', 'python'] as const).map(lang => (
+                  <button key={lang} onClick={() => setSolutionLang(lang)} aria-pressed={shownLang === lang}
+                    className={`px-2.5 py-1 ${shownLang === lang ? 'bg-[var(--accent)] text-white' : 'hover:bg-[var(--bg-secondary)]'}`}>
+                    {lang === 'cpp' ? 'C++' : 'Python'}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {loadError
             ? <p className="text-xs text-red-500">{loadError}</p>
             : solution === undefined
@@ -119,7 +134,8 @@ function ReviewCard({ index, item, solution, loadError }: {
                       <span><strong>Thời gian:</strong> {solution.time}</span>
                       <span><strong>Bộ nhớ:</strong> {solution.space}</span>
                     </p>
-                    <HighlightedCode code={solution.code} label={`Lời giải tối ưu cho bài ${index + 1}`} />
+                    <HighlightedCode code={shownLang === 'python' ? solution.python! : solution.code} language={shownLang}
+                      label={`Lời giải tối ưu (${shownLang === 'python' ? 'Python' : 'C++'}) cho bài ${index + 1}`} />
                   </>}
         </section>
       </div>

@@ -16,7 +16,7 @@ mock.module('./src/components/CodeEditor.tsx', {
 // import.meta.glob only exists under Vite; the real loader is covered by exams.test.ts compiling every file.
 let loads = 0;
 mock.module('./src/data/examSolutionLoader.ts', {
-  namedExports: { getSolution: (id: string) => { loads++; return { idea: `Ý tưởng cho ${id}`, time: 'O(n)', space: 'O(1)', code: `// LOI GIAI ${id}\nint main() {}` }; } },
+  namedExports: { getSolution: (id: string) => { loads++; return { idea: `Ý tưởng cho ${id}`, time: 'O(n)', space: 'O(1)', code: `// LOI GIAI ${id}\nint main() {}`, python: `# LOI GIAI PY ${id}\nprint(1)` }; } },
 });
 const { ExamMode } = await import('./src/components/ExamMode.tsx');
 const { PRESET_SPECS, resolveExam } = await import('./src/data/exams.ts');
@@ -42,7 +42,7 @@ test('after submitting, each problem shows my code next to the optimal solution'
   render(React.createElement(ExamMode, { theme: 'dark', onExit: () => {} }));
   const first = await waitFor(() => screen.getByRole('article', { name: 'Xem lại bài 1' }));
   assert.match(within(first).getByLabelText('Code của bạn cho bài 1').textContent ?? '', /CODE CUA TOI/);
-  await waitFor(() => assert.match(within(first).getByLabelText('Lời giải tối ưu cho bài 1').textContent ?? '', new RegExp(`LOI GIAI ${p1.id}`)));
+  await waitFor(() => assert.match(within(first).getByLabelText('Lời giải tối ưu (C++) cho bài 1').textContent ?? '', new RegExp(`LOI GIAI ${p1.id}`)));
   assert.match(first.textContent ?? '', new RegExp(`Ý tưởng cho ${p1.id}`));
   assert.match(first.textContent ?? '', /Thời gian:\s*O\(n\)/);
   assert.match(first.textContent ?? '', new RegExp(`1/${p1.tests.length} test đúng`));
@@ -108,4 +108,18 @@ test('the lobby lists the extended chapters and generates exams for the chosen d
   fireEvent.click(chip('Khó'));
   assert.ok(within(builder).getByText('Chọn ít nhất một độ khó.'));
   assert.equal((within(builder).getByRole('button', { name: /Tạo đề/ }) as HTMLButtonElement).disabled, true);
+});
+
+test('a Python submission opens the Python optimal solution, and C++ is one click away', async () => {
+  cleanup(); localStorage.clear();
+  saveSession({ ...submitted(), langs: { [p1.id]: 'python' as const } });
+  render(React.createElement(ExamMode, { theme: 'dark', onExit: () => {} }));
+  const first = await waitFor(() => screen.getByRole('article', { name: 'Xem lại bài 1' }));
+  const solution = await waitFor(() => within(first).getByLabelText('Lời giải tối ưu (Python) cho bài 1'));
+  assert.ok(solution.textContent?.includes(`# LOI GIAI PY ${p1.id}`));
+  fireEvent.click(within(first).getByRole('button', { name: 'C++' }));
+  assert.ok(within(first).getByLabelText('Lời giải tối ưu (C++) cho bài 1').textContent?.includes(`// LOI GIAI ${p1.id}`));
+  // Bài làm bằng C++ mở sẵn lời giải C++.
+  const second = screen.getByRole('article', { name: 'Xem lại bài 2' });
+  assert.ok(within(second).getByLabelText('Lời giải tối ưu (C++) cho bài 2'));
 });

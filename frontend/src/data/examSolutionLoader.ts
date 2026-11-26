@@ -3,14 +3,19 @@
 import { SOLUTION_NOTES } from './examSolutions.ts';
 import type { SolutionNote } from './examSolutions.ts';
 
-const SOURCES = import.meta.glob('./solutions/*.cpp', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const SOURCES = import.meta.glob('./solutions/*.{cpp,py}', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 export interface Solution extends SolutionNote {
+  /** Lời giải C++. */
   code: string;
+  /** Lời giải Python cùng ý tưởng (nếu có). */
+  python?: string;
 }
 
 export function getSolution(problemId: string): Solution | null {
   const code = SOURCES[`./solutions/${problemId}.cpp`];
+  const python = SOURCES[`./solutions/${problemId}.py`];
   const note = SOLUTION_NOTES[problemId];
-  return code && note ? { ...note, code } : null;
+  if (!code || !note) return null;
+  return python ? { ...note, code, python } : { ...note, code };
 }
