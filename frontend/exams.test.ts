@@ -277,3 +277,16 @@ test('each problem can be solved in another language; results only count for the
   recordHistory(entry, store);
   assert.deepEqual(loadHistory(store)[0].langs, { [p.id]: 'python' });
 });
+
+const hasPython = spawnSync('python3', ['--version']).status === 0;
+test('every problem has a Python solution that passes every test case', { skip: !hasPython && 'python3 not available' }, () => {
+  for (const p of PROBLEM_BANK) {
+    const file = solutionFile(p.id).replace(/\.cpp$/, '.py');
+    assert.ok(existsSync(file), `missing Python solution for ${p.id}`);
+    p.tests.forEach((t, i) => {
+      // -I: chế độ cô lập, không đọc biến môi trường hay thư mục hiện tại của người chạy test.
+      const out = execFileSync('python3', ['-I', file], { input: t.input, timeout: 20_000 }).toString();
+      assert.ok(outputsMatch(out, t.output), `${p.id}.py test ${i + 1}: got ${JSON.stringify(out.slice(0, 200))} want ${JSON.stringify(t.output.slice(0, 200))}`);
+    });
+  }
+});
