@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { CircleCheck, CircleX, Code2, Lightbulb, LoaderCircle } from 'lucide-react';
 import { DifficultyBadge } from './DifficultyBadge';
+import { isStarterCode, languageInfo } from '../data/languages';
+import type { ExamLanguage } from '../data/languages';
 import { HighlightedCode } from './HighlightedCode';
 import { chapterTitle } from '../data/exams';
 import type { CodeProblem } from '../data/exams';
@@ -30,6 +32,7 @@ export interface ReviewItem {
   verdicts?: TestVerdict[];
   score?: number;
   message?: string; // lỗi biên dịch / lỗi chạy đầu tiên
+  language?: ExamLanguage; // không có = C++
 }
 
 export function ExamReview({ items }: { items: ReviewItem[] }) {
@@ -57,8 +60,8 @@ export function ExamReview({ items }: { items: ReviewItem[] }) {
 function ReviewCard({ index, item, solution, loadError }: {
   index: number; item: ReviewItem; solution: Solution | null | undefined; loadError: string | null;
 }) {
-  const { problem, code, verdicts, score, message } = item;
-  const untouched = code !== undefined && code === problem.starterCode;
+  const { problem, code, verdicts, score, message, language } = item;
+  const untouched = code !== undefined && isStarterCode(code);
   const passed = verdicts?.filter(v => v === 'AC').length ?? 0;
   const allPassed = !!verdicts && verdicts.length > 0 && passed === verdicts.length;
 
@@ -94,7 +97,7 @@ function ReviewCard({ index, item, solution, loadError }: {
 
       <div className="grid lg:grid-cols-2 gap-3">
         <section className="flex flex-col gap-2 min-w-0" aria-label="Code của bạn">
-          <h5 className="font-medium flex items-center gap-1.5"><Code2 size={15} /> Code của bạn</h5>
+          <h5 className="font-medium flex items-center gap-1.5"><Code2 size={15} /> Code của bạn <span className="text-xs font-normal text-[var(--text-secondary)]">({languageInfo(language).label})</span></h5>
           {code === undefined
             ? <p className="text-xs text-[var(--text-secondary)] rounded border border-dashed border-[var(--border)] p-3">Lần làm này được lưu trước khi có tính năng xem lại nên không có code.</p>
             : untouched

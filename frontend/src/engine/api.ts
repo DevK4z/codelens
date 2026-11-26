@@ -143,6 +143,8 @@ export interface JudgeResult {
 export class JudgeUnsupported extends Error { name = 'JudgeUnsupported'; }
 
 export interface JudgeOptions {
+  /** Mặc định cpp. */
+  language?: string;
   standard?: 'gnu++17' | 'gnu++20';
   maxAttempts?: number;
   /** Called before each wait so the UI can say why grading paused. */
@@ -167,10 +169,10 @@ function isJudgeResult(body: any, count: number): body is JudgeResult {
  */
 export async function judgeCode(code: string, tests: { stdin: string; expected?: string }[], opts: JudgeOptions = {}): Promise<JudgeResult> {
   assertApiConfigured();
-  const { standard = 'gnu++17', maxAttempts = 4, onWait, wait = sleep } = opts;
+  const { language = 'cpp', standard = 'gnu++17', maxAttempts = 4, onWait, wait = sleep } = opts;
   const post = () => fetch(`${API_BASE}/v1/judge`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ code, language: 'cpp', standard, tests }),
+    body: JSON.stringify({ code, language, standard, tests }),
     // Every test of a submission runs inside this one request on a small CPU share.
     signal: AbortSignal.timeout(180000),
   });

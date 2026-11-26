@@ -1,5 +1,8 @@
 FROM alpine:3.20
-RUN apk add --no-cache g++ jq coreutils gdb python3
+# gcc (C) comes with g++; openjdk17-jdk and nodejs back the Java and JavaScript judges.
+RUN apk add --no-cache g++ jq coreutils gdb python3 openjdk17-jdk nodejs
+# Alpine keeps the JDK tools under /usr/lib/jvm; the jail's PATH only has /usr/local/bin:/usr/bin:/bin.
+RUN for tool in java javac jar; do ln -sf /usr/lib/jvm/default-jvm/bin/$tool /usr/local/bin/$tool; done
 # Precompile the headers programs start with, using exactly the flags run.sh uses. Parsing them
 # dominates compile time on a small CPU share (<bits/stdc++.h> about 23s, <iostream> about 4s at
 # 0.1 CPU). GCC uses a .gch only for the first #include of a file and only when flags and earlier

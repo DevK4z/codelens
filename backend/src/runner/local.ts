@@ -5,6 +5,36 @@ import { v4 as uuidv4 } from 'uuid';
 import { execFile } from 'child_process';
 import { Runner, RunResult, RunLimits } from './sandbox.js';
 import { TraceEvent } from '../types.js';
+import { JAVA_FLAGS, NODE_FLAGS, type Language } from './languages.js';
+
+interface LocalPlan { file: string; compile: [string, string[]] | null; run: [string, string[]] }
+
+// Compile and run commands per language, all inside the run's own temp directory.
+function plan(language: Language, dir: string, standard: string): LocalPlan {
+  const exe = path.join(dir, process.platform === 'win32' ? 'code.exe' : 'code');
+  switch (language) {
+    case 'c': {
+      const file = path.join(dir, 'code.c');
+      return { file, compile: ['gcc', ['-std=gnu17', '-O2', '-o', exe, file, '-lm']], run: [exe, []] };
+    }
+    case 'python': {
+      const file = path.join(dir, 'code.py');
+      return { file, compile: ['python3', ['-m', 'py_compile', file]], run: ['python3', [file]] };
+    }
+    case 'javascript': {
+      const file = path.join(dir, 'code.js');
+      return { file, compile: ['node', ['--check', file]], run: ['node', [...NODE_FLAGS, file]] };
+    }
+    case 'java': {
+      const file = path.join(dir, 'Main.java');
+      return { file, compile: ['javac', ['-encoding', 'UTF-8', '-d', dir, file]], run: ['java', [...JAVA_FLAGS, '-cp', dir, 'Main']] };
+    }
+    default: {
+      const file = path.join(dir, 'code.cpp');
+      return { file, compile: ['g++', [`-std=${standard}`, '-O0', '-g', '-o', exe, file]], run: [exe, []] };
+    }
+  }
+}
 
 export class LocalRunner implements Runner {
   async run(instrumentedCode: string, stdin: string, limits?: Partial<RunLimits>): Promise<RunResult> {
@@ -18,29 +48,32 @@ export class LocalRunner implements Runner {
     const tempDir = path.join(os.tmpdir(), uuidv4());
     fs.mkdirSync(tempDir, { recursive: true });
 
-    const codeFile = path.join(tempDir, 'code.cpp');
-    const exeFile = path.join(tempDir, process.platform === 'win32' ? 'code.exe' : 'code');
+    const steps = plan(currentLimits.language ?? 'cpp', tempDir, currentLimits.standard || 'gnu++17');
 
     try {
-      fs.writeFileSync(codeFile, instrumentedCode);
+      fs.writeFileSync(steps.file, instrumentedCode);
 
-      // Compile
-      await new Promise<void>((resolve, reject) => {
-        execFile('g++', [`-std=${currentLimits.standard || 'gnu++17'}`, '-O0', '-g', '-o', exeFile, codeFile], { windowsHide: true, timeout: 15000, maxBuffer: currentLimits.maxOutputBytes }, (error, stdout, stderr) => {
-          if (error) {
-            const err: any = new Error(`Compilation failed:\n${stderr}`);
-            err.name = 'CompilationError';
-            reject(err);
-          } else {
-            resolve();
-          }
+      // Compile (or syntax-check for interpreted languages)
+      if (steps.compile) {
+        const [command, args] = steps.compile;
+        await new Promise<void>((resolve, reject) => {
+          execFile(command, args, { cwd: tempDir, windowsHide: true, timeout: 15000, maxBuffer: currentLimits.maxOutputBytes }, (error, stdout, stderr) => {
+            if (error) {
+              const err: any = new Error(`Compilation failed:\n${stderr || stdout || error.message}`);
+              err.name = 'CompilationError';
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
         });
-      });
+      }
 
       // Run
       const startTime = Date.now();
       return await new Promise<RunResult>((resolve) => {
-        const child = execFile(exeFile, [], {
+        const child = execFile(steps.run[0], steps.run[1], {
+          cwd: tempDir,
           timeout: currentLimits.timeoutMs,
           maxBuffer: currentLimits.maxOutputBytes,
           windowsHide: true,

@@ -13,10 +13,11 @@ import { EXERCISES } from './src/data/exercises.ts';
 import { SAMPLES } from './src/data/samples.ts';
 import {
   EXAM_HISTORY_KEY, EXAM_HISTORY_LIMIT, EXAM_SESSION_KEY, chapterBreakdown, createSession, formatClock, formatPoints, historyEntry,
-  loadHistory, loadSession, normalizeOutput, outputsMatch, recordHistory, saveSession, scoreProblem, totalScore,
+  loadHistory, loadSession, normalizeOutput, outputsMatch, problemLanguage, problemScore, recordHistory, saveSession, scoreProblem, totalScore,
 } from './src/engine/examGrading.ts';
 import type { TestVerdict } from './src/engine/examGrading.ts';
 import { SOLUTION_NOTES } from './src/data/examSolutions.ts';
+import { LANGUAGES, isStarterCode, starterFor } from './src/data/languages.ts';
 
 const solutionFile = (id: string) => join(import.meta.dirname, 'src/data/solutions', `${id}.cpp`);
 
@@ -52,7 +53,7 @@ test('problem bank is well-formed, covers every chapter and is distinct from exi
     assert.ok(availableProblems([ch], [d]) >= 1, `${ch} cần ít nhất một bài ${d}`);
   }
   assert.ok(availableProblems(allChapters, ['hard']) >= 15, 'cần ít nhất 15 bài khó');
-  assert.equal(PROBLEM_BANK.length, 121);
+  assert.equal(PROBLEM_BANK.length, 159);
 });
 
 test('generator filters by difficulty and keeps the spread across chapters', () => {
@@ -241,4 +242,38 @@ test('history keeps code for review, sanitises stored data and survives a full s
   assert.equal(kept.length, 5, 'every attempt is still listed');
   assert.ok(kept[0].codes, 'the newest attempt keeps its code');
   assert.equal(kept[4].codes, undefined, 'the oldest attempt dropped its code');
+});
+
+test('each problem can be solved in another language; results only count for the language they were graded in', () => {
+  assert.deepEqual(LANGUAGES.map(l => l.id), ['cpp', 'c', 'python', 'java', 'javascript']);
+  for (const l of LANGUAGES) assert.ok(isStarterCode(l.starter) && isStarterCode(`\n${l.starter}  \n`), `${l.id} starter is recognised`);
+  assert.ok(!isStarterCode(starterFor('python') + 'print(1)\n'));
+  assert.ok(starterFor('java').includes('public class Main'), 'judge runs class Main');
+
+  const exam = PRESET_EXAMS[0];
+  const p = exam.problems[0];
+  const session = createSession(PRESET_SPECS[0], 1000);
+  assert.equal(problemLanguage(session, p.id), 'cpp', 'C++ by default');
+  const code = 'print(42)\n';
+  session.codes[p.id] = code;
+  session.langs = { [p.id]: 'python' };
+  session.results[p.id] = { code, verdicts: p.tests.map((): TestVerdict => 'AC'), score: p.points, language: 'python' };
+  assert.equal(problemScore(p, session), p.points);
+  // Same text graded as another language (or an old result without a language, i.e. C++) is stale.
+  session.results[p.id] = { ...session.results[p.id], language: undefined };
+  assert.equal(problemScore(p, session), 0);
+  session.results[p.id] = { ...session.results[p.id], language: 'python' };
+
+  const store = memoryStore();
+  saveSession(session, store);
+  const loaded = loadSession(store)!;
+  assert.deepEqual(loaded.langs, { [p.id]: 'python' });
+  store.setItem(EXAM_SESSION_KEY, JSON.stringify({ ...session, langs: { [p.id]: 'ruby' } }));
+  assert.equal(loadSession(store)!.langs, undefined, 'unknown languages are dropped');
+
+  const entry = historyEntry(exam, { ...session, submittedAt: 2000 }, examTotalPoints(exam));
+  assert.deepEqual(entry.langs, { [p.id]: 'python' });
+  assert.deepEqual(entry.verdicts?.[p.id], p.tests.map(() => 'AC'));
+  recordHistory(entry, store);
+  assert.deepEqual(loadHistory(store)[0].langs, { [p.id]: 'python' });
 });

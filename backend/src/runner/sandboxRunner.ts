@@ -5,12 +5,17 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Runner, RunResult, RunLimits } from './sandbox.js';
 import { readRunOutput } from './output.js';
+import { hasReusableBuild, type Language } from './languages.js';
 
 // For hosts that cannot start a container per run (Render has no Docker-in-Docker): the service
 // container is the outer boundary, and runner/jail.c isolates each run inside it. See runner/jail.c.
 const JAIL = '/usr/local/bin/codelens-jail';
 const RUN = '/usr/local/bin/codelens-run';
 const MEMORY_MB = Number(process.env.SANDBOX_MEMORY_MB || 512);
+// The JVM and V8 reserve much more address space than they touch; their heap flags (languages.ts,
+// run.sh) bound what they actually use.
+const VM_MEMORY_MB = Number(process.env.SANDBOX_VM_MEMORY_MB || 2048);
+const memoryFor = (language: Language) => (language === 'java' || language === 'javascript' ? VM_MEMORY_MB : MEMORY_MB);
 // GDB stepping on a 0.1 CPU share (Render free) needs more than the default 5s; run.sh caps it at 20s.
 const RUN_TIMEOUT_MS = Number(process.env.RUN_TIMEOUT_MS || 5000);
 // 0711: a run can enter its own directory but cannot list the others' names.
@@ -33,7 +38,7 @@ export interface Jailed { code: number; stdout: string; stderr: string; killed: 
 // `prepare` places files into the run directory (owned by the run's uid) before the jail starts.
 type Prepare = (dir: string, uid: number) => Promise<void>;
 
-async function jailed(program: string[], input: string, timeoutMs: number, maxBytes: number, prepare?: Prepare): Promise<Jailed> {
+async function jailed(program: string[], input: string, timeoutMs: number, maxBytes: number, prepare?: Prepare, memoryMb = MEMORY_MB): Promise<Jailed> {
   const uid = freeUids.shift();
   if (uid === undefined) throw new Error('Không còn uid trống cho sandbox.');
   await mkdir(RUNS_DIR, { recursive: true });
@@ -44,7 +49,7 @@ async function jailed(program: string[], input: string, timeoutMs: number, maxBy
     await chown(dir, uid, uid);
     await prepare?.(dir, uid);
     return await new Promise<Jailed>((resolve, reject) => {
-      const child = spawn(JAIL, [String(uid), String(MEMORY_MB), dir, ...program], { env: {}, stdio: 'pipe' });
+      const child = spawn(JAIL, [String(uid), String(memoryMb), dir, ...program], { env: {}, stdio: 'pipe' });
       const out: Buffer[] = [], err: Buffer[] = [];
       let bytes = 0, killed = false, overflow = false;
       const stop = () => { child.kill('SIGKILL'); void killUid(uid); };
@@ -115,7 +120,7 @@ async function placeBuild(build: string, dir: string, uid: number) {
 
 // Identical requests for programs whose behaviour cannot vary between runs get the recorded result.
 // Anything that reads the clock, randomness or the process id is always run again.
-const NONDETERMINISTIC = /\b(?:time|clock|rand|srand|random_device|mt19937(?:_64)?|default_random_engine|\w+_distribution|chrono|getpid|shuffle|random_shuffle)\b/;
+const NONDETERMINISTIC = /\b(?:time|clock|rand|srand|random_device|mt19937(?:_64)?|default_random_engine|\w+_distribution|chrono|getpid|shuffle|random_shuffle|random|Random|Math\.random|Date|perf_counter|nanoTime|currentTimeMillis|hrtime|performance|uuid|secrets|os\.urandom|SecureRandom|ThreadLocalRandom)\b/;
 const MAX_RESULTS = 32;
 const results = new Map<string, RunResult>();
 
@@ -148,7 +153,9 @@ export class SandboxRunner implements Runner {
   async run(code: string, stdin: string, limits?: Partial<RunLimits>): Promise<RunResult> {
     const current: RunLimits = { timeoutMs: RUN_TIMEOUT_MS, maxOutputBytes: 10 * 1024 * 1024, maxSteps: 10000, ...limits };
     const standard = current.standard || 'gnu++17';
-    const request = { code, stdin: stdin || '', standard, timeoutMs: current.timeoutMs, debugTrace: !!current.debugTrace, maxSteps: Math.min(current.maxSteps, 2000) };
+    const language = current.language ?? 'cpp';
+    const memory = memoryFor(language);
+    const request = { code, stdin: stdin || '', language, standard, timeoutMs: current.timeoutMs, debugTrace: !!current.debugTrace, maxSteps: Math.min(current.maxSteps, 2000) };
     const started = Date.now();
     const resultKey = createHash('sha256').update(JSON.stringify([request, current.captureTrace !== false, current.maxOutputBytes])).digest('hex');
     const cached = results.get(resultKey);
@@ -157,14 +164,21 @@ export class SandboxRunner implements Runner {
       return { ...structuredClone(cached), executionTimeMs: Date.now() - started };
     }
 
-    const buildKey = createHash('sha256').update(`${standard}\0${code}`).digest('hex');
-    let build = builds.get(buildKey);
-    if (build && !(await lstat(build).catch(() => undefined))) { builds.delete(buildKey); build = undefined; }
     // run.sh bounds compilation (25s) and execution itself; this outer limit only catches a stuck run.
-    const result = build
-      ? await jailed([RUN], JSON.stringify({ ...request, build: 'reuse' }), current.timeoutMs + 30000, current.maxOutputBytes, (dir, uid) => placeBuild(build!, dir, uid))
-      : takeBuild(await jailed([RUN], JSON.stringify({ ...request, build: 'emit' }), current.timeoutMs + 30000, current.maxOutputBytes + EMIT_ALLOWANCE),
-        current.maxOutputBytes, binary => storeBuild(buildKey, binary));
+    const outer = current.timeoutMs + 30000;
+    let result: Jailed;
+    if (hasReusableBuild(language)) {
+      // cpp keeps its original key so builds cached before other languages existed stay valid.
+      const buildKey = createHash('sha256').update(language === 'cpp' ? `${standard}\0${code}` : `${language}\0${code}`).digest('hex');
+      let build = builds.get(buildKey);
+      if (build && !(await lstat(build).catch(() => undefined))) { builds.delete(buildKey); build = undefined; }
+      result = build
+        ? await jailed([RUN], JSON.stringify({ ...request, build: 'reuse' }), outer, current.maxOutputBytes, (dir, uid) => placeBuild(build!, dir, uid), memory)
+        : takeBuild(await jailed([RUN], JSON.stringify({ ...request, build: 'emit' }), outer, current.maxOutputBytes + EMIT_ALLOWANCE, undefined, memory),
+          current.maxOutputBytes, binary => storeBuild(buildKey, binary));
+    } else {
+      result = await jailed([RUN], JSON.stringify(request), outer, current.maxOutputBytes, undefined, memory);
+    }
     assertIsolated(result);
     const output = this.output(result, current, started);
     if (!output.timeLimitExceeded && !result.overflow && !NONDETERMINISTIC.test(code)) remember(resultKey, output);

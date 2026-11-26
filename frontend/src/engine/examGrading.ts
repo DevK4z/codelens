@@ -1,5 +1,7 @@
 import { PRESET_SPECS, chapterRank, resolveExam, roundPoints } from '../data/exams.ts';
 import type { CodeProblem, Exam, ExamSpec } from '../data/exams.ts';
+import { DEFAULT_LANGUAGE, isExamLanguage } from '../data/languages.ts';
+import type { ExamLanguage } from '../data/languages.ts';
 
 export type TestVerdict = 'AC' | 'WA' | 'TLE' | 'CE' | 'RE' | 'ERR';
 
@@ -8,6 +10,8 @@ export interface ProblemResult {
   verdicts: TestVerdict[];
   score: number;
   message?: string;
+  /** Ngôn ngữ đã chấm; không có = C++ (các lần chấm trước khi hỗ trợ nhiều ngôn ngữ). */
+  language?: ExamLanguage;
 }
 
 export interface ExamSession {
@@ -16,6 +20,8 @@ export interface ExamSession {
   startedAt: number;
   endsAt: number;
   codes: Record<string, string>;
+  /** Ngôn ngữ đang dùng cho từng bài; bài không có trong đây dùng C++. */
+  langs?: Record<string, ExamLanguage>;
   results: Record<string, ProblemResult>;
   violations: { at: number; reason: string }[];
   flags: string[]; // id bài được đánh dấu "xem lại"
@@ -42,12 +48,21 @@ export function scoreProblem(problem: CodeProblem, verdicts: TestVerdict[]): num
   return problem.points * passed / problem.tests.length;
 }
 
-type Graded = Pick<ExamSession, 'results' | 'codes'>;
+type Graded = Pick<ExamSession, 'results' | 'codes' | 'langs'>;
 
-/** Điểm một bài chỉ tính khi kết quả chấm ứng với đúng code hiện tại. */
+export function problemLanguage(session: Pick<ExamSession, 'langs'>, problemId: string): ExamLanguage {
+  return session.langs?.[problemId] ?? DEFAULT_LANGUAGE;
+}
+
+/** Kết quả chấm ứng với đúng code và ngôn ngữ hiện tại của bài. */
+export function resultIsFresh(r: ProblemResult | undefined, code: string, language: ExamLanguage): r is ProblemResult {
+  return !!r && r.code === code && (r.language ?? DEFAULT_LANGUAGE) === language;
+}
+
+/** Điểm một bài chỉ tính khi kết quả chấm ứng với đúng code (và ngôn ngữ) hiện tại. */
 export function problemScore(p: CodeProblem, session: Graded): number {
   const r = session.results[p.id];
-  return r && r.code === (session.codes[p.id] ?? p.starterCode) ? r.score : 0;
+  return resultIsFresh(r, session.codes[p.id] ?? p.starterCode, problemLanguage(session, p.id)) ? r.score : 0;
 }
 
 export function totalScore(exam: Exam, session: Graded): number {
@@ -130,6 +145,8 @@ export function loadSession(store = storage()): ExamSession | null {
       violations: s.violations as ExamSession['violations'],
       flags: Array.isArray(s.flags) ? s.flags.filter((x): x is string => typeof x === 'string') : [],
     };
+    const langs = languageRecord(s.langs);
+    if (langs) session.langs = langs;
     if (typeof s.submittedAt === 'number') session.submittedAt = s.submittedAt;
     if (s.submitReason === 'manual' || s.submitReason === 'timeout' || s.submitReason === 'violations') session.submitReason = s.submitReason;
     return session;
@@ -159,6 +176,8 @@ export interface ExamHistoryEntry {
   /** Code đã nộp và kết quả từng test, để xem lại (không có ở các lần làm trước khi có tính năng này). */
   codes?: Record<string, string>;
   verdicts?: Record<string, TestVerdict[]>;
+  /** Ngôn ngữ của từng bài đã nộp (bài không có = C++). */
+  langs?: Record<string, ExamLanguage>;
 }
 
 /** Giới hạn mỗi bài để lịch sử 30 lần làm vẫn vừa localStorage. */
@@ -179,8 +198,9 @@ export function historyEntry(exam: Exam, session: ExamSession, max: number): Exa
     codes: Object.fromEntries(exam.problems.map(p => [p.id, (session.codes[p.id] ?? p.starterCode).slice(0, HISTORY_CODE_LIMIT)])),
     verdicts: Object.fromEntries(exam.problems.flatMap(p => {
       const r = session.results[p.id];
-      return r && r.code === (session.codes[p.id] ?? p.starterCode) ? [[p.id, r.verdicts]] : [];
+      return resultIsFresh(r, session.codes[p.id] ?? p.starterCode, problemLanguage(session, p.id)) ? [[p.id, r.verdicts]] : [];
     })),
+    ...(languageRecord(session.langs) ? { langs: languageRecord(session.langs) } : {}),
   };
 }
 
@@ -197,6 +217,8 @@ export function loadHistory(store = storage()): ExamHistoryEntry[] {
       const verdicts = verdictRecord(e.verdicts);
       if (codes) entry.codes = codes; else delete entry.codes;
       if (verdicts) entry.verdicts = verdicts; else delete entry.verdicts;
+      const langs = languageRecord(e.langs);
+      if (langs) entry.langs = langs; else delete entry.langs;
       return [entry];
     });
   } catch { return []; }
@@ -208,6 +230,12 @@ function stringRecord(value: unknown): Record<string, string> | undefined {
   if (!value || typeof value !== 'object') return undefined;
   const entries = Object.entries(value as Record<string, unknown>).filter((kv): kv is [string, string] => typeof kv[1] === 'string');
   return Object.fromEntries(entries);
+}
+
+function languageRecord(value: unknown): Record<string, ExamLanguage> | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const entries = Object.entries(value as Record<string, unknown>).filter((kv): kv is [string, ExamLanguage] => isExamLanguage(kv[1]));
+  return entries.length ? Object.fromEntries(entries) : undefined;
 }
 
 function verdictRecord(value: unknown): Record<string, TestVerdict[]> | undefined {

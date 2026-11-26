@@ -277,6 +277,7 @@ Health thành công chưa chứng minh biên dịch và thu trace đã hoạt đ
 | `RUNNER` | Backend | `docker`: container mới cho mỗi run (VPS); `sandbox`: jail trong container của service (Render, xem [DEPLOYMENT.md](DEPLOYMENT.md)); để trống ngoài production: LocalRunner chỉ phục vụ localhost |
 | `RUN_TIMEOUT_MS` | Backend (`sandbox`) | Giới hạn chạy mỗi chương trình; mặc định `5000`, tối đa `20000` (gói free của Render cần `20000`) |
 | `SANDBOX_MEMORY_MB` | Backend (`sandbox`) | Giới hạn bộ nhớ ảo mỗi tiến trình trong jail; mặc định `512` |
+| `SANDBOX_VM_MEMORY_MB` | Backend (`sandbox`) | Giới hạn bộ nhớ ảo cho bài Java và JavaScript (JVM/V8 giữ trước nhiều bộ nhớ ảo, heap vẫn bị giới hạn 192 MB bằng cờ); mặc định `2048` |
 | `RATE_LIMIT_PER_MIN` | Backend | Số lần tạo run mỗi phút cho mỗi khách; mặc định `20` |
 | `MAX_CONCURRENT_RUNS` | Backend | Số run chạy cùng lúc; mặc định `2` |
 | `MAX_QUEUED_RUNS` | Backend | Số run chờ tối đa, quá thì `503`; mặc định `8` |
@@ -355,7 +356,7 @@ Các lệnh trên là hướng dẫn kiểm tra, không phải tuyên bố phiê
 
 ## Làm bài thi (bài lập trình)
 
-- Nút **Làm bài thi** trên thanh tiêu đề mở phòng thi. Ngân hàng đề có 121 bài lập trình (`frontend/src/data/examBank.ts`), không trùng ngân hàng 104 bài tập: 10 bài cho mỗi chương L1–L9 theo bài giảng và 7 bài cho mỗi chương mở rộng MR1 Xâu ký tự, MR2 Heap & hàng đợi ưu tiên, MR3 Đồ thị. Mỗi bài có độ khó Dễ / Trung bình / Khó.
+- Nút **Làm bài thi** trên thanh tiêu đề mở phòng thi. Ngân hàng đề có 159 bài lập trình (`frontend/src/data/examBank.ts`), không trùng ngân hàng 104 bài tập: ít nhất 10 bài cho mỗi chương L1–L9 theo bài giảng (L2 Đệ quy & quay lui có 27, L3.1 Quy hoạch động có 22, L4 Danh sách liên kết có 19) và 7 bài cho mỗi chương mở rộng MR1 Xâu ký tự, MR2 Heap & hàng đợi ưu tiên, MR3 Đồ thị. Mỗi bài có độ khó Dễ / Trung bình / Khó.
 - **Tạo đề theo chương**: chọn các chương muốn kiểm tra, độ khó (một hoặc nhiều mức), số bài và thời gian (gợi ý 20 phút/bài). Bài được rải đều qua các chương đã chọn, thang 10 chia đều cho các bài. Có sẵn Đề A (60 phút) và Đề B (75 phút), mỗi đề 3 bài.
 - Hai chế độ: **thi có giám sát** và **luyện tập** (không giám sát). Hết giờ thì tự nộp.
 - Thi có giám sát: bắt buộc toàn màn hình, một màn hình, một tab. Bị tính vi phạm: thoát toàn màn hình (cộng thêm mỗi 15 giây chưa quay lại), chuyển tab/ứng dụng, tải lại trang, mở DevTools gắn trong cửa sổ, cắm thêm màn hình hoặc rê chuột ra ngoài màn hình thi quá 3 giây, mở bài thi ở tab thứ hai (tab đó bị khóa, không ghi đè bài làm), phím chụp màn hình. Dán, sao chép, cắt, kéo thả, chuột phải và phím tắt DevTools bị chặn; chèn một khối code lớn bất thường (≥ 60 ký tự không có sẵn trong bài) bị tính vi phạm và tự hoàn tác, còn hoàn tác/nhân đôi dòng/format lại thì không. Khi tạo đề có thể chọn tự nộp sau 1, 2, 3 hoặc 5 lần vi phạm. Logic phát hiện nằm ở `frontend/src/engine/proctoring.ts`.

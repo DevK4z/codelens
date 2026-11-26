@@ -16,7 +16,7 @@
     "test:debugger": "node --import tsx --test debugger.test.ts",
     "test:native": "node --import tsx --test native.test.ts",
     "test:cache": "node --import tsx --test build-cache.test.ts",
-    "test:judge": "node --import tsx --test judge.test.ts"
+    "test:judge": "node --import tsx --test judge.test.ts judge-languages.test.ts"
   },
   "dependencies": {
     "cors": "^2.8.6",

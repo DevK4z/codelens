@@ -8,9 +8,11 @@ interface CodeEditorProps {
   currentLine?: number;
   executionStep?: number;
   error?: string | null;
+  /** Mã ngôn ngữ Monaco; mặc định cpp. */
+  language?: string;
 }
 
-export function CodeEditor({ code, onChange, theme, currentLine, executionStep, error: _error }: CodeEditorProps) {
+export function CodeEditor({ code, onChange, theme, currentLine, executionStep, error: _error, language = 'cpp' }: CodeEditorProps) {
   const monaco = useMonaco();
   const editorRef = useRef<any>(null);
   const [followStep, setFollowStep] = useState(true);
@@ -51,7 +53,7 @@ export function CodeEditor({ code, onChange, theme, currentLine, executionStep, 
       <div className="flex-1 min-h-0">
         <Editor
           height="100%"
-          language="cpp"
+          language={language}
           theme={theme === 'dark' ? 'vs-dark' : 'light'}
           value={code}
           onChange={(val) => onChange(val || '')}
