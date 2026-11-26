@@ -1,6 +1,7 @@
 // Chế độ "Làm bài thi" (chỉ bài lập trình): kiểu dữ liệu, danh sách chương, độ khó, đề có sẵn và trình
 // tạo đề theo chương và độ khó. Nội dung bài nằm trong examBank.ts.
 import { PROBLEM_BANK } from './examBank.ts';
+import { starterFor } from './languages.ts';
 
 export interface ExamChapter {
   id: string;
@@ -101,16 +102,8 @@ export interface Exam {
   problems: CodeProblem[];
 }
 
-export const STARTER = `#include <bits/stdc++.h>
-using namespace std;
-
-int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-    // Viết lời giải ở đây
-
-    return 0;
-}`;
+/** Khung mẫu C++ (ngôn ngữ mặc định); khung của các ngôn ngữ khác nằm trong languages.ts. */
+export const STARTER = starterFor('cpp');
 
 const PROBLEM_MAP = new Map(PROBLEM_BANK.map(p => [p.id, p]));
 

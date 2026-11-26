@@ -3,6 +3,7 @@ import { createRunner, runnerKind } from '../runner/select.js';
 import { BusyError, isDirectLocal, LOCAL_RUNNER_PUBLIC_ERROR } from '../guard.js';
 import { ApiError, methodNotAllowed } from '../problem.js';
 import { gate } from './runs.js';
+import { LANGUAGES, isLanguage, type Language } from '../runner/languages.js';
 
 // Grades one submission against a set of test cases in a single request: one rate-limit hit and one
 // queue slot instead of one per test. SandboxRunner caches the build by source, so only the first
@@ -44,7 +45,7 @@ const preview = (text: string) => (text.length > PREVIEW_CHARS ? `${text.slice(0
 function readBody(req: Request) {
   if (!req.is('application/json')) throw new ApiError(415, 'unsupported_media_type', 'Gửi body dạng application/json.');
   const { code, language, standard = 'gnu++17', tests } = req.body ?? {};
-  if (language !== 'cpp') throw invalid('language phải là "cpp".');
+  if (!isLanguage(language)) throw invalid(`language phải là một trong: ${LANGUAGES.join(', ')}.`);
   if (!['gnu++17', 'gnu++20'].includes(standard)) throw invalid('standard phải là "gnu++17" hoặc "gnu++20".');
   if (typeof code !== 'string' || !code) throw invalid('code phải là chuỗi không rỗng.');
   if (code.length > 50000) throw invalid('code vượt giới hạn 50KB.');
@@ -56,14 +57,14 @@ function readBody(req: Request) {
       throw invalid(`tests[${i}].expected phải là chuỗi tối đa 64KB.`);
     return { stdin, expected: expected as string | undefined };
   });
-  return { code, standard: standard as 'gnu++17' | 'gnu++20', cases };
+  return { code, language: language as Language, standard: standard as 'gnu++17' | 'gnu++20', cases };
 }
 
 export async function judge(req: Request): Promise<JudgeResponse> {
   const kind = runnerKind();
   // LocalRunner has no isolation, so it only judges for the developer's own machine.
   if (kind === 'local' && !isDirectLocal(req)) throw new ApiError(503, 'local_runner_not_public', LOCAL_RUNNER_PUBLIC_ERROR);
-  const { code, standard, cases } = readBody(req);
+  const { code, language, standard, cases } = readBody(req);
   const runner = createRunner(kind);
   const started = Date.now();
   try {
@@ -73,7 +74,7 @@ export async function judge(req: Request): Promise<JudgeResponse> {
         let result;
         try {
           result = await runner.run(code, stdin, {
-            standard, captureTrace: false, debugTrace: false, timeoutMs: JUDGE_TIMEOUT_MS, maxOutputBytes: 1024 * 1024,
+            language, standard, captureTrace: false, debugTrace: false, timeoutMs: JUDGE_TIMEOUT_MS, maxOutputBytes: 1024 * 1024,
           });
         } catch (error: any) {
           if (error?.name === 'CompilationError' || error?.name === 'ParseError')

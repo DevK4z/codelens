@@ -1,4 +1,5 @@
 import { TraceEvent } from '../types.js';
+import type { Language } from './languages.js';
 
 export interface RunResult {
   trace: TraceEvent[];
@@ -11,6 +12,8 @@ export interface RunResult {
 }
 
 export interface RunLimits {
+  /** Defaults to cpp. Anything else is a plain run: no trace, no debugger. */
+  language?: Language;
   standard?: 'gnu++17' | 'gnu++20';
   captureTrace?: boolean;
   debugTrace?: boolean;

@@ -15,7 +15,8 @@ export class DockerRunner implements Runner {
 
     return await new Promise<RunResult>((resolve, reject) => {
       // The docker container will read a JSON payload containing 'code' and 'stdin'
-      const payload = JSON.stringify({ code: instrumentedCode, stdin: stdin || '', standard: currentLimits.standard || 'gnu++17', timeoutMs: currentLimits.timeoutMs, debugTrace: !!currentLimits.debugTrace, maxSteps: Math.min(currentLimits.maxSteps, 2000) });
+      const language = currentLimits.language ?? 'cpp';
+      const payload = JSON.stringify({ code: instrumentedCode, stdin: stdin || '', language, standard: currentLimits.standard || 'gnu++17', timeoutMs: currentLimits.timeoutMs, debugTrace: !!currentLimits.debugTrace, maxSteps: Math.min(currentLimits.maxSteps, 2000) });
 
       // Calculate a conservative memory and CPU limit based on Node.js constraints
       // Adding a buffer of a few seconds to docker timeout so the inner timeout triggers first
@@ -29,7 +30,8 @@ export class DockerRunner implements Runner {
         '--tmpfs', '/sandbox:rw,exec,nosuid,size=128m,mode=1777',
         '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m,mode=1777',
         '--network', 'none', // Critical: no network access
-        '--memory', '256m', // Limit memory
+        // The JVM and V8 need more headroom than native code; their heap flags cap what programs use.
+        '--memory', language === 'java' || language === 'javascript' ? '512m' : '256m',
         '--cpus', '1.0', // Limit CPU
         'codelens-sandbox'
       ];

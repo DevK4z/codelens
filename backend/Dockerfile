@@ -15,7 +15,10 @@ COPY runner/jail.c /src/jail.c
 RUN gcc -O2 -Wall -Wextra -Werror -o /codelens-jail /src/jail.c -lseccomp
 
 FROM node:22-alpine
-RUN apk add --no-cache g++ jq coreutils gdb python3 libseccomp tini
+# gcc (C) comes with g++ and node is already in the base image; openjdk17-jdk backs the Java judge.
+RUN apk add --no-cache g++ jq coreutils gdb python3 libseccomp tini openjdk17-jdk
+# Alpine keeps the JDK tools under /usr/lib/jvm; the jail's PATH only has /usr/local/bin:/usr/bin:/bin.
+RUN for tool in java javac jar; do ln -sf /usr/lib/jvm/default-jvm/bin/$tool /usr/local/bin/$tool; done
 COPY runner/gdb_trace.py runner/debug_result.py /usr/local/lib/codelens/
 COPY runner/run.sh /usr/local/bin/codelens-run
 COPY --from=jail /codelens-jail /usr/local/bin/codelens-jail

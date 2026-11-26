@@ -11,11 +11,13 @@ import {
   difficultyLabel, examTotalPoints, generateExamSpec, isDifficulty, resolveExam, suggestDuration,
 } from '../data/exams';
 import type { CodeProblem, Difficulty, Exam, ExamSpec } from '../data/exams';
+import { LANGUAGES, isStarterCode, languageInfo, starterFor } from '../data/languages';
+import type { ExamLanguage } from '../data/languages';
 import { JudgeUnsupported, executeCode, healthCheck, judgeCode } from '../engine/api';
 import type { JudgeVerdict } from '../engine/api';
 import {
   chapterBreakdown, clearHistory, clearSession, createSession, formatClock, formatPoints, historyEntry, loadHistory, loadSession,
-  outputsMatch, problemScore, recordHistory, saveSession, scoreProblem, totalScore,
+  outputsMatch, problemLanguage, problemScore, recordHistory, resultIsFresh, saveSession, scoreProblem, totalScore,
 } from '../engine/examGrading';
 import type { ChapterScore, ExamHistoryEntry, ExamSession, ProblemResult, TestVerdict } from '../engine/examGrading';
 import type { ThemeMode } from '../engine/types';
@@ -83,9 +85,15 @@ async function gradeOneByOne(problem: CodeProblem, code: string, onProgress?: (t
 }
 
 /** Chấm cả bài trong một request; tự chờ và thử lại khi máy chủ giới hạn, bận hoặc đang ngủ. */
-async function gradeProblem(problem: CodeProblem, code: string, onProgress?: (text: string) => void): Promise<ProblemResult> {
+async function gradeProblem(problem: CodeProblem, code: string, language: ExamLanguage, onProgress?: (text: string) => void): Promise<ProblemResult> {
+  const graded = await gradeWith(problem, code, language, onProgress);
+  return { ...graded, language };
+}
+
+async function gradeWith(problem: CodeProblem, code: string, language: ExamLanguage, onProgress?: (text: string) => void): Promise<ProblemResult> {
   try {
     const res = await judgeCode(code, problem.tests.map(t => ({ stdin: t.input, expected: t.output })), {
+      language,
       onWait: (seconds, reason) => onProgress?.(seconds > 0 ? `${reason}, tự thử lại sau ${seconds} giây…` : `${reason}…`),
     });
     if (res.status === 'compile_error') {
@@ -96,7 +104,10 @@ async function gradeProblem(problem: CodeProblem, code: string, onProgress?: (te
     const firstError = res.tests.find(t => t.verdict === 'runtime_error' && t.stderr.trim());
     return { code, verdicts, score: scoreProblem(problem, verdicts), message: firstError?.stderr.trim() || undefined };
   } catch (err) {
-    if (err instanceof JudgeUnsupported) return gradeOneByOne(problem, code, onProgress);
+    if (err instanceof JudgeUnsupported) {
+      if (language === 'cpp') return gradeOneByOne(problem, code, onProgress);
+      return { code, verdicts: problem.tests.map((): TestVerdict => 'ERR'), score: 0, message: `Backend chưa hỗ trợ chấm ${languageInfo(language).label}.` };
+    }
     const verdicts = problem.tests.map((): TestVerdict => 'ERR');
     return { code, verdicts, score: 0, message: err instanceof Error ? err.message : String(err) };
   }
@@ -156,13 +167,15 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
     const results: Record<string, ProblemResult> = { ...s.results };
     for (const p of ex.problems) {
       const code = s.codes[p.id] ?? p.starterCode;
-      if (code === p.starterCode) {
-        results[p.id] = { code, verdicts: p.tests.map(() => 'WA'), score: 0, message: 'Chưa làm bài.' };
+      const language = problemLanguage(s, p.id);
+      if (isStarterCode(code)) {
+        results[p.id] = { code, verdicts: p.tests.map(() => 'WA'), score: 0, message: 'Chưa làm bài.', language };
         continue;
       }
-      if (results[p.id]?.code === code && !results[p.id].verdicts.includes('ERR')) continue;
+      const prev = results[p.id];
+      if (resultIsFresh(prev, code, language) && !prev.verdicts.includes('ERR')) continue;
       setGrading(`Đang chấm ${p.title}…`);
-      results[p.id] = await gradeProblem(p, code, text => setGrading(`Đang chấm ${p.title}: ${text}`));
+      results[p.id] = await gradeProblem(p, code, language, text => setGrading(`Đang chấm ${p.title}: ${text}`));
     }
     setGrading(null);
     setSession(prev => prev && { ...prev, results, submittedAt: Date.now(), submitReason: reason });
@@ -363,9 +376,9 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
     const results = { ...s.results };
     for (const p of exam.problems) {
       const code = s.codes[p.id] ?? p.starterCode;
-      if (code === p.starterCode || !results[p.id]?.verdicts.includes('ERR')) continue;
+      if (isStarterCode(code) || !results[p.id]?.verdicts.includes('ERR')) continue;
       setGrading(`Đang chấm lại ${p.title}…`);
-      results[p.id] = await gradeProblem(p, code, text => setGrading(`Đang chấm lại ${p.title}: ${text}`));
+      results[p.id] = await gradeProblem(p, code, problemLanguage(s, p.id), text => setGrading(`Đang chấm lại ${p.title}: ${text}`));
     }
     setGrading(null);
     setSession(prev => prev && { ...prev, results });
@@ -412,7 +425,7 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
   const index = Math.min(current, exam.problems.length - 1);
   const problem = exam.problems[index];
   const remaining = session.endsAt - now;
-  const touchedCount = exam.problems.filter(p => (session.codes[p.id] ?? p.starterCode) !== p.starterCode).length;
+  const touchedCount = exam.problems.filter(p => !isStarterCode(session.codes[p.id] ?? p.starterCode)).length;
   const flags = new Set(session.flags);
   const changeCode = (p: CodeProblem, i: number, code: string) => {
     if (proctored) {
@@ -428,6 +441,14 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
       }
     }
     update(s => ({ ...s, codes: { ...s.codes, [p.id]: code } }));
+  };
+  // Đổi ngôn ngữ thay code bằng khung mẫu của ngôn ngữ mới (ProblemView hỏi lại trước nếu đã viết code).
+  // Không phải thao tác gõ phím nên đặt lại InsertGuard, tránh bị tính là dán code.
+  const changeLanguage = (p: CodeProblem, language: ExamLanguage) => {
+    const code = starterFor(language);
+    guardsRef.current.set(p.id, new InsertGuard(code));
+    update(s => ({ ...s, codes: { ...s.codes, [p.id]: code }, langs: { ...s.langs, [p.id]: language } }));
+    setEditorRevision(r => r + 1);
   };
   const toggleFlag = (id: string) => update(s => ({ ...s, flags: s.flags.includes(id) ? s.flags.filter(x => x !== id) : [...s.flags, id] }));
 
@@ -457,7 +478,7 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
           <p className="font-semibold">Bài lập trình ({touchedCount}/{exam.problems.length} đã viết)</p>
           <div className="flex md:flex-col gap-1.5 overflow-x-auto">
             {exam.problems.map((p, i) => {
-              const touched = (session.codes[p.id] ?? p.starterCode) !== p.starterCode;
+              const touched = !isStarterCode(session.codes[p.id] ?? p.starterCode);
               return (
                 <button key={p.id} onClick={() => setCurrent(i)} aria-current={index === i} title={`${p.chapter} · ${chapterTitle(p.chapter)} · ${difficultyLabel(p.difficulty)}`}
                   className={`relative px-2 py-1.5 rounded border text-left text-xs whitespace-nowrap md:whitespace-normal ${index === i ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]' : 'border-[var(--border)]'} ${touched ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-panel)]'}`}>
@@ -474,6 +495,7 @@ export function ExamMode({ theme, onExit }: ExamModeProps) {
           <ProblemView key={problem.id} problem={problem} index={index} theme={theme}
             flagged={flags.has(problem.id)} onToggleFlag={() => toggleFlag(problem.id)}
             code={session.codes[problem.id] ?? problem.starterCode}
+            language={problemLanguage(session, problem.id)} onLanguageChange={language => changeLanguage(problem, language)}
             editorRevision={editorRevision} onChange={code => changeCode(problem, index, code)} />
         </main>
       </div>
@@ -856,7 +878,7 @@ function HistoryReview({ entry }: { entry: ExamHistoryEntry }) {
     <ExamReview items={exam.problems.map(p => {
       const code = entry.codes?.[p.id];
       const verdicts = entry.verdicts?.[p.id];
-      return { problem: p, code, verdicts, score: verdicts ? scoreProblem(p, verdicts) : undefined };
+      return { problem: p, code, verdicts, language: entry.langs?.[p.id], score: verdicts ? scoreProblem(p, verdicts) : undefined };
     })} />
   );
 }
@@ -942,9 +964,10 @@ function ResultsView({ exam, session, grading, onRegrade, onRetake, onNew, onExi
         <h3 className="font-semibold">Xem lại bài làm</h3>
         <ExamReview items={exam.problems.map(p => {
           const code = session.codes[p.id] ?? p.starterCode;
+          const language = problemLanguage(session, p.id);
           const r = session.results[p.id];
-          const fresh = r && r.code === code;
-          return { problem: p, code, verdicts: fresh ? r.verdicts : undefined, score: problemScore(p, session), message: fresh ? r.message : undefined };
+          const fresh = resultIsFresh(r, code, language);
+          return { problem: p, code, language, verdicts: fresh ? r.verdicts : undefined, score: problemScore(p, session), message: fresh ? r.message : undefined };
         })} />
       </section>
 
@@ -981,10 +1004,20 @@ function FlagButton({ flagged, onToggle }: { flagged: boolean; onToggle: () => v
   );
 }
 
-function ProblemView({ problem, index, code, onChange, theme, flagged, onToggleFlag, editorRevision }: {
+function ProblemView({ problem, index, code, onChange, theme, flagged, onToggleFlag, editorRevision, language, onLanguageChange }: {
   problem: CodeProblem; index: number; code: string; onChange: (code: string) => void; theme: ThemeMode;
   flagged: boolean; onToggleFlag: () => void; editorRevision: number;
+  language: ExamLanguage; onLanguageChange: (language: ExamLanguage) => void;
 }) {
+  const info = languageInfo(language);
+  // Ngôn ngữ đang chờ xác nhận (đã viết code nên đổi sẽ mất code). Không dùng window.confirm: hộp thoại
+  // của trình duyệt làm mất focus và bị tính là vi phạm khi thi có giám sát.
+  const [pendingLanguage, setPendingLanguage] = useState<ExamLanguage | null>(null);
+  const pickLanguage = (next: ExamLanguage) => {
+    if (next === language) return;
+    if (isStarterCode(code)) { setPendingLanguage(null); setRunResults([]); onLanguageChange(next); }
+    else setPendingLanguage(next);
+  };
   const samples = problem.tests.filter(t => !t.hidden);
   const [running, setRunning] = useState(false);
   const [runResults, setRunResults] = useState<{ title: string; input: string; expected?: string; actual: string; ok?: boolean; error?: string }[]>([]);
@@ -994,6 +1027,7 @@ function ProblemView({ problem, index, code, onChange, theme, flagged, onToggleF
     setRunning(true);
     try {
       const res = await judgeCode(code, samples.map(t => ({ stdin: t.input, expected: t.output })), {
+        language,
         maxAttempts: 2,
         onWait: (seconds, reason) => setRunResults([{ title: 'Đang chờ máy chủ', input: '', actual: '', error: seconds > 0 ? `${reason}, tự thử lại sau ${seconds} giây…` : `${reason}…` }]),
       });
@@ -1004,7 +1038,7 @@ function ProblemView({ problem, index, code, onChange, theme, flagged, onToggleF
           error: r.verdict === 'time_limit_exceeded' ? 'Chương trình chạy quá thời gian.' : r.verdict === 'runtime_error' ? r.stderr || 'Lỗi khi chạy' : undefined,
         })));
     } catch (err) {
-      if (err instanceof JudgeUnsupported) await runSamplesOneByOne();
+      if (err instanceof JudgeUnsupported && language === 'cpp') await runSamplesOneByOne();
       else setRunResults([{ title: 'Không chạy được', input: '', actual: '', ok: false, error: err instanceof Error ? err.message : String(err) }]);
     }
     setRunning(false);
@@ -1029,12 +1063,27 @@ function ProblemView({ problem, index, code, onChange, theme, flagged, onToggleF
 
   const runCustom = async () => {
     setRunning(true);
+    const title = 'Input tự nhập';
     try {
-      const res = await executeCode(code, customInput, 'run', 'gnu++17');
-      const error = res.compilationError || (!res.success ? res.runtimeError || res.stderr || 'Lỗi khi chạy' : undefined);
-      setRunResults([{ title: 'Input tự nhập', input: customInput, actual: res.stdout || '', error }]);
+      // /v1/judge không kèm expected chỉ chạy và trả output (verdict "finished"), cho mọi ngôn ngữ.
+      const res = await judgeCode(code, [{ stdin: customInput }], { language, maxAttempts: 2 });
+      const r = res.tests[0];
+      setRunResults([res.status === 'compile_error' || !r
+        ? { title, input: customInput, actual: '', error: res.error ?? 'Lỗi biên dịch.' }
+        : { title, input: customInput, actual: r.stdout,
+          error: r.verdict === 'time_limit_exceeded' ? 'Chương trình chạy quá thời gian.' : r.verdict === 'runtime_error' ? r.stderr || 'Lỗi khi chạy' : undefined }]);
     } catch (err) {
-      setRunResults([{ title: 'Input tự nhập', input: customInput, actual: '', error: err instanceof Error ? err.message : String(err) }]);
+      if (err instanceof JudgeUnsupported && language === 'cpp') {
+        try {
+          const res = await executeCode(code, customInput, 'run', 'gnu++17');
+          const error = res.compilationError || (!res.success ? res.runtimeError || res.stderr || 'Lỗi khi chạy' : undefined);
+          setRunResults([{ title, input: customInput, actual: res.stdout || '', error }]);
+        } catch (inner) {
+          setRunResults([{ title, input: customInput, actual: '', error: inner instanceof Error ? inner.message : String(inner) }]);
+        }
+      } else {
+        setRunResults([{ title, input: customInput, actual: '', error: err instanceof Error ? err.message : String(err) }]);
+      }
     }
     setRunning(false);
   };
@@ -1062,8 +1111,25 @@ function ProblemView({ problem, index, code, onChange, theme, flagged, onToggleF
         ))}
       </section>
       <section className="flex-1 min-h-0 flex flex-col">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-[var(--border)] bg-[var(--bg-panel)] text-xs">
+          <label className="flex items-center gap-2 font-semibold">
+            Ngôn ngữ
+            <select aria-label="Ngôn ngữ lập trình" value={pendingLanguage ?? language} onChange={e => pickLanguage(e.target.value as ExamLanguage)} disabled={running}
+              className="px-2 py-1 rounded border border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-primary)] font-normal">
+              {LANGUAGES.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
+            </select>
+          </label>
+          {info.hint && !pendingLanguage && <span className="text-[var(--text-secondary)]">{info.hint}</span>}
+          {pendingLanguage && (
+            <span role="alert" className="flex flex-wrap items-center gap-2 text-orange-500">
+              Đổi sang {languageInfo(pendingLanguage).label} sẽ thay code hiện tại bằng khung mẫu.
+              <button onClick={() => { onLanguageChange(pendingLanguage); setPendingLanguage(null); setRunResults([]); }} className="px-2 py-0.5 rounded bg-orange-500 text-white">Đổi</button>
+              <button onClick={() => setPendingLanguage(null)} className="px-2 py-0.5 rounded border border-[var(--border)] text-[var(--text-primary)]">Giữ code</button>
+            </span>
+          )}
+        </div>
         <div className="flex-1 min-h-[300px]">
-          <CodeEditor key={editorRevision} code={code} onChange={onChange} theme={theme} />
+          <CodeEditor key={editorRevision} code={code} onChange={onChange} theme={theme} language={info.monaco} />
         </div>
         <div className="border-t border-[var(--border)] bg-[var(--bg-panel)] p-3 flex flex-col gap-2 max-h-[45%] overflow-auto text-sm">
           <div className="flex flex-wrap items-center gap-2">
